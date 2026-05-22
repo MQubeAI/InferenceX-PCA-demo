@@ -9,7 +9,8 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import type { BenchmarkRow } from './queries/benchmarks.js';
 import type { EvalRow } from './queries/evaluations.js';
@@ -168,7 +169,11 @@ function getStore(): Store {
 
   // Resolve relative paths from the monorepo root (packages/db/../../), not CWD,
   // since Next.js runs from packages/app/ but .env paths are repo-root-relative.
-  const pkgRoot = resolve(import.meta.dirname, '..');
+  // import.meta.dirname is undefined under Turbopack bundling — derive from
+  // import.meta.url instead, which Turbopack rewrites to a usable file URL.
+  // oxlint-disable-next-line unicorn/prefer-import-meta-properties -- import.meta.dirname is undefined under Turbopack; this is the fallback.
+  const thisDir = import.meta.dirname ?? dirname(fileURLToPath(import.meta.url));
+  const pkgRoot = resolve(thisDir, '..');
   const monoRoot = resolve(pkgRoot, '../..');
   const resolvedDir = existsSync(resolve(dir)) ? resolve(dir) : resolve(monoRoot, dir);
 
