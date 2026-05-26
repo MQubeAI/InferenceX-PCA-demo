@@ -12,21 +12,21 @@ import { bucketComparePairsByVendor, formatModelList } from '@/lib/compare-ssr';
 export const dynamic = 'force-dynamic';
 
 const DESCRIPTION =
-  'Browse head-to-head GPU inference benchmark comparisons across every model and hardware pair we test. Latency, throughput, and cost for DeepSeek R1, Kimi K2.5/K2.6, GLM 5/5.1, Qwen 3.5, and more.';
+  'GPU performance per dollar — head-to-head cost per million tokens across every model and hardware pair we benchmark. Performance normalized by owning-hyperscaler TCO for DeepSeek R1, Kimi K2.5/K2.6, GLM 5/5.1, Qwen 3.5, and more. Pick the cheapest SKU for your workload.';
 
 export const metadata: Metadata = {
-  title: 'GPU Comparisons',
+  title: 'GPU Performance per Dollar',
   description: DESCRIPTION,
-  alternates: { canonical: `${SITE_URL}/compare` },
+  alternates: { canonical: `${SITE_URL}/compare-per-dollar` },
   openGraph: {
-    title: `GPU Comparisons | ${SITE_NAME}`,
+    title: `GPU Performance per Dollar | ${SITE_NAME}`,
     description: DESCRIPTION,
-    url: `${SITE_URL}/compare`,
+    url: `${SITE_URL}/compare-per-dollar`,
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: `GPU Comparisons | ${SITE_NAME}`,
+    title: `GPU Performance per Dollar | ${SITE_NAME}`,
     description: DESCRIPTION,
   },
 };
@@ -46,21 +46,21 @@ function groupPairsByVendorForModel(
   if (cross.length > 0) {
     groups.push({
       heading: 'NVIDIA vs AMD',
-      description: 'Cross-vendor comparisons across architecture generations.',
+      description: 'Cross-vendor cost-per-token comparisons across architecture generations.',
       pairs: cross,
     });
   }
   if (nvidia.length > 0) {
     groups.push({
       heading: 'NVIDIA vs NVIDIA',
-      description: 'Hopper and Blackwell generation comparisons.',
+      description: 'Hopper and Blackwell generation cost-per-token comparisons.',
       pairs: nvidia,
     });
   }
   if (amd.length > 0) {
     groups.push({
       heading: 'AMD vs AMD',
-      description: 'CDNA 3 and CDNA 4 generation comparisons.',
+      description: 'CDNA 3 and CDNA 4 generation cost-per-token comparisons.',
       pairs: amd,
     });
   }
@@ -70,17 +70,17 @@ function groupPairsByVendorForModel(
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
-  name: `GPU Comparisons | ${SITE_NAME}`,
+  name: `GPU Performance per Dollar | ${SITE_NAME}`,
   description: DESCRIPTION,
-  url: `${SITE_URL}/compare`,
+  url: `${SITE_URL}/compare-per-dollar`,
 };
 
-export default async function CompareIndexPage() {
-  // Server-side filter: only show (model, pair) combinations where both GPUs
-  // have benchmark data for that model. Avoids cards that would link to an
-  // empty-state page. The page-level handler at /compare/[slug] still renders
-  // the empty-state for direct URL hits, so this is purely a navigation
-  // hygiene concern.
+export default async function ComparePerDollarIndexPage() {
+  // Server-side filter (Neon availability): only show (model, pair) combos
+  // where both GPUs have benchmark data for that model. Matches the /compare
+  // index's behavior — no empty-state cards in navigation. The page-level
+  // handler at /compare-per-dollar/[slug] still renders the empty-state for
+  // direct URL hits.
   const comparablePairsByModel = await getComparablePairsByModelSlug();
   const totalUrls = [...comparablePairsByModel.values()].reduce((s, p) => s + p.length, 0);
   const modelsWithPairs = COMPARE_MODEL_SLUGS.filter(
@@ -92,11 +92,14 @@ export default async function CompareIndexPage() {
       <JsonLd data={jsonLd} />
       <section>
         <Card>
-          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight">GPU Comparisons</h1>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight">
+            GPU Performance per Dollar
+          </h1>
           <p className="mt-3 text-base lg:text-lg text-muted-foreground max-w-3xl">
-            {totalUrls.toLocaleString()} head-to-head inference benchmark comparisons across{' '}
-            {formatModelList(modelsWithPairs)}. Each page includes interactive charts for latency,
-            throughput, and cost metrics, plus an interpolated comparison table.
+            {totalUrls.toLocaleString()} head-to-head cost-per-million-tokens comparisons across{' '}
+            {formatModelList(modelsWithPairs)}. Performance normalized by owning-hyperscaler TCO —
+            each page renders the cost-per-token chart and an interpolated dollars-per-million
+            comparison table so you can pick the cheaper SKU at any target interactivity level.
           </p>
         </Card>
       </section>
@@ -110,8 +113,8 @@ export default async function CompareIndexPage() {
               <div>
                 <h2 className="text-xl lg:text-2xl font-bold tracking-tight">{model.label}</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {pairs.length} GPU pair{pairs.length === 1 ? '' : 's'} with benchmark data on{' '}
-                  {model.label}.
+                  {pairs.length} GPU pair{pairs.length === 1 ? '' : 's'} with cost-per-token
+                  benchmark data on {model.label}.
                 </p>
               </div>
               {groups.map((group) => (
@@ -128,7 +131,7 @@ export default async function CompareIndexPage() {
                       return (
                         <ComparePairCardLink
                           key={slug}
-                          href={`/compare/${slug}`}
+                          href={`/compare-per-dollar/${slug}`}
                           slug={slug}
                           label={label}
                           archLine={archLine}
