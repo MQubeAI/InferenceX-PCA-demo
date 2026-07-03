@@ -12,6 +12,7 @@
 
 # testing
 **/coverage
+.pytest_cache/
 
 # next.js
 **/.next
@@ -22,6 +23,7 @@
 
 # misc
 **/.DS_Store
+.DS_Store
 **/*.pem
 
 # debug
@@ -44,9 +46,11 @@
 # database dumps
 **/inferencex-dump*
 **/inferencex-backup-*.dump
+inferencex-dump-*/
 
 # local data
 .worktrees/
+exports/
 **/gcs
 **/logs
 **/public/data/*
@@ -71,3 +75,21 @@ C:*
 # python bytecode (e.g. .claude/skills/*/iso-interactivity.py imports)
 **/__pycache__/
 **/*.pyc
+*.pyc
+.venv*/
+__pycache__/
+.streamlit/secrets.toml
+
+# Local InferenceX data dumps
+inferencex-dump-*/
+exports/
+
+# Python/Streamlit local files
+.venv*/
+__pycache__/
+.pytest_cache/
+*.pyc
+.streamlit/secrets.toml
+
+# macOS
+.DS_Store

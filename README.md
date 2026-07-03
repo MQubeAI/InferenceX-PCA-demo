@@ -82,6 +82,48 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser.
 
+## Streamlit PCA Demo
+
+The sidecar PCA demo at `apps/inferencex_pca_demo.py` helps teammates explore
+the local InferenceX JSON dump without running Postgres or the production
+Next.js dashboard. It provides data understanding, PCA on setup/configuration
+features, target-aware feature importance, and an executive Findings tab.
+
+Required local data files:
+
+- `benchmark_results.json`
+- `configs.json`
+
+The app intentionally skips giant raw files such as `server_logs.json` and
+`eval_samples.json`. The dump is not committed to GitHub; each teammate needs
+their own local `inferencex-dump-2026-06-29` folder or an equivalent mounted
+data path selected in the app sidebar.
+
+Download and unpack the InferenceX dump separately, following the JSON dump
+instructions above or using your team's approved storage location. Place the
+folder at the repo root, for example:
+
+```text
+InferenceX-app/
+  inferencex-dump-2026-06-29/
+    benchmark_results.json
+    configs.json
+```
+
+Run locally:
+
+```bash
+python3 -m venv .venv-streamlit
+source .venv-streamlit/bin/activate
+python3 -m pip install -r requirements-streamlit.txt
+python3 -m streamlit run apps/inferencex_pca_demo.py
+```
+
+Keep local dump directories, exports, virtualenvs, caches, and Streamlit secrets
+out of git. Local deployment is straightforward when the dump is available on
+disk. Cloud deployment requires a safe data access plan: do not upload huge dump
+files directly to GitHub and do not commit secrets.
+
 ## Development Scripts
 
 These are the main scripts you'll use during development. Admin scripts for database and cache management are listed separately below.
