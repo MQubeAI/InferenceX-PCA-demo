@@ -21,7 +21,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
-DEFAULT_DUMP_DIR = "inferencex-dump-2026-06-29"
+DEFAULT_DATA_DIR = "inferencex-pca-data"
+DEFAULT_JSON_DUMP_DIR = "inferencex-dump-2026-06-29"
+REQUIRED_CSV_FILES = ("benchmark_results.csv", "configs.csv")
+REQUIRED_JSON_FILES = ("benchmark_results.json", "configs.json")
 ANALYSIS_UNIT_OPTIONS = (
     "Raw benchmark rows",
     "Latest row per config/workload/concurrency",
@@ -119,64 +122,103 @@ def normalize_records(records: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 def prefix_config_columns(configs: pd.DataFrame) -> pd.DataFrame:
-    if "id" not in configs.columns:
+    if "id" in configs.columns:
+        renamed = configs.rename(columns={"id": "config_id"}).copy()
+    elif "config_id" in configs.columns:
+        renamed = configs.copy()
+    else:
         return configs
-
-    renamed = configs.rename(columns={"id": "config_id"}).copy()
     renamed.columns = [
-        column if column == "config_id" else f"config_{column}"
+        column
+        if column == "config_id" or column.startswith("config_")
+        else f"config_{column}"
         for column in renamed.columns
     ]
     return renamed
 
 
-@st.cache_data(show_spinner="Loading benchmark_results.json and configs.json")
-def load_joined_data(dump_dir_text: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    dump_dir = Path(dump_dir_text).expanduser()
-    if not dump_dir.is_absolute():
-        dump_dir = Path.cwd() / dump_dir
-
-    benchmark_path = dump_dir / "benchmark_results.json"
-    configs_path = dump_dir / "configs.json"
-    missing = [path.name for path in (benchmark_path, configs_path) if not path.exists()]
-    if missing:
-        raise FileNotFoundError(f"Missing required dump file(s): {', '.join(missing)}")
-
-    benchmarks = normalize_records(read_records_json(benchmark_path))
-    configs = prefix_config_columns(normalize_records(read_records_json(configs_path)))
-
+def join_benchmarks_configs(
+    benchmarks: pd.DataFrame,
+    configs: pd.DataFrame,
+) -> pd.DataFrame:
     if "id" in benchmarks.columns:
         benchmarks = benchmarks.rename(columns={"id": "benchmark_id"})
 
     if "config_id" not in benchmarks.columns or "config_id" not in configs.columns:
-        joined = benchmarks.copy()
-    else:
-        joined = benchmarks.merge(configs, on="config_id", how="left", validate="many_to_one")
+        return benchmarks.copy()
 
-    return benchmarks, configs, joined
-
-
-def resolved_dump_dir(dump_dir_text: str) -> Path:
-    dump_dir = Path(dump_dir_text).expanduser()
-    if not dump_dir.is_absolute():
-        dump_dir = Path.cwd() / dump_dir
-    return dump_dir
+    overlapping = [
+        column
+        for column in configs.columns
+        if column != "config_id" and column in benchmarks.columns
+    ]
+    configs_for_join = configs.drop(columns=overlapping)
+    return benchmarks.merge(configs_for_join, on="config_id", how="left", validate="many_to_one")
 
 
-def required_dump_file_status(dump_dir_text: str) -> pd.DataFrame:
-    dump_dir = resolved_dump_dir(dump_dir_text)
+def resolve_data_dir(data_dir_text: str) -> Path:
+    data_dir = Path(data_dir_text).expanduser()
+    if not data_dir.is_absolute():
+        data_dir = Path.cwd() / data_dir
+    return data_dir
+
+
+def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]]:
+    csv_dir = resolve_data_dir(data_dir_text)
+    json_dir = resolve_data_dir(DEFAULT_JSON_DUMP_DIR)
     rows = []
-    for file_name in ("benchmark_results.json", "configs.json"):
-        path = dump_dir / file_name
-        rows.append(
-            {
-                "file": file_name,
-                "found": path.exists(),
-                "path": str(path),
-                "size_mb": path.stat().st_size / (1024 * 1024) if path.exists() else np.nan,
-            }
-        )
-    return pd.DataFrame(rows)
+    for mode, directory, files in (
+        ("CSV", csv_dir, REQUIRED_CSV_FILES),
+        ("JSON fallback", json_dir, REQUIRED_JSON_FILES),
+    ):
+        for file_name in files:
+            path = directory / file_name
+            rows.append(
+                {
+                    "mode": mode,
+                    "file": file_name,
+                    "found": path.exists(),
+                    "path": str(path),
+                    "size_mb": path.stat().st_size / (1024 * 1024) if path.exists() else np.nan,
+                }
+            )
+    status = pd.DataFrame(rows)
+    csv_ready = bool(status[status["mode"] == "CSV"]["found"].all())
+    json_ready = bool(status[status["mode"] == "JSON fallback"]["found"].all())
+    active_mode = "CSV" if csv_ready else "JSON fallback" if json_ready else "missing"
+    active_dir = csv_dir if active_mode == "CSV" else json_dir if active_mode == "JSON fallback" else csv_dir
+    return status, {
+        "csv_ready": csv_ready,
+        "json_ready": json_ready,
+        "active_mode": active_mode,
+        "active_dir": active_dir,
+    }
+
+
+@st.cache_data(show_spinner="Loading benchmark/config data")
+def load_joined_data(data_dir_text: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    status, source_info = data_source_status(data_dir_text)
+    active_mode = source_info["active_mode"]
+
+    if active_mode == "CSV":
+        data_dir = source_info["active_dir"]
+        benchmarks = pd.read_csv(data_dir / "benchmark_results.csv", low_memory=False)
+        configs = prefix_config_columns(pd.read_csv(data_dir / "configs.csv", low_memory=False))
+        joined = join_benchmarks_configs(benchmarks, configs)
+        return benchmarks, configs, joined, source_info
+
+    if active_mode == "JSON fallback":
+        dump_dir = source_info["active_dir"]
+        benchmarks = normalize_records(read_records_json(dump_dir / "benchmark_results.json"))
+        configs = prefix_config_columns(normalize_records(read_records_json(dump_dir / "configs.json")))
+        joined = join_benchmarks_configs(benchmarks, configs)
+        return benchmarks, configs, joined, source_info
+
+    missing = status[~status["found"]][["mode", "file", "path"]]
+    raise FileNotFoundError(
+        "Missing required CSV files and JSON fallback files:\n"
+        + missing.to_string(index=False)
+    )
 
 
 def numeric_columns(frame: pd.DataFrame) -> list[str]:
@@ -1206,25 +1248,28 @@ def build_data_quality_markdown(report: dict[str, Any]) -> str:
 
 
 @st.cache_data(show_spinner=False)
-def load_optional_small_tables(dump_dir_text: str, max_mb: float = 10.0) -> dict[str, pd.DataFrame]:
-    dump_dir = Path(dump_dir_text).expanduser()
-    if not dump_dir.is_absolute():
-        dump_dir = Path.cwd() / dump_dir
+def load_optional_small_tables(data_dir_text: str, max_mb: float = 10.0) -> dict[str, pd.DataFrame]:
+    data_dir = resolve_data_dir(data_dir_text)
+    json_dir = resolve_data_dir(DEFAULT_JSON_DUMP_DIR)
     tables: dict[str, pd.DataFrame] = {}
-    for file_name in (
-        "availability.json",
-        "run_stats.json",
-        "eval_results.json",
-        "changelog_entries.json",
-        "workflow_runs.json",
+    for table_name in (
+        "availability",
+        "run_stats",
+        "eval_results",
+        "changelog_entries",
+        "workflow_runs",
     ):
-        path = dump_dir / file_name
-        if not path.exists() or path.stat().st_size > max_mb * 1024 * 1024:
+        csv_path = data_dir / f"{table_name}.csv"
+        json_path = json_dir / f"{table_name}.json"
+        if csv_path.exists() and csv_path.stat().st_size <= max_mb * 1024 * 1024:
+            tables[table_name] = pd.read_csv(csv_path, low_memory=False)
+            continue
+        if not json_path.exists() or json_path.stat().st_size > max_mb * 1024 * 1024:
             continue
         try:
-            tables[file_name.removesuffix(".json")] = normalize_records(read_records_json(path))
+            tables[table_name] = normalize_records(read_records_json(json_path))
         except ValueError:
-            continue
+            pass
     return tables
 
 
@@ -1260,7 +1305,7 @@ def render_data_understanding(
     joined: pd.DataFrame,
     analysis_frame: pd.DataFrame,
     analysis_metadata: dict[str, Any],
-    dump_dir: str,
+    data_dir: str,
     max_rows: int,
     seed: int,
 ) -> None:
@@ -1282,17 +1327,18 @@ def render_data_understanding(
     st.subheader("Dataset Map")
     st.markdown(
         """
-        The local dump contains several related JSON files:
+        The local data folder contains CSV exports for team sharing, with JSON dump fallback
+        for local development:
 
         | File | Status in this app | Purpose |
         | --- | --- | --- |
-        | `benchmark_results.json` | Loaded | Raw benchmark rows, workload shape, metrics, provenance ids. |
-        | `configs.json` | Loaded | Model/hardware/framework/precision/setup fields. |
-        | `workflow_runs.json` | Optional small side table | Run provenance and workflow metadata. |
-        | `eval_results.json` | Optional small side table | Evaluation results, if later joined for eval analysis. |
-        | `availability.json` | Optional small side table | Model/date availability metadata. |
-        | `run_stats.json` | Optional small side table | Run-level stats. |
-        | `changelog_entries.json` | Optional small side table | Human-readable changelog notes. |
+        | `benchmark_results.csv` / `.json` | Loaded | Raw benchmark rows, workload shape, metrics, provenance ids. |
+        | `configs.csv` / `.json` | Loaded | Model/hardware/framework/precision/setup fields. |
+        | `workflow_runs.csv` / `.json` | Optional small side table | Run provenance and workflow metadata. |
+        | `eval_results.csv` / `.json` | Optional small side table | Evaluation results, if later joined for eval analysis. |
+        | `availability.csv` / `.json` | Optional small side table | Model/date availability metadata. |
+        | `run_stats.csv` / `.json` | Optional small side table | Run-level stats. |
+        | `changelog_entries.csv` / `.json` | Optional small side table | Human-readable changelog notes. |
         | `server_logs.json` | Intentionally skipped | Huge raw logs; use only for audits outside this app. |
         | `eval_samples.json` | Intentionally skipped | Huge raw eval samples; not needed for PCA. |
 
@@ -1327,7 +1373,7 @@ def render_data_understanding(
         )
 
     if st.checkbox("Optionally load small side tables", value=False):
-        optional_tables = load_optional_small_tables(dump_dir)
+        optional_tables = load_optional_small_tables(data_dir)
         if optional_tables:
             st.dataframe(
                 pd.DataFrame(
@@ -2303,7 +2349,7 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Data")
-        dump_dir = st.text_input("Dump directory", value=DEFAULT_DUMP_DIR)
+        data_dir = st.text_input("Data directory", value=DEFAULT_DATA_DIR)
         analysis_unit = st.selectbox(
             "Analysis Unit",
             options=ANALYSIS_UNIT_OPTIONS,
@@ -2321,28 +2367,40 @@ def main() -> None:
             step=500,
         )
         seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
-        st.caption("Only benchmark_results.json and configs.json are loaded.")
+        st.caption("CSV mode loads benchmark_results.csv and configs.csv; JSON fallback remains supported.")
 
     st.subheader("Data Location")
-    file_status = required_dump_file_status(dump_dir)
-    found_all_required = bool(file_status["found"].all())
+    file_status, source_probe = data_source_status(data_dir)
     status_cols = st.columns(3)
-    status_cols[0].metric("Dump directory", str(resolved_dump_dir(dump_dir)))
-    status_cols[1].metric("benchmark_results.json", "found" if bool(file_status.iloc[0]["found"]) else "missing")
-    status_cols[2].metric("configs.json", "found" if bool(file_status.iloc[1]["found"]) else "missing")
-    if not found_all_required:
-        st.error(
-            "Required dump files are missing. Place the dump folder at "
-            "`inferencex-dump-2026-06-29` in the repo root, or update the sidebar path "
-            "to the folder containing `benchmark_results.json` and `configs.json`."
+    status_cols[0].metric("Data directory", str(resolve_data_dir(data_dir)))
+    status_cols[1].metric("Active source", source_probe["active_mode"])
+    status_cols[2].metric(
+        "Required files",
+        "found" if source_probe["active_mode"] != "missing" else "missing",
+    )
+    if source_probe["active_mode"] == "JSON fallback":
+        st.warning(
+            "CSV files were not found in the selected data directory. Using JSON fallback from "
+            f"`{DEFAULT_JSON_DUMP_DIR}`."
         )
+    if source_probe["active_mode"] == "missing":
+        st.error(
+            "Required data files are missing. For team CSV mode, place "
+            "`benchmark_results.csv` and `configs.csv` under `inferencex-pca-data`, "
+            "or update the sidebar path. For JSON fallback, keep "
+            f"`{DEFAULT_JSON_DUMP_DIR}/benchmark_results.json` and `configs.json` available."
+        )
+    with st.expander("Required file status", expanded=source_probe["active_mode"] == "missing"):
         st.dataframe(file_status, use_container_width=True, hide_index=True)
 
     try:
-        benchmarks, configs, joined = load_joined_data(dump_dir)
+        benchmarks, configs, joined, source_info = load_joined_data(data_dir)
     except Exception as exc:
-        st.error(f"Could not load dump: {exc}")
+        st.error(f"Could not load data: {exc}")
         return
+    st.caption(
+        f"Loaded in {source_info['active_mode']} mode from `{source_info['active_dir']}`."
+    )
 
     analysis_frame, analysis_metadata = build_analysis_frame(joined, analysis_unit)
     with st.sidebar:
@@ -2386,7 +2444,7 @@ def main() -> None:
             joined,
             analysis_frame,
             analysis_metadata,
-            dump_dir,
+            data_dir,
             int(max_rows),
             int(seed),
         )

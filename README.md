@@ -1,10 +1,10 @@
 # InferenceX PCA Demo
 
-This is a Streamlit analysis app built on the local InferenceX benchmark dump to understand which inference configuration features explain structural benchmark variance and which features predict selected performance targets.
+This is a Streamlit analysis app built on local InferenceX benchmark exports to understand which inference configuration features explain structural benchmark variance and which features predict selected performance targets.
 
 ## What This Project Does
 
-- Loads local InferenceX benchmark/config data.
+- Loads local InferenceX benchmark/config CSV data, with JSON dump fallback for local development.
 - Joins `benchmark_results.config_id = configs.id`.
 - Builds a data dictionary and data-understanding layer.
 - Explains feature families, missingness, cardinality, distributions, and data quality checks.
@@ -21,53 +21,59 @@ Inference performance is not only a model/hardware story. Serving architecture, 
 
 ## Data Source
 
-Expected local dump folder:
+Official team data folder:
 
 ```text
-inferencex-dump-2026-06-29/
+inferencex-pca-data/
 ```
 
 Required files:
 
-- `benchmark_results.json`
-- `configs.json`
+- `benchmark_results.csv`
+- `configs.csv`
 
 Optional/supported later:
 
-- `availability.json`
-- `eval_results.json`
-- `run_stats.json`
-- `changelog_entries.json`
+- `availability.csv`
+- `eval_results.csv`
+- `run_stats.csv`
+- `workflow_runs.csv`
+- `changelog_entries.csv`
 
 Intentionally skipped:
 
 - `server_logs.json`
 - `eval_samples.json`
 
-Those skipped files can be extremely large and are unnecessary for this PCA workflow.
+Those skipped files can be extremely large and are unnecessary for this PCA workflow. The app can still fall back to JSON dump mode for local development if `inferencex-pca-data/benchmark_results.csv` and `inferencex-pca-data/configs.csv` are not present.
 
 ## Internal Data Setup
 
 ### A. Internal Approved Storage Path
 
-Download the approved InferenceX dump from:
+Download the approved InferenceX PCA CSV export folder from:
 
 ```text
 <INTERNAL_STORAGE_LINK_OR_PATH>
 ```
 
-Ask the project owner if you do not have access. Place the unpacked dump folder at the repo root:
+Ask the project owner if you do not have access. Place the CSV folder at the repo root:
 
 ```text
 InferenceX-PCA-demo/
-  inferencex-dump-2026-06-29/
-    benchmark_results.json
-    configs.json
+  inferencex-pca-data/
+    benchmark_results.csv
+    configs.csv
+    eval_results.csv
+    run_stats.csv
+    workflow_runs.csv
+    availability.csv
+    changelog_entries.csv
 ```
 
-### B. Public GitHub Release Fallback, If Allowed
+### B. JSON Dump Fallback, If Allowed
 
-If your team allows downloading from the public GitHub release, use:
+The team workflow uses CSV exports. If you need JSON fallback for local development and your team allows downloading from the public GitHub release, use:
 
 ```bash
 gh release download 'db-dump/2026-06-29' \
@@ -84,7 +90,7 @@ brew install gh
 gh auth login
 ```
 
-Do not commit the dump. Do not upload the dump to GitHub. Do not commit `server_logs.json` or `eval_samples.json`.
+Do not commit the CSV data folder or JSON dump. Do not upload data files to GitHub. Do not commit `server_logs.json` or `eval_samples.json`.
 
 ## Local Setup
 
@@ -95,7 +101,7 @@ python3 -m pip install -r requirements-streamlit.txt
 python3 -m streamlit run apps/inferencex_pca_demo.py
 ```
 
-Open the Streamlit localhost URL shown in the terminal. If the dump is in a different location, update the sidebar dump directory in the app.
+Open the Streamlit localhost URL shown in the terminal. If the CSV folder is in a different location, update the sidebar data directory in the app.
 
 ## Repo Layout
 
@@ -106,12 +112,12 @@ README.md
 .gitignore
 ```
 
-`inferencex-dump-*` and `exports/` are intentionally excluded from git.
+`inferencex-pca-data/`, `inferencex-dump-*`, and `exports/` are intentionally excluded from git.
 
 ## Data Model
 
-- `benchmark_results` contains measured benchmark rows, workload shape, outcome metrics, and provenance ids.
-- `configs` contains model, hardware, framework, precision, and parallelism setup.
+- `benchmark_results.csv` contains measured benchmark rows, workload shape, outcome metrics, and provenance ids.
+- `configs.csv` contains model, hardware, framework, precision, and parallelism setup.
 - The core join is `benchmark_results.config_id = configs.id`.
 - One joined row means one benchmark workload/config observation.
 
@@ -160,12 +166,12 @@ README.md
 
 The app supports four analysis units:
 
-| Analysis unit | Verified row count |
-| --- | ---: |
-| Raw benchmark rows | 79,830 |
-| Latest row per config/workload/concurrency | 7,462 |
-| Median aggregate per config/workload/concurrency | 7,462 |
-| One row per config | 1,197 |
+| Analysis unit                                    | Verified row count |
+| ------------------------------------------------ | -----------------: |
+| Raw benchmark rows                               |             79,830 |
+| Latest row per config/workload/concurrency       |              7,462 |
+| Median aggregate per config/workload/concurrency |              7,462 |
+| One row per config                               |              1,197 |
 
 For config/workload/concurrency analysis, grouping keys are:
 
@@ -271,6 +277,7 @@ PCA tells us what structures the benchmark space. Target-aware modeling tells us
 Do not commit:
 
 - `inferencex-dump-*/`
+- `inferencex-pca-data/`
 - `exports/`
 - `.venv*/`
 - `__pycache__/`
@@ -284,7 +291,7 @@ Do not commit:
 ## Team Workflow
 
 1. Clone the repo.
-2. Download/place the approved dump locally.
+2. Download/place the approved CSV data folder locally.
 3. Create a Python virtual environment.
 4. Install `requirements-streamlit.txt`.
 5. Run Streamlit.

@@ -81,6 +81,7 @@ __pycache__/
 .streamlit/secrets.toml
 
 # Local InferenceX data dumps
+inferencex-pca-data/
 inferencex-dump-*/
 exports/
 
