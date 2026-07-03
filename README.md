@@ -21,11 +21,7 @@ Inference performance is not only a model/hardware story. Serving architecture, 
 
 ## Data Source
 
-Official team data folder:
-
-```text
-inferencex-pca-data/
-```
+Official data folder: [Google Drive](https://drive.google.com/drive/u/2/folders/1RQYKaliWtJym1kbGH9A4SwfzqSh1RBvR)
 
 Required files:
 
@@ -49,48 +45,13 @@ Those skipped files can be extremely large and are unnecessary for this PCA work
 
 ## Internal Data Setup
 
-### A. Internal Approved Storage Path
+Download the approved InferenceX PCA CSV export folder from: [Google Drive](https://drive.google.com/drive/u/2/folders/1RQYKaliWtJym1kbGH9A4SwfzqSh1RBvR).
 
-Download the approved InferenceX PCA CSV export folder from:
-
-```text
-<INTERNAL_STORAGE_LINK_OR_PATH>
-```
-
-Ask the project owner if you do not have access. Place the CSV folder at the repo root:
+Place the downloaded folder at the repo root and rename it to:
 
 ```text
-InferenceX-PCA-demo/
-  inferencex-pca-data/
-    benchmark_results.csv
-    configs.csv
-    eval_results.csv
-    run_stats.csv
-    workflow_runs.csv
-    availability.csv
-    changelog_entries.csv
+inferencex-pca-data/
 ```
-
-### B. JSON Dump Fallback, If Allowed
-
-The team workflow uses CSV exports. If you need JSON fallback for local development and your team allows downloading from the public GitHub release, use:
-
-```bash
-gh release download 'db-dump/2026-06-29' \
-  --repo SemiAnalysisAI/InferenceX-app \
-  -p 'inferencex-dump-*.tar.xz.part*'
-
-cat inferencex-dump-2026-06-29.tar.xz.part* | xz -d -T0 | tar -x
-```
-
-`gh` may require:
-
-```bash
-brew install gh
-gh auth login
-```
-
-Do not commit the CSV data folder or JSON dump. Do not upload data files to GitHub. Do not commit `server_logs.json` or `eval_samples.json`.
 
 ## Local Setup
 
