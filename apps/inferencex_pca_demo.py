@@ -419,6 +419,7 @@ def aggregate_analysis_frame(frame: pd.DataFrame, grouping_keys: list[str]) -> p
     return aggregated.merge(row_counts, on=grouping_keys, how="left")
 
 
+@st.cache_data(show_spinner=False)
 def build_analysis_frame(
     joined: pd.DataFrame,
     analysis_unit: str,
@@ -2402,44 +2403,55 @@ def main() -> None:
         f"Loaded in {source_info['active_mode']} mode from `{source_info['active_dir']}`."
     )
 
-    analysis_frame, analysis_metadata = build_analysis_frame(joined, analysis_unit)
     with st.sidebar:
         st.metric("Raw rows", f"{len(joined):,}")
-        st.metric("Analysis rows", f"{len(analysis_frame):,}")
-        if analysis_metadata["grouping_keys"]:
-            st.caption("Grouping keys: " + ", ".join(analysis_metadata["grouping_keys"]))
-        if analysis_metadata.get("timestamp_column"):
-            st.caption(f"Latest-row timestamp: {analysis_metadata['timestamp_column']}")
-        if analysis_metadata.get("warning"):
-            st.warning(analysis_metadata["warning"])
 
     default_split_label = (
-        "Grouped split by config_id" if "config_id" in analysis_frame.columns else "Random split"
+        "Grouped split by config_id" if "config_id" in joined.columns else "Random split"
     )
     with st.container(border=True):
         st.markdown("### Project Status")
         status_a, status_b, status_c, status_d = st.columns(4)
         status_a.success("Data loaded")
-        status_b.info(f"Analysis unit: {analysis_metadata['analysis_unit']}")
+        status_b.info(f"Analysis unit: {analysis_unit}")
         status_c.success("PCA inputs exclude outcome metrics by default")
         status_d.info(f"Target split shown in UI; default is {default_split_label}")
         st.caption(
             "Caveat: this is descriptive analysis for structure and prediction, not causal proof."
         )
 
-    tabs = st.tabs(
-        [
-            "Data Preview",
-            "Data Understanding",
-            "PCA Explorer",
-            "Target-Aware Feature Value",
-            "Findings",
-            "Notes",
-        ]
+    tab_names = [
+        "Data Preview",
+        "Data Understanding",
+        "PCA Explorer",
+        "Target-Aware Feature Value",
+        "Findings",
+        "Notes",
+    ]
+    selected_tab = st.radio(
+        "Dashboard tabs",
+        options=tab_names,
+        horizontal=True,
+        label_visibility="collapsed",
     )
-    with tabs[0]:
+
+    def selected_analysis() -> tuple[pd.DataFrame, dict[str, Any]]:
+        with st.spinner(f"Building analysis unit: {analysis_unit}"):
+            analysis, metadata = build_analysis_frame(joined, analysis_unit)
+        with st.sidebar:
+            st.metric("Analysis rows", f"{len(analysis):,}")
+            if metadata["grouping_keys"]:
+                st.caption("Grouping keys: " + ", ".join(metadata["grouping_keys"]))
+            if metadata.get("timestamp_column"):
+                st.caption(f"Latest-row timestamp: {metadata['timestamp_column']}")
+            if metadata.get("warning"):
+                st.warning(metadata["warning"])
+        return analysis, metadata
+
+    if selected_tab == "Data Preview":
         render_data_preview(benchmarks, configs, joined)
-    with tabs[1]:
+    elif selected_tab == "Data Understanding":
+        analysis_frame, analysis_metadata = selected_analysis()
         render_data_understanding(
             joined,
             analysis_frame,
@@ -2448,13 +2460,16 @@ def main() -> None:
             int(max_rows),
             int(seed),
         )
-    with tabs[2]:
+    elif selected_tab == "PCA Explorer":
+        analysis_frame, analysis_metadata = selected_analysis()
         render_pca_explorer(analysis_frame, analysis_metadata, int(max_rows), int(seed))
-    with tabs[3]:
+    elif selected_tab == "Target-Aware Feature Value":
+        analysis_frame, analysis_metadata = selected_analysis()
         render_target_feature_value(analysis_frame, analysis_metadata, int(max_rows), int(seed))
-    with tabs[4]:
+    elif selected_tab == "Findings":
+        analysis_frame, analysis_metadata = selected_analysis()
         render_findings(analysis_frame, benchmarks, analysis_metadata)
-    with tabs[5]:
+    elif selected_tab == "Notes":
         render_notes()
 
 
