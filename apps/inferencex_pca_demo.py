@@ -651,6 +651,117 @@ def original_feature_contributions(loading_details: pd.DataFrame) -> pd.DataFram
     return grouped
 
 
+def sales_feature_category(feature: str) -> str:
+    serving_topology = {
+        "config_disagg",
+        "config_is_multinode",
+        "config_prefill_tp",
+        "config_prefill_ep",
+        "config_prefill_dp_attention",
+        "config_prefill_num_workers",
+        "config_decode_tp",
+        "config_decode_ep",
+        "config_decode_dp_attention",
+        "config_decode_num_workers",
+        "config_num_prefill_gpu",
+        "config_num_decode_gpu",
+    }
+    workload_shape = {"isl", "osl", "conc", "benchmark_type"}
+    model_hardware_software = {
+        "config_model",
+        "config_hardware",
+        "config_framework",
+        "config_precision",
+        "config_spec_method",
+    }
+    if feature in serving_topology:
+        return "Serving topology / parallelism"
+    if feature in workload_shape:
+        return "Workload shape"
+    if feature in model_hardware_software:
+        return "Model / hardware / software"
+    return "Other"
+
+
+def infer_sales_axis_name(feature_groups: list[str]) -> str:
+    groups = set(feature_groups)
+    if groups.intersection({"config_disagg", "config_is_multinode"}):
+        return "Disaggregated / multinode serving"
+    if groups.intersection(
+        {
+            "config_prefill_tp",
+            "config_decode_tp",
+            "config_num_prefill_gpu",
+            "config_num_decode_gpu",
+        }
+    ):
+        return "Tensor-parallel / GPU scaling"
+    if groups.intersection({"config_prefill_ep", "config_decode_ep"}):
+        return "Expert-parallel serving"
+    if groups.intersection({"isl", "osl", "conc"}):
+        return "Workload shape"
+    return "Configuration mix"
+
+
+def component_group_loadings(
+    loading_details: pd.DataFrame,
+    component: str,
+) -> pd.DataFrame:
+    loading_col = f"{component}_loading"
+    if loading_col not in loading_details.columns:
+        return pd.DataFrame()
+    grouped = (
+        loading_details.assign(abs_loading=loading_details[loading_col].abs())
+        .groupby("source_feature", as_index=False)
+        .agg(
+            signed_loading=(loading_col, "sum"),
+            absolute_loading=("abs_loading", "sum"),
+        )
+    )
+    return grouped.sort_values("absolute_loading", ascending=False)
+
+
+def build_sales_component_cards(
+    loading_details: pd.DataFrame,
+    explained: pd.DataFrame,
+) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for row in explained.head(4).itertuples(index=False):
+        component = row.component
+        group_loadings = component_group_loadings(loading_details, component)
+        dominant_groups = group_loadings.head(3)["source_feature"].tolist()
+        axis_name = infer_sales_axis_name(dominant_groups)
+        positive = (
+            group_loadings[group_loadings["signed_loading"] > 0]
+            .sort_values("signed_loading", ascending=False)
+            .head(3)["source_feature"]
+            .tolist()
+        )
+        negative = (
+            group_loadings[group_loadings["signed_loading"] < 0]
+            .sort_values("signed_loading", ascending=True)
+            .head(3)["source_feature"]
+            .tolist()
+        )
+        rows.append(
+            {
+                "component": component,
+                "axis_name": axis_name,
+                "explained_variance_ratio": row.explained_variance_ratio,
+                "cumulative_explained_variance": row.cumulative_explained_variance,
+                "top_positive_drivers": ", ".join(positive) or "none identified",
+                "top_negative_drivers": ", ".join(negative) or "none identified",
+                "dominant_feature_groups": ", ".join(dominant_groups) or "none identified",
+                "interpretation": (
+                    f"{component} mostly separates benchmark configurations by "
+                    f"{', '.join(dominant_groups) or 'mixed setup features'}, so it is best "
+                    f"read as a {axis_name.lower()} axis."
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def format_loading_list(rows: pd.DataFrame) -> str:
     if rows.empty:
         return "_No loadings available._"
@@ -898,6 +1009,138 @@ def build_findings_markdown(
             "- This app reads local JSON dumps only and intentionally skips giant log/sample files.",
         ]
     )
+    return "\n".join(lines)
+
+
+def build_structure_vs_performance(
+    source_contributions: pd.DataFrame,
+    target_importance: pd.DataFrame,
+) -> pd.DataFrame:
+    pca_top = source_contributions.head(10).reset_index(drop=True).copy()
+    pca_top["PCA rank"] = pca_top.index + 1
+    pca_lookup = pca_top.set_index("source_feature").to_dict(orient="index")
+
+    if target_importance.empty:
+        return pca_top.rename(
+            columns={
+                "source_feature": "feature",
+                "weighted_contribution": "PCA contribution",
+            }
+        )[["feature", "PCA rank", "PCA contribution", "contribution_share"]].assign(
+            **{
+                "Target rank": np.nan,
+                "Permutation importance": np.nan,
+                "Interpretation": "Structural only",
+            }
+        )
+
+    target_top = target_importance.head(10).reset_index(drop=True).copy()
+    target_top["Target rank"] = target_top.index + 1
+    target_lookup = target_top.set_index("feature").to_dict(orient="index")
+    features = unique_preserve_order(
+        pca_top["source_feature"].tolist() + target_top["feature"].tolist()
+    )
+    rows: list[dict[str, Any]] = []
+    for feature in features:
+        pca_row = pca_lookup.get(feature, {})
+        target_row = target_lookup.get(feature, {})
+        in_pca = bool(pca_row)
+        in_target = bool(target_row)
+        if in_pca and in_target:
+            interpretation = "Structural and predictive"
+        elif in_pca:
+            interpretation = "Structural only"
+        else:
+            interpretation = "Predictive only"
+        rows.append(
+            {
+                "feature": feature,
+                "PCA rank": pca_row.get("PCA rank", np.nan),
+                "PCA contribution": pca_row.get("weighted_contribution", np.nan),
+                "PCA contribution share": pca_row.get("contribution_share", np.nan),
+                "Target rank": target_row.get("Target rank", np.nan),
+                "Permutation importance": target_row.get("importance_mean", np.nan),
+                "Interpretation": interpretation,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def build_sales_pitch_markdown(
+    dataset_summary: dict[str, Any],
+    source_contributions: pd.DataFrame,
+    component_cards: pd.DataFrame,
+    selected_target: str,
+    bridge: pd.DataFrame,
+) -> str:
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    top_groups = source_contributions.head(3)["source_feature"].tolist()
+    structural_predictive = bridge[
+        bridge["Interpretation"] == "Structural and predictive"
+    ]["feature"].tolist()
+    overlap_text = compact_list(structural_predictive)
+    lines = [
+        "# InferenceX PCA Sales Pitch Summary",
+        "",
+        f"Generated: {timestamp}",
+        "",
+        "## Top 3 Sales Takeaways",
+        "",
+        (
+            "- PCA shows the benchmark configuration space is shaped most strongly by "
+            f"{compact_list(top_groups)}."
+        ),
+        (
+            "- Outcome metrics are used only as overlays or supervised targets, so the PCA "
+            "map describes setup structure rather than baking performance into the axes."
+        ),
+        (
+            "- Features that are both structural and predictive are the best candidates for "
+            f"infrastructure valuation review: {overlap_text}."
+        ),
+        "",
+        "## Dataset Summary",
+        "",
+        f"- Analysis unit: {dataset_summary.get('analysis_unit', 'unknown')}",
+        f"- Raw rows: {dataset_summary.get('raw_row_count', 0):,}",
+        f"- Analysis rows: {dataset_summary.get('analysis_row_count', 0):,}",
+        f"- Grouping keys: {', '.join(dataset_summary.get('grouping_keys', [])) or 'none'}",
+        "",
+        "## Top PCA Feature Groups",
+        "",
+        dataframe_to_markdown(source_contributions.head(10), 10),
+        "",
+        "## PC1-PC4 Names",
+        "",
+        dataframe_to_markdown(
+            component_cards[
+                [
+                    "component",
+                    "axis_name",
+                    "explained_variance_ratio",
+                    "cumulative_explained_variance",
+                    "dominant_feature_groups",
+                ]
+            ],
+            4,
+        ),
+        "",
+        "## Selected Target Metric",
+        "",
+        f"`{selected_target or 'Not selected'}`",
+        "",
+        "## Structural vs Predictive Overlap",
+        "",
+        dataframe_to_markdown(bridge, 20),
+        "",
+        "## Limitations",
+        "",
+        "- PCA means structure, not value.",
+        "- Loading means feature contribution to a synthetic PC axis.",
+        "- Correlation and permutation importance are descriptive, not causal proof.",
+        "- p99 ITL means bad-case inter-token delay; TTFT is time until first token; TPOT is time per output token.",
+        "- Results depend on the selected analysis unit, sampled rows, and target metric.",
+    ]
     return "\n".join(lines)
 
 
@@ -1862,6 +2105,11 @@ def render_pca_explorer(
         "component_interpretations": component_interpretations,
         "pc_target_correlations": correlation_frame,
         "explained_variance": explained,
+        "pc_scores": pd.DataFrame(
+            coords[:, : min(5, coords.shape[1])],
+            columns=[f"PC{idx + 1}" for idx in range(min(5, coords.shape[1]))],
+            index=work.index,
+        ),
     }
 
     component_options = [f"PC{idx + 1}" for idx in range(len(pca.components_))]
@@ -2322,6 +2570,289 @@ def render_findings(
     )
 
 
+def render_sales_pitch_visuals(
+    joined: pd.DataFrame,
+    benchmarks: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+) -> None:
+    st.header("Sales Pitch Visuals")
+    st.caption(
+        "A plain-English storytelling layer for PCA results. PCA = structure, not value. "
+        "Loading = feature contribution to a synthetic PC axis."
+    )
+
+    pca_analysis = st.session_state.get("pca_analysis")
+    target_analysis = st.session_state.get("target_analysis")
+    if not pca_analysis:
+        st.info("Run PCA Explorer once to generate the sales visuals.")
+        return
+
+    required_pca_keys = {
+        "source_contributions",
+        "encoded_contributions",
+        "explained_variance",
+        "component_interpretations",
+        "pc_scores",
+    }
+    missing_pca_keys = sorted(required_pca_keys - set(pca_analysis.keys()))
+    if missing_pca_keys:
+        st.info(
+            "Run PCA Explorer again to refresh the saved PCA artifacts required for "
+            f"Sales Pitch Visuals: {', '.join(missing_pca_keys)}."
+        )
+        return
+
+    if (
+        pca_analysis.get("analysis_unit") != analysis_metadata["analysis_unit"]
+        or pca_analysis.get("analysis_row_count") != analysis_metadata["analysis_row_count"]
+    ):
+        st.warning(
+            "The saved PCA results were built for a different analysis unit. Run PCA Explorer "
+            "again so the sales visuals match the currently selected analysis unit."
+        )
+        return
+
+    source_contributions = pca_analysis["source_contributions"].copy()
+    encoded_contributions = pca_analysis["encoded_contributions"]
+    explained = pca_analysis["explained_variance"]
+    component_interpretations = pca_analysis["component_interpretations"]
+    pc_scores = pca_analysis["pc_scores"].copy()
+    component_cards = build_sales_component_cards(encoded_contributions, explained)
+    source_contributions["category"] = source_contributions["source_feature"].map(
+        sales_feature_category
+    )
+
+    metric_cols = metric_like_numeric_columns(joined)
+    selected_target = (
+        target_analysis.get("target_metric")
+        if target_analysis
+        else pca_analysis.get("target_metric", "")
+    )
+    if selected_target not in metric_cols and metric_cols:
+        selected_target = metric_cols[0]
+    target_importance = (
+        target_analysis.get("importance_frame", pd.DataFrame())
+        if target_analysis
+        and target_analysis.get("analysis_unit") == analysis_metadata["analysis_unit"]
+        else pd.DataFrame()
+    )
+
+    first_five_variance = explained["cumulative_explained_variance"].iloc[
+        min(4, len(explained) - 1)
+    ]
+    kpi_cols = st.columns(5)
+    kpi_cols[0].metric("Raw rows", f"{analysis_metadata['raw_row_count']:,}")
+    kpi_cols[1].metric("Analysis rows", f"{analysis_metadata['analysis_row_count']:,}")
+    kpi_cols[2].metric("Analysis unit", analysis_metadata["analysis_unit"])
+    kpi_cols[3].metric("First 5 PCs", f"{first_five_variance:.1%}")
+    kpi_cols[4].metric("Target metric", selected_target or "Not selected")
+
+    st.subheader("Inference Value Is Not Just Hardware")
+    st.write(
+        "The biggest structural differences in the benchmark space come from serving "
+        "topology and parallelism, not just model or hardware labels."
+    )
+    top_features = source_contributions.head(10).copy()
+    st.plotly_chart(
+        px.bar(
+            top_features.sort_values("weighted_contribution"),
+            x="weighted_contribution",
+            y="source_feature",
+            color="category",
+            text="contribution_share",
+            orientation="h",
+            labels={
+                "weighted_contribution": "Weighted PCA variance contribution",
+                "source_feature": "Feature group",
+                "category": "Plain-English category",
+                "contribution_share": "Contribution share",
+            },
+            title="Top structural drivers in the configuration space",
+        ).update_traces(texttemplate="%{text:.1%}", textposition="outside"),
+        use_container_width=True,
+    )
+    st.caption("PCA contribution means variance structure, not causal value.")
+
+    st.subheader("Four Axes of Inference Configuration")
+    st.write(
+        "PC1-PC4 turn the high-dimensional setup space into four readable configuration axes."
+    )
+    for row_start in range(0, len(component_cards), 2):
+        card_cols = st.columns(2)
+        for card_col, card in zip(
+            card_cols,
+            component_cards.iloc[row_start : row_start + 2].itertuples(index=False),
+        ):
+            with card_col.container(border=True):
+                st.markdown(f"#### {card.component}: {card.axis_name}")
+                var_cols = st.columns(2)
+                var_cols[0].metric("Explained variance", f"{card.explained_variance_ratio:.1%}")
+                var_cols[1].metric(
+                    "Cumulative variance",
+                    f"{card.cumulative_explained_variance:.1%}",
+                )
+                st.write(card.interpretation)
+                st.markdown(f"**Top positive drivers:** {card.top_positive_drivers}")
+                st.markdown(f"**Top negative drivers:** {card.top_negative_drivers}")
+    with st.expander("Technical detail: PC1-PC4 loadings and encoded features"):
+        st.dataframe(component_cards, use_container_width=True, hide_index=True)
+        st.dataframe(component_interpretations, use_container_width=True, hide_index=True)
+
+    st.subheader("Configuration Map Colored by Performance")
+    st.write(
+        "This map shows configuration similarity. Color shows the selected performance outcome."
+    )
+    if not metric_cols or not {"PC1", "PC2"}.issubset(pc_scores.columns):
+        st.info("No metric-like numeric columns or PC1/PC2 scores are available for the map.")
+        map_points = pc_scores
+    else:
+        color_index = metric_cols.index(selected_target) if selected_target in metric_cols else 0
+        color_metric = st.selectbox(
+            "Performance color metric",
+            options=metric_cols,
+            index=color_index,
+            key="sales_map_color_metric",
+            help=(
+                "p99 ITL = bad-case inter-token delay. TTFT = time until first token. "
+                "TPOT = time per output token."
+            ),
+        )
+        hover_fields = [
+            column
+            for column in (
+                "config_model",
+                "config_hardware",
+                "config_framework",
+                "config_precision",
+                "benchmark_type",
+                "isl",
+                "osl",
+                "conc",
+            )
+            if column in joined.columns
+        ]
+        row_data = joined.reindex(pc_scores.index)
+        map_points = pc_scores.join(row_data[[color_metric] + hover_fields], how="left")
+        axis_name_lookup = component_cards.set_index("component")["axis_name"].to_dict()
+        st.plotly_chart(
+            px.scatter(
+                map_points,
+                x="PC1",
+                y="PC2",
+                color=color_metric,
+                opacity=0.62,
+                render_mode="webgl",
+                hover_data=hover_fields,
+                labels={
+                    "PC1": f"PC1: {axis_name_lookup.get('PC1', 'Configuration mix')}",
+                    "PC2": f"PC2: {axis_name_lookup.get('PC2', 'Configuration mix')}",
+                    color_metric: color_metric,
+                },
+                title="Configuration similarity map with performance overlay",
+            ).update_traces(marker={"size": 5}),
+            use_container_width=True,
+        )
+        st.warning("The color metric is not used to build the PCA axes.")
+
+    st.subheader("Structure vs Performance")
+    st.write(
+        "Overlap features are the strongest candidates for infrastructure valuation because "
+        "they both shape configuration space and predict the selected outcome."
+    )
+    if target_importance.empty:
+        st.info("Run Target-Aware Feature Value to populate performance predictors.")
+    bridge = build_structure_vs_performance(source_contributions, target_importance)
+    st.dataframe(
+        bridge.style.format(
+            {
+                "PCA contribution": "{:.4f}",
+                "PCA contribution share": "{:.1%}",
+                "Permutation importance": "{:.4f}",
+            },
+            na_rep="",
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    with st.expander("Technical detail: encoded PCA contribution table"):
+        st.dataframe(encoded_contributions.head(50), use_container_width=True, hide_index=True)
+
+    structural_predictive = bridge[
+        bridge["Interpretation"] == "Structural and predictive"
+    ]["feature"].tolist()
+    top_takeaways = [
+        (
+            "PCA shows structural variation is led by "
+            f"{compact_list(source_contributions.head(3)['source_feature'].tolist())}."
+        ),
+        (
+            f"The selected performance overlay/target is `{selected_target}`; it is not "
+            "used as a PCA input."
+        ),
+        (
+            "Structural-and-predictive overlap: "
+            f"{compact_list(structural_predictive)}."
+        ),
+    ]
+    st.subheader("Top 3 Sales Takeaways")
+    st.markdown("\n".join(f"- {takeaway}" for takeaway in top_takeaways))
+
+    dataset_summary = {
+        "analysis_unit": analysis_metadata["analysis_unit"],
+        "raw_row_count": analysis_metadata["raw_row_count"],
+        "analysis_row_count": analysis_metadata["analysis_row_count"],
+        "grouping_keys": analysis_metadata["grouping_keys"],
+        "benchmark_rows": len(benchmarks),
+    }
+    sales_markdown = build_sales_pitch_markdown(
+        dataset_summary,
+        source_contributions,
+        component_cards,
+        selected_target,
+        bridge,
+    )
+
+    st.subheader("Downloads")
+    download_cols = st.columns(3)
+    download_cols[0].download_button(
+        "sales_pca_feature_contributions.csv",
+        data=source_contributions.to_csv(index=False),
+        file_name="sales_pca_feature_contributions.csv",
+        mime="text/csv",
+        key="download_sales_pca_feature_contributions",
+    )
+    download_cols[1].download_button(
+        "sales_component_cards.csv",
+        data=component_cards.to_csv(index=False),
+        file_name="sales_component_cards.csv",
+        mime="text/csv",
+        key="download_sales_component_cards",
+    )
+    download_cols[2].download_button(
+        "sales_pc_map_points.csv",
+        data=map_points.reset_index(drop=True).to_csv(index=False),
+        file_name="sales_pc_map_points.csv",
+        mime="text/csv",
+        key="download_sales_pc_map_points",
+    )
+    download_cols = st.columns(2)
+    if not target_importance.empty:
+        download_cols[0].download_button(
+            "sales_structure_vs_performance.csv",
+            data=bridge.to_csv(index=False),
+            file_name="sales_structure_vs_performance.csv",
+            mime="text/csv",
+            key="download_sales_structure_vs_performance",
+        )
+    download_cols[1].download_button(
+        "sales_pitch_summary.md",
+        data=sales_markdown,
+        file_name="sales_pitch_summary.md",
+        mime="text/markdown",
+        key="download_sales_pitch_summary",
+    )
+
+
 def render_notes() -> None:
     st.markdown(
         """
@@ -2426,6 +2957,7 @@ def main() -> None:
         "PCA Explorer",
         "Target-Aware Feature Value",
         "Findings",
+        "Sales Pitch Visuals",
         "Notes",
     ]
     selected_tab = st.radio(
@@ -2469,6 +3001,9 @@ def main() -> None:
     elif selected_tab == "Findings":
         analysis_frame, analysis_metadata = selected_analysis()
         render_findings(analysis_frame, benchmarks, analysis_metadata)
+    elif selected_tab == "Sales Pitch Visuals":
+        analysis_frame, analysis_metadata = selected_analysis()
+        render_sales_pitch_visuals(analysis_frame, benchmarks, analysis_metadata)
     elif selected_tab == "Notes":
         render_notes()
 
