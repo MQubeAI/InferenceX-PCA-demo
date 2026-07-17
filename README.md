@@ -75,6 +75,92 @@ python3 scripts/reproducible_analysis.py \
   --max-rows 20000 --seed 42 --stability-runs 5
 ```
 
+## Model Comparison (RF, CatBoost, and optional TabFM)
+
+The reproducible comparison layer is separate from PCA. It reuses the selected
+analysis frame and approved configuration/workload features, then evaluates every
+requested model against the exact same deterministic `config_id` folds. PCA inputs
+and its existing reproducible artifact are unchanged.
+
+- `modeling/comparison.py` owns target eligibility, deterministic grouped folds,
+  fold-local preprocessing, adapters, metrics, runtime metadata, and
+  aggregate-only serialization inputs.
+- `RandomForestRegressor` remains the baseline. CatBoost uses a small fixed,
+  deterministic CPU configuration with native categorical columns. Its feature
+  importance is calculated only from each training fold.
+- TabFM is research-only, lazy-loaded, and executed only in `.venv-tabfm` through
+  the CLI/subprocess boundary. Normal Streamlit startup does not import TabFM or
+  load its checkpoint.
+
+### Missingness policy
+
+The comparison report records missing counts/percentages, complete-case counts,
+target eligibility, grouped missingness by available hardware/framework/model/
+benchmark/date fields, and failed-run relationships when a status-like field is
+available. It is aggregate-only: no source rows, labels, or predictions are
+written to artifacts.
+
+- Rows with a missing target are excluded for that target; target labels are never
+  imputed.
+- Within each training fold, numerical predictors receive the training-fold
+  median plus a missingness indicator.
+- Categorical predictors receive the explicit `__MISSING__` category.
+- All fold preprocessing is fitted on training rows only.
+
+Run the full RF/CatBoost comparison (the default median analysis unit, 7,462 rows
+on the current local snapshot):
+
+```bash
+.venv-streamlit/bin/python scripts/model_comparison.py \
+  --data-dir inferencex-pca-data \
+  --target metrics_p99_itl \
+  --models random_forest,catboost \
+  --folds 5 --seed 42 --max-rows 20000 \
+  --output artifacts/model-comparison.json
+```
+
+The committed aggregate artifact from that run reports RF R2 **0.465 ± 0.195**
+and MAE **0.568 ± 0.122**; CatBoost R2 **0.337 ± 0.136** and MAE **0.811 ±
+0.140**. These are descriptive grouped-CV estimates, not causal or general
+performance claims.
+
+TabFM has been confirmed locally with the PyTorch CPU backend, cached regression
+checkpoint, `TabFMRegressor.fit()` and `predict()`, and `safetensors`. It must be
+explicitly requested; do not install or download anything in the normal app
+environment:
+
+```bash
+.venv-tabfm/bin/python scripts/model_comparison.py \
+  --data-dir inferencex-pca-data \
+  --target metrics_p99_itl \
+  --models tabfm \
+  --folds 1 --seed 42 --max-rows 96 \
+  --tabfm-max-context 32 \
+  --output artifacts/tabfm-smoke-results.json
+```
+
+That bounded CPU smoke test held out 48 rows from 45 `config_id` groups, used 32
+of 48 available context rows, completed in 20.40 seconds, and produced R2
+**-1.323** / MAE **1.175**. It is a smoke test, not a model-quality conclusion.
+The matching 96-row RF/CatBoost/TabFM artifact is
+`artifacts/bounded-model-comparison.json`.
+
+The next larger TabFM command remains deliberately bounded:
+
+```bash
+.venv-tabfm/bin/python scripts/model_comparison.py \
+  --data-dir inferencex-pca-data \
+  --target metrics_p99_itl \
+  --models tabfm \
+  --folds 1 --seed 42 --max-rows 512 \
+  --tabfm-max-context 256 \
+  --output artifacts/tabfm-512-context-256.json
+```
+
+In Streamlit, use **Model Comparison**, choose the target/models and click the
+explicit run button. Its stored result is invalidated when model selection,
+target, features, fold count, row/context cap, seed, or dataset signature changes.
+
 The committed `artifacts/reproducible-results.json` contains aggregate metadata only: source file names/sizes/mtimes and bounded file fingerprints, aggregate PCA/RF results, package versions, warnings, and signatures. It contains no benchmark rows. Re-run this command after changing code or data before updating the findings below.
 
 ## Repo Layout

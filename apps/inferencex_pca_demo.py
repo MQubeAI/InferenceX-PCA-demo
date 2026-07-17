@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -22,6 +24,8 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import GroupKFold, KFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from modeling.comparison import evaluate_models, missingness_report
 
 
 DEFAULT_DATA_DIR = "inferencex-pca-data"
@@ -2970,6 +2974,112 @@ def render_target_feature_value(
     )
 
 
+def run_tabfm_comparison_subprocess(
+    data_dir: str,
+    target: str,
+    folds: int,
+    max_rows: int,
+    seed: int,
+    context_cap: int,
+    analysis_unit: str,
+) -> tuple[dict[str, Any] | None, str]:
+    """Keep TabFM imports and checkpoint loading out of the Streamlit process."""
+    interpreter = Path(".venv-tabfm/bin/python")
+    script = Path("scripts/model_comparison.py")
+    if not interpreter.exists():
+        return None, "TabFM environment is unavailable at .venv-tabfm/bin/python."
+    if not script.exists():
+        return None, "The TabFM comparison script is unavailable."
+    temporary = tempfile.NamedTemporaryFile(prefix="inferencex-tabfm-", suffix=".json", delete=False)
+    temporary.close()
+    command = [
+        str(interpreter), str(script), "--data-dir", data_dir, "--target", target,
+        "--models", "tabfm", "--folds", str(folds), "--max-rows", str(max_rows),
+        "--seed", str(seed), "--tabfm-max-context", str(context_cap),
+        "--analysis-unit", analysis_unit, "--output", temporary.name,
+    ]
+    try:
+        completed = subprocess.run(command, capture_output=True, text=True, timeout=1800, check=False)
+        if completed.returncode != 0:
+            message = (completed.stderr or completed.stdout).strip()
+            return None, f"TabFM subprocess failed: {message[-1000:]}"
+        artifact = json.loads(Path(temporary.name).read_text(encoding="utf-8"))
+        return artifact["comparison"]["models"]["tabfm"], ""
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError, KeyError) as exc:
+        return None, f"TabFM subprocess failed: {type(exc).__name__}: {exc}"
+    finally:
+        Path(temporary.name).unlink(missing_ok=True)
+
+
+def render_model_comparison(
+    joined: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+    data_dir: str,
+    max_rows: int,
+    seed: int,
+) -> None:
+    """Compact, explicit comparison UI. TabFM remains research-only and subprocess-bound."""
+    metric_cols = metric_like_numeric_columns(joined)
+    if not metric_cols:
+        st.warning("No numeric metric-like target columns were detected.")
+        return
+    target = st.selectbox("Comparison target", metric_cols, key="comparison_target")
+    numeric, categorical = default_target_features(joined, target)
+    features = numeric + categorical
+    model_options = ["random_forest", "catboost", "tabfm"]
+    models = st.multiselect("Models", model_options, default=["random_forest", "catboost"], key="comparison_models")
+    folds = st.slider("Grouped folds", min_value=1, max_value=5, value=5, key="comparison_folds")
+    context_cap = st.number_input("TabFM context-row cap", min_value=16, max_value=2_000, value=128, step=16, key="comparison_context_cap")
+    st.caption(
+        "Fold-local policy: missing targets are excluded; numeric predictors use training-fold medians plus indicators; categoricals use `__MISSING__`. TabFM is optional research-only CPU inference through `.venv-tabfm/bin/python` and is never imported at normal startup."
+    )
+    availability = {
+        "random_forest": "available",
+        "catboost": "available" if importlib.util.find_spec("catboost") else "unavailable in this environment",
+        "tabfm": "research-only subprocess" if Path(".venv-tabfm/bin/python").exists() else "TabFM environment unavailable",
+    }
+    st.dataframe(pd.DataFrame([{"model": name, "availability": availability[name]} for name in model_options]), width="stretch", hide_index=True)
+    controls = {"target": target, "features": features, "models": models, "folds": folds, "max_rows": max_rows, "seed": seed, "context_cap": int(context_cap)}
+    signature = analysis_signature(analysis_metadata, "model-comparison", controls)
+    comparison = current_artifact("model_comparison", signature)
+    if st.button("Run model comparison", type="primary", disabled=not models):
+        with st.spinner("Running grouped, fold-safe model comparison"):
+            requested_standard = [name for name in models if name != "tabfm"]
+            try:
+                comparison_result = evaluate_models(joined, features, target, requested_standard, max_rows, seed, folds)
+                if "tabfm" in models:
+                    tabfm, error = run_tabfm_comparison_subprocess(data_dir, target, folds, max_rows, seed, int(context_cap), analysis_metadata["analysis_unit"])
+                    if tabfm is None:
+                        comparison_result["models"]["tabfm"] = {"available": False, "availability": "subprocess", "folds": [], "metrics": {}, "importance": [], "runtime_seconds": 0.0, "error": error}
+                    else:
+                        comparison_result["models"]["tabfm"] = tabfm
+                comparison = {"analysis_signature": signature, "controls": controls, "result": comparison_result, "missingness": missingness_report(joined, features, metric_cols)}
+                st.session_state["model_comparison"] = comparison
+            except (ValueError, AssertionError) as exc:
+                st.error(str(exc))
+                return
+    if not comparison:
+        st.info("Choose models and click Run model comparison. Results are invalidated whenever target, features, folds, row cap, seed, context cap, or model selection changes.")
+        return
+    result = comparison["result"]
+    st.caption(f"Dataset/control signature: `{comparison['analysis_signature']}`. Features: {', '.join(features)}")
+    summary_rows = []
+    for name, model in result["models"].items():
+        metrics = model.get("metrics", {})
+        summary_rows.append({"model": name, "available": model.get("available"), "r2_mean": metrics.get("r2", {}).get("mean"), "r2_std": metrics.get("r2", {}).get("std"), "mae_mean": metrics.get("mae", {}).get("mean"), "mae_std": metrics.get("mae", {}).get("std"), "runtime_seconds": model.get("runtime_seconds"), "error": model.get("error", "")})
+    st.dataframe(pd.DataFrame(summary_rows), width="stretch", hide_index=True)
+    for name, model in result["models"].items():
+        if model.get("folds"):
+            st.subheader(f"{name} folds")
+            st.dataframe(pd.DataFrame(model["folds"]), width="stretch", hide_index=True)
+        if model.get("error"):
+            st.warning(f"{name}: {model['error']}")
+    missing = comparison["missingness"]
+    st.subheader("Compact missingness audit")
+    st.caption(f"Usable rows by target: {missing['usable_rows_per_target']}. Aggregate-only summaries; target values are never imputed.")
+    st.dataframe(pd.DataFrame(missing["columns"])[["column", "role", "missing_count", "missing_percentage", "complete_case_count", "likely_structural_or_not_applicable"]], width="stretch", hide_index=True)
+
+
 def render_findings(
     joined: pd.DataFrame,
     benchmarks: pd.DataFrame,
@@ -3743,6 +3853,7 @@ def main() -> None:
         "Data Understanding",
         "PCA Explorer",
         "Target-Aware Feature Value",
+        "Model Comparison",
         "Findings",
         "Sales Pitch Visuals",
         "Notes",
@@ -3787,6 +3898,11 @@ def main() -> None:
     elif selected_tab == "Target-Aware Feature Value":
         analysis_frame, analysis_metadata = selected_analysis()
         render_target_feature_value(analysis_frame, analysis_metadata, int(max_rows), int(seed))
+    elif selected_tab == "Model Comparison":
+        analysis_frame, analysis_metadata = selected_analysis()
+        render_model_comparison(
+            analysis_frame, analysis_metadata, data_dir, int(max_rows), int(seed)
+        )
     elif selected_tab == "Findings":
         analysis_frame, analysis_metadata = selected_analysis()
         render_findings(analysis_frame, benchmarks, analysis_metadata, int(max_rows), int(seed))
