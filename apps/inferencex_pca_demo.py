@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -17,7 +19,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, r2_score
-from sklearn.model_selection import GroupShuffleSplit, train_test_split
+from sklearn.model_selection import GroupKFold, KFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -93,6 +95,10 @@ DEFAULT_CATEGORICAL_FEATURES = (
     "config_disagg",
     "config_is_multinode",
 )
+DEFAULT_GROUPED_FOLDS = 5
+DEFAULT_PERMUTATION_REPEATS = 5
+DEFAULT_PCA_STABILITY_RUNS = 5
+DEFAULT_PCA_STABILITY_FRACTION = 0.8
 
 
 st.set_page_config(page_title="InferenceX PCA Demo", layout="wide")
@@ -284,7 +290,10 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
 
 
 @st.cache_data(show_spinner="Loading benchmark/config data")
-def load_joined_data(data_dir_text: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+def load_joined_data(
+    data_dir_text: str,
+    dataset_fingerprint: str = "",
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     status, source_info = data_source_status(data_dir_text)
     active_mode = source_info["active_mode"]
 
@@ -575,6 +584,451 @@ def build_analysis_frame(
         }
     )
     return latest.reset_index(drop=True), metadata
+
+
+def file_snapshot(path: Path, sample_bytes: int = 1_048_576) -> dict[str, Any]:
+    """Return non-row-level metadata and a bounded content fingerprint for one source file."""
+    stat = path.stat()
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        digest.update(handle.read(sample_bytes))
+        if stat.st_size > sample_bytes:
+            handle.seek(max(0, stat.st_size - sample_bytes))
+            digest.update(handle.read(sample_bytes))
+    return {
+        "name": path.name,
+        "size_bytes": stat.st_size,
+        "modified_at_utc": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+        "content_sample_sha256": digest.hexdigest(),
+    }
+
+
+def build_dataset_manifest(source_info: dict[str, Any]) -> dict[str, Any]:
+    active_dir = Path(source_info["active_dir"])
+    required_files = REQUIRED_CSV_FILES if source_info["active_mode"] == "CSV" else REQUIRED_JSON_FILES
+    files = [file_snapshot(active_dir / file_name) for file_name in required_files]
+    payload = {
+        "active_mode": source_info["active_mode"],
+        "active_dir": str(active_dir.resolve()),
+        "files": files,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {**payload, "fingerprint": fingerprint}
+
+
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unavailable"
+
+
+def analysis_signature(
+    analysis_metadata: dict[str, Any],
+    analysis_kind: str,
+    controls: dict[str, Any],
+) -> str:
+    payload = {
+        "dataset_fingerprint": analysis_metadata.get("dataset_fingerprint", ""),
+        "analysis_unit": analysis_metadata.get("analysis_unit", ""),
+        "analysis_row_count": analysis_metadata.get("analysis_row_count", 0),
+        "analysis_kind": analysis_kind,
+        "controls": controls,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def current_artifact(key: str, signature: str) -> dict[str, Any] | None:
+    artifact = st.session_state.get(key)
+    if artifact and artifact.get("analysis_signature") != signature:
+        st.session_state.pop(key, None)
+        return None
+    return artifact
+
+
+def signed_export(frame: pd.DataFrame, signature: str) -> pd.DataFrame:
+    exported = frame.copy()
+    exported.insert(0, "analysis_signature", signature)
+    return exported
+
+
+def default_pca_features(frame: pd.DataFrame) -> tuple[list[str], list[str]]:
+    default_categorical = [
+        column for column in DEFAULT_CATEGORICAL_FEATURES if column in config_categorical_columns(frame)
+    ]
+    default_numeric = [
+        column for column in config_numeric_columns(frame) if column not in default_categorical
+    ][:12]
+    numeric, categorical, _ = normalize_feature_groups(default_numeric, default_categorical)
+    return numeric, categorical
+
+
+def default_target_features(frame: pd.DataFrame, target: str) -> tuple[list[str], list[str]]:
+    default_categorical = [
+        column for column in DEFAULT_CATEGORICAL_FEATURES if column in config_categorical_columns(frame)
+    ]
+    default_numeric = [
+        column
+        for column in config_numeric_columns(frame)
+        if column != target and column not in default_categorical and not is_metric_column(column)
+    ][:12]
+    numeric, categorical, _ = normalize_feature_groups(default_numeric, default_categorical)
+    return numeric, categorical
+
+
+def pca_controls_from_state(frame: pd.DataFrame, max_rows: int, seed: int) -> dict[str, Any]:
+    default_numeric, default_categorical = default_pca_features(frame)
+    numeric, categorical, _ = normalize_feature_groups(
+        list(st.session_state.get("pca_numeric_features", default_numeric)),
+        list(st.session_state.get("pca_categorical_features", default_categorical)),
+    )
+    metric_cols = metric_like_numeric_columns(frame)
+    target = st.session_state.get("pca_target_correlation_metric", metric_cols[0] if metric_cols else "")
+    return {
+        "numeric_features": numeric,
+        "categorical_features": categorical,
+        "target_metric": target,
+        "max_rows": int(max_rows),
+        "seed": int(seed),
+        "stability_runs": int(st.session_state.get("pca_stability_runs", DEFAULT_PCA_STABILITY_RUNS)),
+    }
+
+
+def target_controls_from_state(frame: pd.DataFrame, max_rows: int, seed: int) -> dict[str, Any]:
+    metric_cols = metric_like_numeric_columns(frame)
+    target = st.session_state.get("target_metric", metric_cols[0] if metric_cols else "")
+    default_numeric, default_categorical = default_target_features(frame, target)
+    numeric, categorical, _ = normalize_feature_groups(
+        list(st.session_state.get("target_numeric_features", default_numeric)),
+        list(st.session_state.get("target_categorical_features", default_categorical)),
+    )
+    return {
+        "target": target,
+        "numeric_features": numeric,
+        "categorical_features": categorical,
+        "max_rows": int(max_rows),
+        "seed": int(seed),
+        "split_mode": st.session_state.get(
+            "target_split_mode", "Grouped cross-validation by config_id"
+        ),
+        "n_estimators": int(st.session_state.get("target_n_estimators", 150)),
+        "include_other_metrics": bool(st.session_state.get("include_other_metrics", False)),
+        "permutation_repeats": DEFAULT_PERMUTATION_REPEATS,
+    }
+
+
+def fit_pca_analysis(
+    frame: pd.DataFrame,
+    feature_columns: list[str],
+    max_rows: int,
+    seed: int,
+    target_metric: str = "",
+) -> tuple[dict[str, Any] | None, str]:
+    work = sample_frame(frame, max_rows, seed)
+    work = coerce_model_frame(work, feature_columns)
+    if len(work) < 3:
+        return None, "Not enough usable rows after dropping empty feature rows."
+
+    numeric_features, categorical_features = split_features(work, feature_columns)
+    preprocessor = make_preprocessor(numeric_features, categorical_features)
+    try:
+        matrix = preprocessor.fit_transform(work[feature_columns])
+    except Exception as exc:
+        return None, f"Could not preprocess selected features: {exc}"
+    if matrix.shape[1] < 2:
+        return None, "PCA needs at least two encoded feature dimensions."
+
+    pca = PCA(n_components=min(5, matrix.shape[1], len(work)), random_state=seed)
+    coords = pca.fit_transform(matrix)
+    explained = pd.DataFrame(
+        {
+            "component": [f"PC{idx + 1}" for idx in range(len(pca.explained_variance_ratio_))],
+            "explained_variance_ratio": pca.explained_variance_ratio_,
+            "cumulative_explained_variance": np.cumsum(pca.explained_variance_ratio_),
+        }
+    )
+    feature_names = [clean_feature_label(name) for name in preprocessor.get_feature_names_out()]
+    loading_details = build_pca_loading_details(
+        pca, feature_names, numeric_features, categorical_features
+    )
+    component_interpretations = build_component_interpretations(pca, loading_details)
+    correlation_frame = (
+        compute_pc_target_correlations(coords, work.index, frame, target_metric)
+        if target_metric and target_metric in frame.columns
+        else pd.DataFrame()
+    )
+    return {
+        "sampled_rows": len(work),
+        "input_feature_count": len(feature_columns),
+        "input_features": feature_columns,
+        "target_metric": target_metric,
+        "encoded_contributions": loading_details,
+        "source_contributions": original_feature_contributions(loading_details),
+        "component_interpretations": component_interpretations,
+        "pc_target_correlations": correlation_frame,
+        "explained_variance": explained,
+        "pc_scores": pd.DataFrame(
+            coords[:, : min(5, coords.shape[1])],
+            columns=[f"PC{idx + 1}" for idx in range(min(5, coords.shape[1]))],
+            index=work.index,
+        ),
+        "component_group_vectors": {
+            f"PC{idx + 1}": component_group_loadings(loading_details, f"PC{idx + 1}")
+            .set_index("source_feature")["signed_loading"]
+            .to_dict()
+            for idx in range(len(pca.components_))
+        },
+    }, ""
+
+
+def pca_stability_summary(
+    frame: pd.DataFrame,
+    feature_columns: list[str],
+    max_rows: int,
+    seed: int,
+    runs: int,
+) -> tuple[dict[str, Any], str]:
+    run_count = max(2, int(runs))
+    sample_rows = min(max_rows, max(3, int(round(len(frame) * DEFAULT_PCA_STABILITY_FRACTION))))
+    runs_data: list[dict[str, Any]] = []
+    for run_idx in range(run_count):
+        result, error = fit_pca_analysis(
+            frame, feature_columns, sample_rows, seed + run_idx, ""
+        )
+        if result is None:
+            return {}, error
+        runs_data.append(result)
+
+    components = [f"PC{idx + 1}" for idx in range(min(5, len(runs_data[0]["explained_variance"])))]
+    explained_rows = []
+    component_rows = []
+    base_vectors = runs_data[0]["component_group_vectors"]
+    for component in components:
+        values = [
+            float(run["explained_variance"].loc[
+                run["explained_variance"]["component"] == component,
+                "explained_variance_ratio",
+            ].iloc[0])
+            for run in runs_data
+        ]
+        similarities = []
+        base = pd.Series(base_vectors.get(component, {}), dtype=float)
+        for run in runs_data[1:]:
+            candidate = pd.Series(run["component_group_vectors"].get(component, {}), dtype=float)
+            vector = pd.concat([base, candidate], axis=1).fillna(0.0)
+            left, right = vector.iloc[:, 0].to_numpy(), vector.iloc[:, 1].to_numpy()
+            denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
+            similarities.append(abs(float(np.dot(left, right) / denominator)) if denominator else np.nan)
+        explained_rows.append(
+            {
+                "component": component,
+                "mean_explained_variance": float(np.mean(values)),
+                "std_explained_variance": float(np.std(values, ddof=0)),
+                "min_explained_variance": float(np.min(values)),
+                "max_explained_variance": float(np.max(values)),
+            }
+        )
+        component_rows.append(
+            {
+                "component": component,
+                "mean_sign_aligned_loading_similarity": float(np.nanmean(similarities)) if similarities else 1.0,
+                "min_sign_aligned_loading_similarity": float(np.nanmin(similarities)) if similarities else 1.0,
+            }
+        )
+
+    top_counts: dict[str, int] = {}
+    for run in runs_data:
+        for feature in run["source_contributions"].head(10)["source_feature"]:
+            top_counts[feature] = top_counts.get(feature, 0) + 1
+    feature_frequency = pd.DataFrame(
+        [
+            {"source_feature": feature, "top_driver_runs": count, "top_driver_frequency": count / run_count}
+            for feature, count in top_counts.items()
+        ]
+    ).sort_values(["top_driver_frequency", "source_feature"], ascending=[False, True])
+    component_stability = pd.DataFrame(component_rows)
+    warnings = []
+    unstable_components = component_stability[
+        component_stability["min_sign_aligned_loading_similarity"] < 0.8
+    ]["component"].tolist()
+    if unstable_components:
+        warnings.append(
+            "Loading patterns were unstable for " + ", ".join(unstable_components) + "."
+        )
+    unstable_features = feature_frequency[
+        feature_frequency["top_driver_frequency"] < 0.6
+    ]["source_feature"].head(5).tolist()
+    if unstable_features:
+        warnings.append(
+            "Some top-driver appearances were inconsistent: " + ", ".join(unstable_features) + "."
+        )
+    return {
+        "runs": run_count,
+        "sample_rows": sample_rows,
+        "sample_fraction": sample_rows / max(len(frame), 1),
+        "explained_variance": pd.DataFrame(explained_rows),
+        "component_similarity": component_stability,
+        "top_driver_frequency": feature_frequency,
+        "warnings": warnings,
+    }, ""
+
+
+def grouped_rf_evaluation(
+    frame: pd.DataFrame,
+    feature_columns: list[str],
+    target: str,
+    max_rows: int,
+    seed: int,
+    n_estimators: int,
+    split_mode: str = "Grouped cross-validation by config_id",
+    n_splits: int = DEFAULT_GROUPED_FOLDS,
+    permutation_repeats: int = DEFAULT_PERMUTATION_REPEATS,
+) -> tuple[dict[str, Any] | None, str]:
+    work_columns = unique_preserve_order(
+        feature_columns + [target] + (["config_id"] if "config_id" in frame.columns else [])
+    )
+    work = sample_frame(frame, max_rows, seed)
+    work = work[[column for column in work_columns if column in work.columns]].replace(
+        [np.inf, -np.inf], np.nan
+    )
+    work = work.dropna(axis=0, how="all", subset=feature_columns).dropna(axis=0, subset=[target])
+    if len(work) < 20:
+        return None, "Not enough rows with a non-null target value to train/test a model."
+
+    X = work.loc[:, feature_columns]
+    if not X.columns.is_unique:
+        X = X.loc[:, ~X.columns.duplicated()]
+        feature_columns = list(X.columns)
+    numeric_features, categorical_features = split_features(work, feature_columns)
+    y = work[target]
+    warnings: list[str] = []
+    groups: pd.Series | None = None
+    if split_mode == "Grouped cross-validation by config_id" and "config_id" in work.columns:
+        groups = work.loc[X.index, "config_id"].fillna("__missing_config_id__")
+        group_count = int(groups.nunique(dropna=False))
+        if group_count >= 2:
+            fold_count = min(max(2, n_splits), group_count)
+            splitter = GroupKFold(n_splits=fold_count)
+            split_iter = splitter.split(X, y, groups=groups)
+            evaluation_mode = "Grouped cross-validation by config_id"
+        else:
+            warnings.append("Fewer than two config_id groups; using random K-fold fallback.")
+            groups = None
+    else:
+        if split_mode != "Grouped cross-validation by config_id":
+            warnings.append("Random K-fold fallback selected; groups may overlap across folds.")
+        else:
+            warnings.append("config_id is unavailable; using random K-fold fallback.")
+
+    if groups is None:
+        fold_count = min(max(2, n_splits), len(work))
+        splitter = KFold(n_splits=fold_count, shuffle=True, random_state=seed)
+        split_iter = splitter.split(X, y)
+        evaluation_mode = "Random K-fold fallback"
+
+    fold_rows: list[dict[str, Any]] = []
+    importance_rows: list[dict[str, Any]] = []
+    for fold_idx, (train_idx, validation_idx) in enumerate(split_iter, start=1):
+        X_train, X_validation = X.iloc[train_idx], X.iloc[validation_idx]
+        y_train, y_validation = y.iloc[train_idx], y.iloc[validation_idx]
+        model = Pipeline(
+            [
+                ("preprocess", make_preprocessor(numeric_features, categorical_features)),
+                (
+                    "model",
+                    RandomForestRegressor(
+                        n_estimators=n_estimators,
+                        random_state=seed + fold_idx,
+                        n_jobs=1,
+                        min_samples_leaf=2,
+                    ),
+                ),
+            ]
+        )
+        try:
+            model.fit(X_train, y_train)
+            predictions = model.predict(X_validation)
+            importance = permutation_importance(
+                model,
+                X_validation,
+                y_validation,
+                n_repeats=permutation_repeats,
+                random_state=seed + fold_idx,
+                n_jobs=1,
+                scoring="r2",
+            )
+        except Exception as exc:
+            return None, f"Could not complete fold {fold_idx}: {exc}"
+        train_groups = set(groups.iloc[train_idx]) if groups is not None else set()
+        validation_groups = set(groups.iloc[validation_idx]) if groups is not None else set()
+        overlap = len(train_groups.intersection(validation_groups))
+        fold_rows.append(
+            {
+                "fold": fold_idx,
+                "train_rows": len(train_idx),
+                "validation_rows": len(validation_idx),
+                "train_groups": len(train_groups) if groups is not None else np.nan,
+                "validation_groups": len(validation_groups) if groups is not None else np.nan,
+                "group_overlap": overlap if groups is not None else np.nan,
+                "r2": r2_score(y_validation, predictions),
+                "mae": mean_absolute_error(y_validation, predictions),
+            }
+        )
+        for feature, mean, std in zip(
+            feature_columns, importance.importances_mean, importance.importances_std
+        ):
+            importance_rows.append(
+                {
+                    "fold": fold_idx,
+                    "feature": feature,
+                    "importance_mean": mean,
+                    "importance_std": std,
+                }
+            )
+
+    fold_metrics = pd.DataFrame(fold_rows)
+    importance_by_fold = pd.DataFrame(importance_rows)
+    importance_frame = (
+        importance_by_fold.groupby("feature", as_index=False)
+        .agg(
+            importance_mean=("importance_mean", "mean"),
+            importance_std=("importance_mean", "std"),
+            folds=("fold", "nunique"),
+        )
+        .fillna({"importance_std": 0.0})
+        .sort_values("importance_mean", ascending=False)
+    )
+    metric_summary = {
+        metric: {
+            "mean": float(fold_metrics[metric].mean()),
+            "std": float(fold_metrics[metric].std(ddof=0)),
+            "min": float(fold_metrics[metric].min()),
+            "max": float(fold_metrics[metric].max()),
+        }
+        for metric in ("r2", "mae")
+    }
+    if groups is not None and int(fold_metrics["group_overlap"].max()) != 0:
+        return None, "Grouped cross-validation produced overlapping config_id groups."
+    return {
+        "target_metric": target,
+        "sampled_rows": len(work),
+        "predictor_count": len(feature_columns),
+        "split_mode": evaluation_mode,
+        "fold_count": fold_count,
+        "fold_metrics": fold_metrics,
+        "metric_summary": metric_summary,
+        "r2": metric_summary["r2"]["mean"],
+        "mae": metric_summary["mae"]["mean"],
+        "importance_frame": importance_frame,
+        "importance_by_fold": importance_by_fold,
+        "warnings": warnings,
+    }, ""
 
 
 def make_preprocessor(numeric_features: list[str], categorical_features: list[str]) -> ColumnTransformer:
@@ -1138,6 +1592,7 @@ def build_findings_markdown(
         f"- Raw rows: {dataset_summary.get('raw_row_count', dataset_summary.get('joined_rows', 0)):,}",
         f"- Analysis rows: {dataset_summary.get('analysis_row_count', dataset_summary.get('joined_rows', 0)):,}",
         f"- Grouping keys: {', '.join(dataset_summary.get('grouping_keys', [])) or 'none'}",
+        f"- Dataset fingerprint: `{dataset_summary.get('dataset_fingerprint', '')}`",
         "",
     ]
 
@@ -1157,6 +1612,7 @@ def build_findings_markdown(
             f"- Sampled rows used: {pca_analysis['sampled_rows']:,}",
             f"- PCA input feature count: {pca_analysis['input_feature_count']:,}",
             f"- Selected PC correlation target: `{pca_analysis['target_metric']}`",
+            f"- Analysis signature: `{pca_analysis.get('analysis_signature', '')}`",
             "",
             "### Top Original Feature Groups",
             "",
@@ -1192,6 +1648,7 @@ def build_findings_markdown(
             "## Target-Aware Feature Importance",
             "",
             f"Selected target metric: `{target_metric}`",
+            f"- RF analysis signature: `{target_analysis.get('analysis_signature', '') if target_analysis else ''}`",
             "",
             dataframe_to_markdown(target_importance, 10),
             "",
@@ -1212,7 +1669,7 @@ def build_findings_markdown(
             "- Results depend on the selected target metric and sampled rows.",
             "- Repeated benchmark rows can overweight frequently tested configurations. "
             "Aggregated analysis reduces this bias.",
-            "- This app reads local JSON dumps only and intentionally skips giant log/sample files.",
+            "- CSV is the preferred source; JSON fallback intentionally skips giant log/sample files.",
         ]
     )
     return "\n".join(lines)
@@ -1304,122 +1761,31 @@ def compute_target_importance_for_sales(
     if not target or target not in joined.columns:
         return None, "No selected target metric is available for target-aware modeling."
 
-    default_categorical = [
-        column for column in DEFAULT_CATEGORICAL_FEATURES if column in config_categorical_columns(joined)
-    ]
-    default_numeric = [
-        column
-        for column in config_numeric_columns(joined)
-        if column != target
-        and column not in default_categorical
-        and not is_metric_column(column)
-    ][:12]
+    default_numeric, default_categorical = default_target_features(joined, target)
     feature_columns = unique_preserve_order(default_numeric + default_categorical)
     if not feature_columns:
         return None, "No setup/configuration predictors were available for the target model."
-
-    work_columns = unique_preserve_order(
-        feature_columns
-        + [target]
-        + (["config_id"] if "config_id" in joined.columns else [])
+    result, error = grouped_rf_evaluation(
+        joined,
+        feature_columns,
+        target,
+        max_rows,
+        seed,
+        n_estimators=150,
+        permutation_repeats=3,
     )
-    work = sample_frame(joined, max_rows, seed)
-    work = work[[column for column in work_columns if column in work.columns]].replace(
-        [np.inf, -np.inf],
-        np.nan,
-    )
-    work = work.dropna(axis=0, how="all", subset=feature_columns)
-    work = work.dropna(axis=0, subset=[target])
-    if len(work) < 20:
-        return None, "Not enough rows with a non-null target value to train/test a model."
-
-    X = work.loc[:, feature_columns]
-    if not X.columns.is_unique:
-        X = X.loc[:, ~X.columns.duplicated()]
-        feature_columns = list(X.columns)
-
-    numeric_features, categorical_features = split_features(work, feature_columns)
-    preprocessor = make_preprocessor(numeric_features, categorical_features)
-    model = Pipeline(
-        [
-            ("preprocess", preprocessor),
-            (
-                "model",
-                RandomForestRegressor(
-                    n_estimators=150,
-                    random_state=seed,
-                    n_jobs=1,
-                    min_samples_leaf=2,
-                ),
-            ),
-        ]
-    )
-
-    y = work[target]
-    split_mode = "Grouped split by config_id" if "config_id" in work.columns else "Random split"
-    if split_mode == "Grouped split by config_id":
-        groups = work.loc[X.index, "config_id"].fillna("__missing_config_id__")
-        if groups.nunique(dropna=False) < 2:
-            split_mode = "Random split"
-            X_train, X_test, y_train, y_test = train_test_split(
-                X,
-                y,
-                test_size=0.25,
-                random_state=seed,
-            )
-        else:
-            splitter = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=seed)
-            train_idx, test_idx = next(splitter.split(X, y, groups=groups))
-            X_train = X.iloc[train_idx]
-            X_test = X.iloc[test_idx]
-            y_train = y.iloc[train_idx]
-            y_test = y.iloc[test_idx]
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X,
-            y,
-            test_size=0.25,
-            random_state=seed,
-        )
-
-    try:
-        model.fit(X_train, y_train)
-        predictions = model.predict(X_test)
-        importance = permutation_importance(
-            model,
-            X_test,
-            y_test,
-            n_repeats=3,
-            random_state=seed,
-            n_jobs=1,
-            scoring="r2",
-        )
-    except Exception as exc:
-        return None, f"Could not compute target-aware importance: {exc}"
-
-    importance_frame = pd.DataFrame(
+    if result is None:
+        return None, error
+    result.update(
         {
-            "feature": feature_columns,
-            "readable_feature_label": [readable_feature_label(column) for column in feature_columns],
-            "importance_mean": importance.importances_mean,
-            "importance_std": importance.importances_std,
+            "analysis_unit": analysis_metadata["analysis_unit"],
+            "raw_row_count": analysis_metadata["raw_row_count"],
+            "analysis_row_count": analysis_metadata["analysis_row_count"],
+            "grouping_keys": analysis_metadata["grouping_keys"],
+            "auto_generated": True,
         }
-    ).sort_values("importance_mean", ascending=False)
-
-    return {
-        "target_metric": target,
-        "sampled_rows": len(work),
-        "predictor_count": len(feature_columns),
-        "split_mode": split_mode,
-        "analysis_unit": analysis_metadata["analysis_unit"],
-        "raw_row_count": analysis_metadata["raw_row_count"],
-        "analysis_row_count": analysis_metadata["analysis_row_count"],
-        "grouping_keys": analysis_metadata["grouping_keys"],
-        "r2": r2_score(y_test, predictions),
-        "mae": mean_absolute_error(y_test, predictions),
-        "importance_frame": importance_frame,
-        "auto_generated": True,
-    }, ""
+    )
+    return result, ""
 
 
 def build_sales_pitch_markdown(
@@ -1428,6 +1794,8 @@ def build_sales_pitch_markdown(
     component_cards: pd.DataFrame,
     selected_target: str,
     bridge: pd.DataFrame,
+    pca_signature: str = "",
+    target_signature: str = "",
 ) -> str:
     timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     top_groups = source_contributions.head(3)["raw_feature_name"].tolist()
@@ -1468,6 +1836,8 @@ def build_sales_pitch_markdown(
         f"- Raw rows: {dataset_summary.get('raw_row_count', 0):,}",
         f"- Analysis rows: {dataset_summary.get('analysis_row_count', 0):,}",
         f"- Grouping keys: {', '.join(dataset_summary.get('grouping_keys', [])) or 'none'}",
+        f"- PCA analysis signature: `{pca_signature}`",
+        f"- Target analysis signature: `{target_signature}`",
         "",
         "## Top PCA Feature Groups",
         "",
@@ -1727,7 +2097,7 @@ def build_categorical_top_values(frame: pd.DataFrame, max_columns: int = 60) -> 
             rows.append(
                 {
                     "column": column,
-                    "value": value,
+                    "value": str(value),
                     "count": int(count),
                     "share_pct": 100 * count / max(len(frame), 1),
                 }
@@ -1855,7 +2225,11 @@ def build_data_quality_markdown(report: dict[str, Any]) -> str:
 
 
 @st.cache_data(show_spinner=False)
-def load_optional_small_tables(data_dir_text: str, max_mb: float = 10.0) -> dict[str, pd.DataFrame]:
+def load_optional_small_tables(
+    data_dir_text: str,
+    dataset_fingerprint: str = "",
+    max_mb: float = 10.0,
+) -> dict[str, pd.DataFrame]:
     data_dir = resolve_data_dir(data_dir_text)
     json_dir = resolve_data_dir(DEFAULT_JSON_DUMP_DIR)
     tables: dict[str, pd.DataFrame] = {}
@@ -1902,10 +2276,10 @@ def render_data_preview(
             "unique": [safe_nunique(joined[column]) for column in joined.columns],
         }
     )
-    st.dataframe(column_summary, use_container_width=True, height=360)
+    st.dataframe(column_summary, width="stretch", height=360)
 
     st.subheader("Sample Rows")
-    st.dataframe(joined.head(100), use_container_width=True, height=420)
+    st.dataframe(joined.head(100), width="stretch", height=420)
 
 
 def render_data_understanding(
@@ -1973,14 +2347,16 @@ def render_data_understanding(
     if not repeat_summary.empty:
         repeated_only = repeat_summary[repeat_summary["row_count"] > 1]
         st.markdown("**Top repeated config/workload/concurrency groups**")
-        st.dataframe(repeated_only.head(30), use_container_width=True, hide_index=True)
+        st.dataframe(repeated_only.head(30), width="stretch", hide_index=True)
         st.caption(
             f"{len(repeated_only):,} groups have repeated raw rows out of "
             f"{len(repeat_summary):,} total config/workload/concurrency groups."
         )
 
     if st.checkbox("Optionally load small side tables", value=False):
-        optional_tables = load_optional_small_tables(data_dir)
+        optional_tables = load_optional_small_tables(
+            data_dir, analysis_metadata.get("dataset_fingerprint", "")
+        )
         if optional_tables:
             st.dataframe(
                 pd.DataFrame(
@@ -1989,7 +2365,7 @@ def render_data_understanding(
                         for name, frame in optional_tables.items()
                     ]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
@@ -2025,17 +2401,17 @@ def render_data_understanding(
         family_mask |= dictionary_view["role"].isin(["reliability", "eval"])
     if selected_families:
         dictionary_view = dictionary_view[family_mask]
-    st.dataframe(dictionary_view, use_container_width=True, height=480, hide_index=True)
+    st.dataframe(dictionary_view, width="stretch", height=480, hide_index=True)
 
     st.subheader("Distribution Summary")
     st.caption(f"Distribution summaries use up to {len(sample):,} sampled rows.")
     dist_left, dist_right = st.columns(2)
     with dist_left:
         st.markdown("**Numeric columns**")
-        st.dataframe(numeric_summary, use_container_width=True, height=420, hide_index=True)
+        st.dataframe(numeric_summary, width="stretch", height=420, hide_index=True)
     with dist_right:
         st.markdown("**Categorical top values**")
-        st.dataframe(categorical_top_values, use_container_width=True, height=420, hide_index=True)
+        st.dataframe(categorical_top_values, width="stretch", height=420, hide_index=True)
 
     st.subheader("Coverage Matrix")
     coverage = joined.copy()
@@ -2074,10 +2450,10 @@ def render_data_understanding(
             fill_value=0,
         )
         matrix_cols[0].markdown("**config_hardware x config_framework**")
-        matrix_cols[0].dataframe(hw_framework, use_container_width=True)
+        matrix_cols[0].dataframe(hw_framework, width="stretch")
         matrix_cols[0].plotly_chart(
             px.imshow(hw_framework, text_auto=True, aspect="auto"),
-            use_container_width=True,
+            width="stretch",
         )
     if {"config_model", "config_hardware"}.issubset(coverage.columns):
         model_hw = coverage.pivot_table(
@@ -2088,10 +2464,10 @@ def render_data_understanding(
             fill_value=0,
         )
         matrix_cols[1].markdown("**config_model x config_hardware**")
-        matrix_cols[1].dataframe(model_hw, use_container_width=True)
+        matrix_cols[1].dataframe(model_hw, width="stretch")
         matrix_cols[1].plotly_chart(
             px.imshow(model_hw, text_auto=True, aspect="auto"),
-            use_container_width=True,
+            width="stretch",
         )
 
     st.subheader("Workload Shape Summary")
@@ -2111,10 +2487,10 @@ def render_data_understanding(
                 .rename_axis(column)
                 .reset_index(name="row_count")
             )
-            workload_cols[idx].dataframe(counts, use_container_width=True, hide_index=True)
+            workload_cols[idx].dataframe(counts, width="stretch", hide_index=True)
             workload_cols[idx].plotly_chart(
                 px.bar(counts, x=column, y="row_count", title=column.upper()),
-                use_container_width=True,
+                width="stretch",
             )
     if {"isl", "osl"}.issubset(joined.columns):
         seq_pairs = (
@@ -2126,10 +2502,10 @@ def render_data_understanding(
             .reset_index(name="row_count")
         )
         st.markdown("**Sequence pair counts**")
-        st.dataframe(seq_pairs, use_container_width=True, hide_index=True)
+        st.dataframe(seq_pairs, width="stretch", hide_index=True)
 
     st.subheader("Metric Target Guide")
-    st.dataframe(metric_target_guide, use_container_width=True, height=420, hide_index=True)
+    st.dataframe(metric_target_guide, width="stretch", height=420, hide_index=True)
 
     st.subheader("Data Quality Checks")
     q_cols = st.columns(3)
@@ -2137,19 +2513,19 @@ def render_data_understanding(
     q_cols[1].metric("Failed rows", f"{quality_report['failed_rows']:,}")
     q_cols[2].metric("Excluded columns", f"{len(quality_report['excluded']):,}")
     st.markdown("**Missing metrics**")
-    st.dataframe(quality_report["missing_metrics"].head(30), use_container_width=True, hide_index=True)
+    st.dataframe(quality_report["missing_metrics"].head(30), width="stretch", hide_index=True)
     dq_cols = st.columns(2)
     dq_cols[0].markdown("**High-cardinality metadata/provenance**")
-    dq_cols[0].dataframe(quality_report["high_cardinality"], use_container_width=True, hide_index=True)
+    dq_cols[0].dataframe(quality_report["high_cardinality"], width="stretch", hide_index=True)
     dq_cols[1].markdown("**One-unique-value columns**")
-    dq_cols[1].dataframe(quality_report["single_value"], use_container_width=True, hide_index=True)
+    dq_cols[1].dataframe(quality_report["single_value"], width="stretch", hide_index=True)
     st.markdown("**Suspicious values**")
     if quality_report["suspicious"].empty:
         st.success("No negative metric or non-positive workload values found in the loaded rows.")
     else:
-        st.dataframe(quality_report["suspicious"], use_container_width=True, hide_index=True)
+        st.dataframe(quality_report["suspicious"], width="stretch", hide_index=True)
     st.markdown("**Excluded from PCA/modeling by default**")
-    st.dataframe(quality_report["excluded"], use_container_width=True, hide_index=True)
+    st.dataframe(quality_report["excluded"], width="stretch", hide_index=True)
 
     st.subheader("Caveats")
     st.markdown(
@@ -2212,16 +2588,9 @@ def render_pca_explorer(
     metric_cols = metric_like_numeric_columns(joined)
     numeric_candidates = numeric_columns(joined)
     categorical_candidates = categorical_columns(joined)
-
-    config_categorical = config_categorical_columns(joined)
-    default_categorical = [
-        column for column in DEFAULT_CATEGORICAL_FEATURES if column in config_categorical
-    ]
-    default_numeric = [
-        column for column in config_numeric_columns(joined) if column not in default_categorical
-    ][:12]
+    default_numeric, default_categorical = default_pca_features(joined)
     color_options = unique_preserve_order(
-        [""] + metric_cols + config_categorical + categorical_candidates + numeric_candidates
+        [""] + metric_cols + config_categorical_columns(joined) + categorical_candidates + numeric_candidates
     )
     default_color = metric_cols[0] if metric_cols else "config_hardware"
     default_color_index = color_options.index(default_color) if default_color in color_options else 0
@@ -2254,6 +2623,21 @@ def render_pca_explorer(
         options=color_options,
         index=default_color_index,
     )
+    target_metric = ""
+    if metric_cols:
+        target_metric = st.selectbox(
+            "Performance metric for PC correlation",
+            options=metric_cols,
+            key="pca_target_correlation_metric",
+        )
+    stability_runs = st.slider(
+        "PCA stability runs",
+        min_value=2,
+        max_value=10,
+        value=DEFAULT_PCA_STABILITY_RUNS,
+        key="pca_stability_runs",
+        help="Repeated deterministic 80% samples of the current analysis frame.",
+    )
 
     selected_numeric, selected_categorical, overlap = normalize_feature_groups(
         selected_numeric,
@@ -2275,38 +2659,45 @@ def render_pca_explorer(
     if not feature_columns:
         st.info("Select at least one numeric or categorical feature to run PCA.")
         return
+    controls = pca_controls_from_state(joined, max_rows, seed)
+    controls["target_metric"] = target_metric
+    controls["stability_runs"] = stability_runs
+    signature = analysis_signature(analysis_metadata, "pca", controls)
+    pca_analysis = current_artifact("pca_analysis", signature)
+    if pca_analysis is None:
+        with st.spinner("Fitting PCA and deterministic stability samples"):
+            pca_analysis, error = fit_pca_analysis(
+                joined, feature_columns, max_rows, seed, target_metric
+            )
+            if pca_analysis is not None:
+                stability, stability_error = pca_stability_summary(
+                    joined, feature_columns, max_rows, seed, stability_runs
+                )
+                if stability_error:
+                    error = stability_error
+                else:
+                    pca_analysis["stability"] = stability
+        if pca_analysis is None or error:
+            st.error(error)
+            return
+        pca_analysis.update(
+            {
+                "analysis_signature": signature,
+                "controls": controls,
+                "analysis_unit": analysis_metadata["analysis_unit"],
+                "raw_row_count": analysis_metadata["raw_row_count"],
+                "analysis_row_count": analysis_metadata["analysis_row_count"],
+                "grouping_keys": analysis_metadata["grouping_keys"],
+            }
+        )
+        st.session_state["pca_analysis"] = pca_analysis
 
-    work = sample_frame(joined, max_rows, seed)
-    work = coerce_model_frame(work, feature_columns)
-    if len(work) < 3:
-        st.warning("Not enough usable rows after dropping empty feature rows.")
-        return
-
-    numeric_features, categorical_features = split_features(work, feature_columns)
-    preprocessor = make_preprocessor(numeric_features, categorical_features)
-
-    try:
-        matrix = preprocessor.fit_transform(work[feature_columns])
-    except Exception as exc:  # Defensive UI boundary for unexpected dump shape.
-        st.error(f"Could not preprocess selected features: {exc}")
-        return
-
-    if matrix.shape[1] < 2:
-        st.warning("PCA needs at least two encoded feature dimensions.")
-        return
-
-    pca = PCA(n_components=min(5, matrix.shape[1], len(work)), random_state=seed)
-    coords = pca.fit_transform(matrix)
-
-    explained = pd.DataFrame(
-        {
-            "component": [f"PC{idx + 1}" for idx in range(len(pca.explained_variance_ratio_))],
-            "explained_variance_ratio": pca.explained_variance_ratio_,
-            "cumulative_explained_variance": np.cumsum(pca.explained_variance_ratio_),
-        }
-    )
+    explained = pca_analysis["explained_variance"]
+    loading_details = pca_analysis["encoded_contributions"]
+    source_contributions = pca_analysis["source_contributions"]
+    component_interpretations = pca_analysis["component_interpretations"]
     st.subheader("Explained Variance")
-    st.dataframe(explained, use_container_width=True, hide_index=True)
+    st.dataframe(explained, width="stretch", hide_index=True)
     st.plotly_chart(
         px.bar(
             explained,
@@ -2314,12 +2705,11 @@ def render_pca_explorer(
             y="explained_variance_ratio",
             text="explained_variance_ratio",
         ).update_traces(texttemplate="%{text:.1%}", textposition="outside"),
-        use_container_width=True,
+        width="stretch",
     )
-
-    plot_frame = pd.DataFrame({"PC1": coords[:, 0], "PC2": coords[:, 1]})
+    plot_frame = pca_analysis["pc_scores"][["PC1", "PC2"]].copy()
     if color_by and color_by in joined.columns:
-        plot_frame[color_by] = joined.loc[work.index, color_by]
+        plot_frame[color_by] = joined.reindex(plot_frame.index)[color_by]
 
     st.subheader("PC1 vs PC2")
     st.plotly_chart(
@@ -2331,15 +2721,7 @@ def render_pca_explorer(
             opacity=0.72,
             render_mode="webgl",
         ),
-        use_container_width=True,
-    )
-
-    feature_names = [clean_feature_label(name) for name in preprocessor.get_feature_names_out()]
-    loading_details = build_pca_loading_details(
-        pca,
-        feature_names,
-        numeric_features,
-        categorical_features,
+        width="stretch",
     )
 
     st.caption(
@@ -2350,7 +2732,7 @@ def render_pca_explorer(
     st.subheader("Feature Contribution Summary")
     st.dataframe(
         loading_details.head(30),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     st.plotly_chart(
@@ -2362,14 +2744,14 @@ def render_pca_explorer(
             orientation="h",
             hover_data=["contribution_share"],
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     st.subheader("Top Original Feature Groups by Variance Contribution")
     source_contributions = original_feature_contributions(loading_details)
     st.dataframe(
         source_contributions.head(30),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     st.plotly_chart(
@@ -2380,118 +2762,58 @@ def render_pca_explorer(
             orientation="h",
             hover_data=["contribution_share"],
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     st.subheader("Component Interpretation Cards")
-    component_interpretations = build_component_interpretations(pca, loading_details)
-    cumulative_variance = np.cumsum(pca.explained_variance_ratio_)
-    for row_start in range(0, min(4, len(pca.components_)), 2):
+    for row_start in range(0, min(4, len(component_interpretations)), 2):
         card_columns = st.columns(2)
-        for card_column, component_idx in zip(
+        for card_column, row in zip(
             card_columns,
-            range(row_start, min(row_start + 2, min(4, len(pca.components_)))),
+            component_interpretations.iloc[row_start : row_start + 2].itertuples(index=False),
         ):
-            component_name = f"PC{component_idx + 1}"
-            component_loadings = loading_details[
-                ["encoded_feature", "source_feature", f"{component_name}_loading"]
-            ].rename(columns={f"{component_name}_loading": "loading"})
-            positive = (
-                component_loadings[component_loadings["loading"] > 0]
-                .sort_values("loading", ascending=False)
-                .head(8)
-            )
-            negative = (
-                component_loadings[component_loadings["loading"] < 0]
-                .sort_values("loading", ascending=True)
-                .head(8)
-            )
-            absolute = (
-                component_loadings.assign(abs_loading=component_loadings["loading"].abs())
-                .sort_values("abs_loading", ascending=False)
-                .head(8)
-            )
-
             with card_column.container(border=True):
-                st.markdown(f"#### {component_name}")
-                st.metric(
-                    "Explained variance",
-                    f"{pca.explained_variance_ratio_[component_idx]:.1%}",
-                )
-                st.metric(
-                    "Cumulative variance",
-                    f"{cumulative_variance[component_idx]:.1%}",
-                )
-                st.write(interpret_component(component_loadings))
-                col_pos, col_neg, col_abs = st.columns(3)
-                col_pos.markdown("**Top positive**")
-                col_pos.markdown(format_loading_list(positive))
-                col_neg.markdown("**Top negative**")
-                col_neg.markdown(format_loading_list(negative))
-                col_abs.markdown("**Top absolute**")
-                col_abs.markdown(format_loading_list(absolute))
+                st.markdown(f"#### {row.component}")
+                st.metric("Explained variance", f"{row.explained_variance_ratio:.1%}")
+                st.metric("Cumulative variance", f"{row.cumulative_explained_variance:.1%}")
+                st.write(row.interpretation)
+                st.caption(f"Top absolute loadings: {row.top_absolute}")
+
+    st.subheader("PCA Stability and Sensitivity")
+    stability = pca_analysis["stability"]
+    st.caption(
+        f"{stability['runs']} deterministic runs, each sampled at {stability['sample_rows']:,} "
+        f"rows ({stability['sample_fraction']:.0%} of this analysis frame)."
+    )
+    st.dataframe(stability["explained_variance"], width="stretch", hide_index=True)
+    st.dataframe(stability["component_similarity"], width="stretch", hide_index=True)
+    st.dataframe(stability["top_driver_frequency"].head(15), width="stretch", hide_index=True)
+    if stability["warnings"]:
+        for warning in stability["warnings"]:
+            st.warning(warning)
+    else:
+        st.success("Top-driver and sign-aligned loading checks were stable across sampled runs.")
 
     st.subheader("PC vs Target Correlation")
-    st.caption(
-        "This checks whether a high-variance PCA component is related to a performance "
-        "outcome. Correlation is descriptive, not causal."
-    )
-    target_metric = ""
-    correlation_frame = pd.DataFrame()
-    if metric_cols:
-        target_metric = st.selectbox(
-            "Performance metric for PC correlation",
-            options=metric_cols,
-            key="pca_target_correlation_metric",
-        )
-        correlation_frame = compute_pc_target_correlations(
-            coords,
-            work.index,
-            joined,
-            target_metric,
-        )
-        st.dataframe(correlation_frame, use_container_width=True, hide_index=True)
+    if target_metric:
+        st.dataframe(pca_analysis["pc_target_correlations"], width="stretch", hide_index=True)
     else:
         st.info("No metric-like numeric columns are available for target correlation.")
 
-    st.session_state["pca_analysis"] = {
-        "sampled_rows": len(work),
-        "input_feature_count": len(feature_columns),
-        "input_features": feature_columns,
-        "target_metric": target_metric,
-        "analysis_unit": analysis_metadata["analysis_unit"],
-        "raw_row_count": analysis_metadata["raw_row_count"],
-        "analysis_row_count": analysis_metadata["analysis_row_count"],
-        "grouping_keys": analysis_metadata["grouping_keys"],
-        "encoded_contributions": loading_details,
-        "source_contributions": source_contributions,
-        "component_interpretations": component_interpretations,
-        "pc_target_correlations": correlation_frame,
-        "explained_variance": explained,
-        "pc_scores": pd.DataFrame(
-            coords[:, : min(5, coords.shape[1])],
-            columns=[f"PC{idx + 1}" for idx in range(min(5, coords.shape[1]))],
-            index=work.index,
-        ),
-    }
-
-    component_options = [f"PC{idx + 1}" for idx in range(len(pca.components_))]
+    component_options = explained["component"].tolist()
     selected_component = st.selectbox("Loadings component", options=component_options)
-    component_idx = component_options.index(selected_component)
-    loading_frame = pd.DataFrame(
-        {
-            "encoded_feature": feature_names,
-            "loading": pca.components_[component_idx],
-        }
+    loading_frame = loading_details[["encoded_feature", f"{selected_component}_loading"]].rename(
+        columns={f"{selected_component}_loading": "loading"}
     )
     loading_frame["abs_loading"] = loading_frame["loading"].abs()
     loading_frame["weighted_abs_loading"] = (
-        loading_frame["abs_loading"] * pca.explained_variance_ratio_[component_idx]
+        loading_frame["abs_loading"]
+        * explained.loc[explained["component"] == selected_component, "explained_variance_ratio"].iloc[0]
     )
     loading_frame = loading_frame.sort_values("abs_loading", ascending=False).head(30)
 
     st.subheader("Top PCA Loadings")
-    st.dataframe(loading_frame, use_container_width=True, hide_index=True)
+    st.dataframe(loading_frame, width="stretch", hide_index=True)
     st.plotly_chart(
         px.bar(
             loading_frame.sort_values("abs_loading"),
@@ -2500,7 +2822,7 @@ def render_pca_explorer(
             orientation="h",
             hover_data=["loading", "weighted_abs_loading"],
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -2529,21 +2851,10 @@ def render_target_feature_value(
     )
 
     target = st.selectbox("Target metric", options=metric_cols, key="target_metric")
-    include_other_metrics = st.checkbox("Allow other metric-like columns as predictors", value=False)
-
-    default_categorical = [
-        column for column in DEFAULT_CATEGORICAL_FEATURES if column in config_categorical_columns(joined)
-    ]
-    default_numeric = [
-        column
-        for column in config_numeric_columns(joined)
-        if column != target
-        and column not in default_categorical
-        and (
-            include_other_metrics
-            or not is_metric_column(column)
-        )
-    ][:12]
+    include_other_metrics = st.checkbox(
+        "Allow other metric-like columns as predictors", value=False, key="include_other_metrics"
+    )
+    default_numeric, default_categorical = default_target_features(joined, target)
     if not default_numeric:
         default_numeric = [
             column
@@ -2564,16 +2875,18 @@ def render_target_feature_value(
         default=default_categorical,
         key="target_categorical_features",
     )
-    split_options = ["Random split"]
+    split_options = ["Random K-fold fallback"]
     if "config_id" in joined.columns:
-        split_options.insert(0, "Grouped split by config_id")
-    split_mode = st.selectbox("Train/test split mode", options=split_options)
-    if split_mode == "Random split":
+        split_options.insert(0, "Grouped cross-validation by config_id")
+    split_mode = st.selectbox("Evaluation mode", options=split_options, key="target_split_mode")
+    if split_mode == "Random K-fold fallback":
         st.warning(
-            "Random splits can overestimate performance when repeated configurations or "
-            "near-identical config/workload rows appear in both train and test."
+            "Random K-fold fallback can mix repeated configurations across validation folds."
         )
-    n_estimators = st.slider("Random forest trees", min_value=50, max_value=400, value=150, step=50)
+    n_estimators = st.slider(
+        "Random forest trees", min_value=50, max_value=400, value=150, step=50,
+        key="target_n_estimators",
+    )
 
     selected_numeric, selected_categorical, overlap = normalize_feature_groups(
         selected_numeric,
@@ -2589,133 +2902,62 @@ def render_target_feature_value(
     if not feature_columns:
         st.info("Select at least one predictor to train the model.")
         return
-
-    work_columns = unique_preserve_order(
-        feature_columns
-        + [target]
-        + (["config_id"] if "config_id" in joined.columns else [])
-    )
-    work = sample_frame(joined, max_rows, seed)
-    work = work[[column for column in work_columns if column in work.columns]].replace(
-        [np.inf, -np.inf],
-        np.nan,
-    )
-    work = work.dropna(axis=0, how="all", subset=feature_columns)
-    work = work.dropna(axis=0, subset=[target])
-    if len(work) < 20:
-        st.warning("Not enough rows with a non-null target value to train/test a model.")
-        return
-
-    X = work.loc[:, feature_columns]
-    removed_duplicate_columns: list[str] = []
-    if not X.columns.is_unique:
-        removed_duplicate_columns = X.columns[X.columns.duplicated()].tolist()
-        X = X.loc[:, ~X.columns.duplicated()]
-        feature_columns = list(X.columns)
-        selected_numeric = [column for column in selected_numeric if column in feature_columns]
-        selected_categorical = [column for column in selected_categorical if column in feature_columns]
-
-    if removed_duplicate_columns:
-        st.warning(
-            "Removed duplicate predictor columns before training: "
-            f"{', '.join(unique_preserve_order(removed_duplicate_columns))}"
-        )
-
-    if not X.columns.is_unique:
-        st.error("Predictor columns are still not unique after de-duplication.")
-        return
-
-    numeric_features, categorical_features = split_features(work, feature_columns)
-    preprocessor = make_preprocessor(numeric_features, categorical_features)
-    model = Pipeline(
-        [
-            ("preprocess", preprocessor),
-            (
-                "model",
-                RandomForestRegressor(
-                    n_estimators=n_estimators,
-                    random_state=seed,
-                    n_jobs=-1,
-                    min_samples_leaf=2,
-                ),
-            ),
-        ]
-    )
-
-    y = work[target]
-    if split_mode == "Grouped split by config_id":
-        groups = work.loc[X.index, "config_id"].fillna("__missing_config_id__")
-        if groups.nunique(dropna=False) < 2:
-            st.warning("Grouped split needs at least two config_id groups; falling back to random split.")
-            split_mode = "Random split"
-            X_train, X_test, y_train, y_test = train_test_split(
-                X,
-                y,
-                test_size=0.25,
-                random_state=seed,
-            )
-        else:
-            splitter = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=seed)
-            train_idx, test_idx = next(splitter.split(X, y, groups=groups))
-            X_train = X.iloc[train_idx]
-            X_test = X.iloc[test_idx]
-            y_train = y.iloc[train_idx]
-            y_test = y.iloc[test_idx]
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X,
-            y,
-            test_size=0.25,
-            random_state=seed,
-        )
-
-    try:
-        model.fit(X_train, y_train)
-        predictions = model.predict(X_test)
-    except Exception as exc:
-        st.error(f"Could not train model: {exc}")
-        return
-
-    col_a, col_b, col_c = st.columns(3)
-    col_a.metric("Train rows", f"{len(X_train):,}")
-    col_b.metric("Test R2", f"{r2_score(y_test, predictions):.3f}")
-    col_c.metric("Test MAE", f"{mean_absolute_error(y_test, predictions):.3f}")
-
-    with st.spinner("Computing permutation importance"):
-        importance = permutation_importance(
-            model,
-            X_test,
-            y_test,
-            n_repeats=5,
-            random_state=seed,
-            n_jobs=-1,
-            scoring="r2",
-        )
-
-    importance_frame = pd.DataFrame(
+    controls = target_controls_from_state(joined, max_rows, seed)
+    controls.update(
         {
-            "feature": feature_columns,
-            "importance_mean": importance.importances_mean,
-            "importance_std": importance.importances_std,
+            "target": target,
+            "numeric_features": selected_numeric,
+            "categorical_features": selected_categorical,
+            "split_mode": split_mode,
+            "n_estimators": n_estimators,
+            "include_other_metrics": include_other_metrics,
         }
-    ).sort_values("importance_mean", ascending=False)
+    )
+    signature = analysis_signature(analysis_metadata, "rf", controls)
+    target_analysis = current_artifact("target_analysis", signature)
+    if target_analysis is None:
+        with st.spinner("Running deterministic cross-validation and held-out permutation importance"):
+            target_analysis, error = grouped_rf_evaluation(
+                joined,
+                feature_columns,
+                target,
+                max_rows,
+                seed,
+                n_estimators,
+                split_mode=split_mode,
+            )
+        if target_analysis is None:
+            st.error(error)
+            return
+        target_analysis.update(
+            {
+                "analysis_signature": signature,
+                "controls": controls,
+                "analysis_unit": analysis_metadata["analysis_unit"],
+                "raw_row_count": analysis_metadata["raw_row_count"],
+                "analysis_row_count": analysis_metadata["analysis_row_count"],
+                "grouping_keys": analysis_metadata["grouping_keys"],
+            }
+        )
+        st.session_state["target_analysis"] = target_analysis
 
-    st.session_state["target_analysis"] = {
-        "target_metric": target,
-        "sampled_rows": len(work),
-        "predictor_count": len(feature_columns),
-        "split_mode": split_mode,
-        "analysis_unit": analysis_metadata["analysis_unit"],
-        "raw_row_count": analysis_metadata["raw_row_count"],
-        "analysis_row_count": analysis_metadata["analysis_row_count"],
-        "grouping_keys": analysis_metadata["grouping_keys"],
-        "r2": r2_score(y_test, predictions),
-        "mae": mean_absolute_error(y_test, predictions),
-        "importance_frame": importance_frame,
-    }
-
-    st.subheader("Permutation Importance")
-    st.dataframe(importance_frame, use_container_width=True, hide_index=True)
+    summary = target_analysis["metric_summary"]
+    col_a, col_b, col_c, col_d = st.columns(4)
+    col_a.metric("Folds", str(target_analysis["fold_count"]))
+    col_b.metric("CV R2", f"{summary['r2']['mean']:.3f} ± {summary['r2']['std']:.3f}")
+    col_c.metric("CV MAE", f"{summary['mae']['mean']:.3f} ± {summary['mae']['std']:.3f}")
+    col_d.metric("R2 range", f"{summary['r2']['min']:.3f} to {summary['r2']['max']:.3f}")
+    st.caption(
+        f"MAE range: {summary['mae']['min']:.3f} to {summary['mae']['max']:.3f}. "
+        f"Evaluation: {target_analysis['split_mode']}."
+    )
+    for warning in target_analysis["warnings"]:
+        st.warning(warning)
+    st.subheader("Per-Fold Metrics")
+    st.dataframe(target_analysis["fold_metrics"], width="stretch", hide_index=True)
+    st.subheader("Cross-Validated Permutation Importance")
+    importance_frame = target_analysis["importance_frame"]
+    st.dataframe(importance_frame, width="stretch", hide_index=True)
     st.plotly_chart(
         px.bar(
             importance_frame.head(30).sort_values("importance_mean"),
@@ -2724,7 +2966,7 @@ def render_target_feature_value(
             error_x="importance_std",
             orientation="h",
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -2732,6 +2974,8 @@ def render_findings(
     joined: pd.DataFrame,
     benchmarks: pd.DataFrame,
     analysis_metadata: dict[str, Any],
+    max_rows: int,
+    seed: int,
 ) -> None:
     st.header("Findings")
     st.caption(
@@ -2739,8 +2983,14 @@ def render_findings(
         "and where the two views agree."
     )
 
-    pca_analysis = st.session_state.get("pca_analysis")
-    target_analysis = st.session_state.get("target_analysis")
+    pca_signature = analysis_signature(
+        analysis_metadata, "pca", pca_controls_from_state(joined, max_rows, seed)
+    )
+    target_signature = analysis_signature(
+        analysis_metadata, "rf", target_controls_from_state(joined, max_rows, seed)
+    )
+    pca_analysis = current_artifact("pca_analysis", pca_signature)
+    target_analysis = current_artifact("target_analysis", target_signature)
     dataset_summary = {
         "benchmark_rows": len(benchmarks),
         "joined_rows": len(joined),
@@ -2748,10 +2998,11 @@ def render_findings(
         "raw_row_count": analysis_metadata["raw_row_count"],
         "analysis_row_count": analysis_metadata["analysis_row_count"],
         "grouping_keys": analysis_metadata["grouping_keys"],
+        "dataset_fingerprint": analysis_metadata.get("dataset_fingerprint", ""),
     }
 
     if not pca_analysis:
-        st.info("Run the PCA Explorer settings once to generate Findings.")
+        st.info("Run PCA Explorer with the current controls to generate Findings.")
         return
 
     source_contributions = pca_analysis["source_contributions"]
@@ -2834,19 +3085,30 @@ def render_findings(
     col_left, col_right = st.columns(2)
     with col_left:
         st.subheader("Top PCA Variance Contributors")
-        st.dataframe(source_contributions.head(10), use_container_width=True, hide_index=True)
+        st.dataframe(source_contributions.head(10), width="stretch", hide_index=True)
     with col_right:
         st.subheader("Top Target-Aware Predictors")
         if target_importance.empty:
             st.info("Target-aware permutation importance is not available yet.")
         else:
-            st.dataframe(target_importance.head(10), use_container_width=True, hide_index=True)
+            st.dataframe(target_importance.head(10), width="stretch", hide_index=True)
 
     st.subheader("PC1-PC4 Interpretations")
-    st.dataframe(component_interpretations, use_container_width=True, hide_index=True)
+    st.dataframe(component_interpretations, width="stretch", hide_index=True)
+
+    stability = pca_analysis.get("stability", {})
+    if stability:
+        st.subheader("PCA Stability")
+        st.caption(
+            f"{stability['runs']} deterministic samples of {stability['sample_rows']:,} rows; "
+            "component similarities are sign-aligned."
+        )
+        st.dataframe(stability["component_similarity"], width="stretch", hide_index=True)
+        for warning in stability["warnings"]:
+            st.warning(warning)
 
     st.subheader("PC vs Target Correlation")
-    st.dataframe(pc_target_correlations, use_container_width=True, hide_index=True)
+    st.dataframe(pc_target_correlations, width="stretch", hide_index=True)
 
     st.subheader("Overlap")
     if overlap:
@@ -2872,14 +3134,14 @@ def render_findings(
     )
     download_cols[1].download_button(
         "pca_original_feature_contributions.csv",
-        data=source_contributions.to_csv(index=False),
+        data=signed_export(source_contributions, pca_signature).to_csv(index=False),
         file_name="pca_original_feature_contributions.csv",
         mime="text/csv",
         key="download_pca_original_contributions",
     )
     download_cols[2].download_button(
         "pca_encoded_feature_contributions.csv",
-        data=encoded_contributions.to_csv(index=False),
+        data=signed_export(encoded_contributions, pca_signature).to_csv(index=False),
         file_name="pca_encoded_feature_contributions.csv",
         mime="text/csv",
         key="download_pca_encoded_contributions",
@@ -2888,14 +3150,14 @@ def render_findings(
     download_cols = st.columns(3)
     download_cols[0].download_button(
         "pca_component_interpretations.csv",
-        data=component_interpretations.to_csv(index=False),
+        data=signed_export(component_interpretations, pca_signature).to_csv(index=False),
         file_name="pca_component_interpretations.csv",
         mime="text/csv",
         key="download_pca_component_interpretations",
     )
     download_cols[1].download_button(
         "pc_target_correlations.csv",
-        data=pc_target_correlations.to_csv(index=False),
+        data=signed_export(pc_target_correlations, pca_signature).to_csv(index=False),
         file_name="pc_target_correlations.csv",
         mime="text/csv",
         key="download_pc_target_correlations",
@@ -2903,7 +3165,7 @@ def render_findings(
     if not target_importance.empty:
         download_cols[2].download_button(
             "target_permutation_importance.csv",
-            data=target_importance.to_csv(index=False),
+            data=signed_export(target_importance, target_signature).to_csv(index=False),
             file_name="target_permutation_importance.csv",
             mime="text/csv",
             key="download_target_permutation_importance",
@@ -2946,8 +3208,14 @@ def render_sales_pitch_visuals(
         "Loading = feature contribution to a synthetic PC axis."
     )
 
-    pca_analysis = st.session_state.get("pca_analysis")
-    target_analysis = st.session_state.get("target_analysis")
+    pca_signature = analysis_signature(
+        analysis_metadata, "pca", pca_controls_from_state(joined, max_rows, seed)
+    )
+    pca_analysis = current_artifact("pca_analysis", pca_signature)
+    target_controls = target_controls_from_state(joined, max_rows, seed)
+    target_analysis = current_artifact(
+        "target_analysis", analysis_signature(analysis_metadata, "rf", target_controls)
+    )
     if not pca_analysis:
         st.info("Run PCA Explorer once to generate the sales visuals.")
         return
@@ -2964,16 +3232,6 @@ def render_sales_pitch_visuals(
         st.info(
             "Run PCA Explorer again to refresh the saved PCA artifacts required for "
             f"Sales Pitch Visuals: {', '.join(missing_pca_keys)}."
-        )
-        return
-
-    if (
-        pca_analysis.get("analysis_unit") != analysis_metadata["analysis_unit"]
-        or pca_analysis.get("analysis_row_count") != analysis_metadata["analysis_row_count"]
-    ):
-        st.warning(
-            "The saved PCA results were built for a different analysis unit. Run PCA Explorer "
-            "again so the sales visuals match the currently selected analysis unit."
         )
         return
 
@@ -3039,7 +3297,7 @@ def render_sales_pitch_visuals(
             },
             title="Top structural drivers in the configuration space",
         ).update_traces(texttemplate="%{text:.1%}", textposition="outside"),
-        use_container_width=True,
+        width="stretch",
     )
     st.caption("PCA contribution means variance structure, not causal value.")
 
@@ -3065,8 +3323,8 @@ def render_sales_pitch_visuals(
                 st.markdown(f"**High side of axis:** {card.top_positive_drivers}")
                 st.markdown(f"**Low side of axis:** {card.top_negative_drivers}")
     with st.expander("Technical detail: PC1-PC4 loadings and encoded features"):
-        st.dataframe(component_cards, use_container_width=True, hide_index=True)
-        st.dataframe(component_interpretations, use_container_width=True, hide_index=True)
+        st.dataframe(component_cards, width="stretch", hide_index=True)
+        st.dataframe(component_interpretations, width="stretch", hide_index=True)
 
     st.subheader("Configuration Map Colored by Performance")
     st.write(
@@ -3187,19 +3445,31 @@ def render_sales_pitch_visuals(
                 )
         st.plotly_chart(
             fig,
-            use_container_width=True,
+            width="stretch",
         )
         st.warning("The color metric is not used to build the PCA axes.")
 
-    valid_target_analysis = (
-        target_analysis
-        and target_analysis.get("analysis_unit") == analysis_metadata["analysis_unit"]
-        and target_analysis.get("analysis_row_count") == analysis_metadata["analysis_row_count"]
-        and target_analysis.get("target_metric") == selected_target
+    sales_numeric, sales_categorical = default_target_features(joined, selected_target)
+    sales_controls = {
+        "target": selected_target,
+        "numeric_features": sales_numeric,
+        "categorical_features": sales_categorical,
+        "max_rows": int(max_rows),
+        "seed": int(seed),
+        "n_estimators": 150,
+        "permutation_repeats": 3,
+        "split_mode": "Grouped cross-validation by config_id",
+    }
+    sales_signature = analysis_signature(analysis_metadata, "sales_rf", sales_controls)
+    sales_view_signature = analysis_signature(
+        analysis_metadata,
+        "sales_view",
+        {"pca_signature": pca_signature, "target": selected_target},
     )
+    sales_target_analysis = current_artifact("sales_target_analysis", sales_signature)
     target_error = ""
-    if valid_target_analysis:
-        target_importance = target_analysis.get("importance_frame", pd.DataFrame())
+    if sales_target_analysis:
+        target_importance = sales_target_analysis.get("importance_frame", pd.DataFrame())
     elif selected_target:
         with st.spinner(
             f"Computing target-aware predictors for {readable_feature_label(selected_target)}"
@@ -3210,10 +3480,16 @@ def render_sales_pitch_visuals(
                 max_rows,
                 seed,
                 selected_target,
-            )
+        )
         if computed_target_analysis:
-            st.session_state["target_analysis"] = computed_target_analysis
-            target_analysis = computed_target_analysis
+            computed_target_analysis.update(
+                {
+                    "analysis_signature": sales_signature,
+                    "controls": sales_controls,
+                }
+            )
+            st.session_state["sales_target_analysis"] = computed_target_analysis
+            sales_target_analysis = computed_target_analysis
             target_importance = computed_target_analysis["importance_frame"]
             st.success(
                 "Auto-computed target-aware predictors using "
@@ -3258,11 +3534,11 @@ def render_sales_pitch_visuals(
     )
     st.dataframe(
         bridge_display,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     with st.expander("Technical detail: encoded PCA contribution table"):
-        st.dataframe(encoded_contributions.head(50), use_container_width=True, hide_index=True)
+        st.dataframe(encoded_contributions.head(50), width="stretch", hide_index=True)
 
     structural_predictive = bridge[
         bridge["Interpretation"] == "Structural and predictive"
@@ -3304,27 +3580,29 @@ def render_sales_pitch_visuals(
         component_cards,
         selected_target,
         bridge,
+        pca_signature,
+        sales_signature,
     )
 
     st.subheader("Downloads")
     download_cols = st.columns(3)
     download_cols[0].download_button(
         "sales_pca_feature_contributions.csv",
-        data=source_contributions.to_csv(index=False),
+        data=signed_export(source_contributions, pca_signature).to_csv(index=False),
         file_name="sales_pca_feature_contributions.csv",
         mime="text/csv",
         key="download_sales_pca_feature_contributions",
     )
     download_cols[1].download_button(
         "sales_component_cards.csv",
-        data=component_cards.to_csv(index=False),
+        data=signed_export(component_cards, pca_signature).to_csv(index=False),
         file_name="sales_component_cards.csv",
         mime="text/csv",
         key="download_sales_component_cards",
     )
     download_cols[2].download_button(
         "sales_pc_map_points.csv",
-        data=map_points.reset_index(drop=True).to_csv(index=False),
+        data=signed_export(map_points.reset_index(drop=True), sales_view_signature).to_csv(index=False),
         file_name="sales_pc_map_points.csv",
         mime="text/csv",
         key="download_sales_pc_map_points",
@@ -3333,7 +3611,7 @@ def render_sales_pitch_visuals(
     if not target_importance.empty:
         download_cols[0].download_button(
             "sales_structure_vs_performance.csv",
-            data=bridge.to_csv(index=False),
+            data=signed_export(bridge, sales_signature).to_csv(index=False),
             file_name="sales_structure_vs_performance.csv",
             mime="text/csv",
             key="download_sales_structure_vs_performance",
@@ -3350,7 +3628,7 @@ def render_sales_pitch_visuals(
 def render_notes() -> None:
     st.markdown(
         """
-        This demo reads only `benchmark_results.json` and `configs.json` by default.
+        This demo prefers `benchmark_results.csv` and `configs.csv`; JSON is a local fallback.
         It intentionally skips `server_logs.json` and `eval_samples.json`, which can be
         many gigabytes and are not needed for this PCA workflow.
 
@@ -3418,18 +3696,22 @@ def main() -> None:
             "`benchmark_results.json` and `configs.json` in the selected data directory, "
             f"`{DEFAULT_JSON_DUMP_DIR}`, another local `inferencex-dump-*` folder, or `DUMP_DIR`."
         )
+        return
     csv_status = file_status[file_status["mode"] == "CSV"]
     json_status = file_status[file_status["mode"] == "JSON fallback"]
     with st.expander("Required CSV file status", expanded=source_probe["active_mode"] == "missing"):
-        st.dataframe(csv_status, use_container_width=True, hide_index=True)
+        st.dataframe(csv_status, width="stretch", hide_index=True)
     with st.expander(
         "Developer fallback status",
         expanded=source_probe["active_mode"] in {"JSON fallback", "missing"},
     ):
-        st.dataframe(json_status, use_container_width=True, hide_index=True)
+        st.dataframe(json_status, width="stretch", hide_index=True)
 
+    dataset_manifest = build_dataset_manifest(source_probe)
     try:
-        benchmarks, configs, joined, source_info = load_joined_data(data_dir)
+        benchmarks, configs, joined, source_info = load_joined_data(
+            data_dir, dataset_manifest["fingerprint"]
+        )
     except Exception as exc:
         st.error(f"Could not load data: {exc}")
         return
@@ -3443,7 +3725,7 @@ def main() -> None:
         st.metric("Raw rows", f"{len(joined):,}")
 
     default_split_label = (
-        "Grouped split by config_id" if "config_id" in joined.columns else "Random split"
+        "Grouped cross-validation by config_id" if "config_id" in joined.columns else "Random K-fold fallback"
     )
     with st.container(border=True):
         st.markdown("### Project Status")
@@ -3475,6 +3757,8 @@ def main() -> None:
     def selected_analysis() -> tuple[pd.DataFrame, dict[str, Any]]:
         with st.spinner(f"Building analysis unit: {analysis_unit}"):
             analysis, metadata = build_analysis_frame(joined, analysis_unit)
+        metadata["dataset_fingerprint"] = dataset_manifest["fingerprint"]
+        metadata["dataset_manifest"] = dataset_manifest
         with st.sidebar:
             st.metric("Analysis rows", f"{len(analysis):,}")
             if metadata["grouping_keys"]:
@@ -3505,7 +3789,7 @@ def main() -> None:
         render_target_feature_value(analysis_frame, analysis_metadata, int(max_rows), int(seed))
     elif selected_tab == "Findings":
         analysis_frame, analysis_metadata = selected_analysis()
-        render_findings(analysis_frame, benchmarks, analysis_metadata)
+        render_findings(analysis_frame, benchmarks, analysis_metadata, int(max_rows), int(seed))
     elif selected_tab == "Sales Pitch Visuals":
         analysis_frame, analysis_metadata = selected_analysis()
         render_sales_pitch_visuals(

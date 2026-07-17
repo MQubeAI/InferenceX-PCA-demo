@@ -12,7 +12,7 @@ This is a Streamlit analysis app built on local InferenceX benchmark exports to 
 - Maps PC1, PC2, and other synthetic PCA axes back to original features through loadings and contribution summaries.
 - Uses outcome metrics as overlays or targets, not PCA inputs.
 - Runs target-aware `RandomForestRegressor` models with permutation importance.
-- Uses grouped train/test splitting by `config_id` when available.
+- Uses deterministic grouped cross-validation by `config_id` when available.
 - Produces executive Findings and downloadable summaries.
 
 ## Why This Matters
@@ -64,10 +64,26 @@ python3 -m streamlit run apps/inferencex_pca_demo.py
 
 Open the Streamlit localhost URL shown in the terminal. If the CSV folder is in a different location, update the sidebar data directory in the app.
 
+## Reproducible Analysis Run
+
+The default result snapshot is generated outside Streamlit using the same production analysis functions:
+
+```bash
+python3 scripts/reproducible_analysis.py \
+  --data-dir inferencex-pca-data \
+  --output artifacts/reproducible-results.json \
+  --max-rows 20000 --seed 42 --stability-runs 5
+```
+
+The committed `artifacts/reproducible-results.json` contains aggregate metadata only: source file names/sizes/mtimes and bounded file fingerprints, aggregate PCA/RF results, package versions, warnings, and signatures. It contains no benchmark rows. Re-run this command after changing code or data before updating the findings below.
+
 ## Repo Layout
 
 ```text
 apps/inferencex_pca_demo.py
+scripts/reproducible_analysis.py
+tests/test_analysis_workflow.py
+artifacts/reproducible-results.json
 requirements-streamlit.txt
 README.md
 .gitignore
@@ -155,69 +171,41 @@ In this app:
 - Metrics can be used to color the PCA scatter or as target variables.
 - Loadings and feature contributions translate synthetic PC axes back to real features.
 
-## Current PCA Findings
+## Reproducible PCA Findings
 
-Observed with the current default analysis setup:
+Snapshot date: **2026-07-17**. The associated source commit and full dataset manifest are recorded in `artifacts/reproducible-results.json`.
 
-- First five PCs explain about 70.8% of configuration variance.
-- PC1 explains about 28.8%.
-- PC2 explains about 16.1%.
-- PC3 explains about 11.2%.
-- PC4 explains about 8.3%.
+- Dataset fingerprint: `1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09`.
+- Default analysis unit: **Median aggregate per config/workload/concurrency** (7,462 rows from 79,830 joined benchmark rows).
+- PCA feature set: `isl`, `osl`, `conc`, 12 setup numeric fields through `config_num_prefill_gpu`, plus hardware, framework, model, precision, speculative method, disaggregation, and multinode fields (19 source features total).
+- Sample limit: 20,000; all 7,462 default analysis rows were used. Seed: 42.
+- PC1–PC5 explain **28.25%, 13.51%, 8.44%, 7.72%, and 6.87%** respectively (**64.78% cumulative**).
+- Top five retained-PC contribution groups are `config_disagg`, `config_is_multinode`, `config_decode_tp`, `config_prefill_ep`, and `config_prefill_tp`.
 
-Top structural variance drivers are mostly serving/parallelism fields:
-
-- `config_prefill_tp`
-- `config_decode_tp`
-- `config_prefill_ep`
-- `config_is_multinode`
-- `config_num_prefill_gpu`
-- `config_disagg`
-- `config_decode_dp_attention`
-- `config_prefill_dp_attention`
-- `config_decode_num_workers`
-- `config_decode_ep`
-
-Interpretation: the benchmark configuration space is shaped more by serving architecture and parallelism strategy than by raw model or hardware labels alone.
-
-## Component Interpretation
-
-- **PC1:** disaggregated/multinode serving axis.
-- **PC2:** tensor-parallel/GPU-scaling axis.
-- **PC3:** expert-parallel/prefill-vs-disagg split.
-- **PC4:** workload-shape axis driven by ISL/OSL/concurrency.
+PCA stability uses five deterministic 80% samples (5,970 rows each), with component-loading cosine similarity after sign alignment and top-10 driver frequency. PC1–PC5 minimum loading similarities were 0.9999, 0.9995, 0.9929, 0.9900, and 0.9912. Ten of eleven observed top drivers appeared in at least four of five runs; `config_prefill_dp_attention` appeared once and is flagged as unstable. Treat axis labels and individual signed sides as descriptive rather than fixed findings.
 
 ## Target-Aware Modeling
 
-The target-aware layer uses `RandomForestRegressor` as a baseline supervised model and computes permutation importance on the test split.
+The target-aware layer uses `RandomForestRegressor` as a baseline supervised model. Its primary report uses deterministic grouped cross-validation and computes permutation importance on each validation fold only.
 
 Defaults:
 
 - Predictors are config/setup fields.
 - Targets are selected outcome metric columns.
-- Split mode defaults to grouped split by `config_id` when available.
+- Split mode defaults to five-fold grouped cross-validation by `config_id` when available (with safe fold reduction if fewer groups exist).
 
-Random splits can overstate performance when repeated configurations appear in both train and test. Grouped split by `config_id` is safer for this dataset.
+Random K-fold is explicitly labelled as a fallback because repeated configurations can appear across its validation folds.
 
-## Current Target-Aware Finding
+## Reproducible Target-Aware Finding
 
-Example observed target:
+For target `metrics_p99_itl`, the same 19 default features, seed 42, and 150-tree forest were evaluated with five grouped `config_id` folds. Every fold had zero train/validation config overlap.
 
-- Target: `metrics_p99_itl`
-- Test R2: about 0.783
-- Test MAE: about 0.151
+- Aggregate R2: **0.466 ± 0.196**, range **0.093 to 0.634**.
+- Aggregate MAE: **0.568 ± 0.122**, range **0.355 to 0.707**.
+- Fold validation sizes were 1,492–1,493 rows and 239–240 config groups.
+- Top aggregate held-out permutation predictors were `conc`, `config_framework`, `config_spec_method`, `config_hardware`, `config_precision`, and `isl`.
 
-Top predictors:
-
-- `conc`
-- `config_spec_method`
-- `config_framework`
-- `isl`
-- `config_precision`
-- `config_hardware`
-- `config_model`
-
-Interpretation: for p99 inter-token latency, concurrency is the dominant predictor, followed by speculative method and serving framework. Hardware and model matter, but were less important than runtime/workload choices in this selected target model.
+These cross-validated values replace the old one-holdout R2/MAE claim. The variability across held-out config groups is material and should remain visible in conclusions.
 
 ## Findings Summary
 
@@ -230,7 +218,8 @@ PCA tells us what structures the benchmark space. Target-aware modeling tells us
 - RandomForest feature importance is target-specific.
 - Dataset coverage is uneven.
 - Repeated runs can overweight frequently tested configs unless aggregated.
-- Grouped splits are better than random splits for this dataset, but still not full causal validation.
+- Grouped cross-validation is safer than random splits, but still not full causal validation.
+- PCA stability results are sample-sensitive diagnostics, not proof that an interpretation will generalize to a different dataset snapshot.
 - Cloud deployment requires a safe data access plan.
 
 ## What Not To Commit

@@ -10,6 +10,10 @@ This is a one-module Streamlit application for descriptive configuration/workloa
 
 The current default analysis is **Median aggregate per config/workload/concurrency**. It reduced 79,830 joined benchmark rows to 7,462 rows. The default PCA and grouped Random Forest completed with the local data, but their current results do not match the fixed results in the README. The biggest correctness concern is that both modeling UIs allow unsafe user-selected columns despite guidance that says otherwise; the metric-predictor checkbox does not enforce its stated behavior.
 
+## Remediation update (2026-07-17)
+
+The stale-artifact, one-holdout RF, PCA-stability, README reproducibility, Streamlit width-deprecation, and categorical-summary Arrow issues identified in this audit were addressed after the initial review. PCA/RF/Sales artifacts now carry deterministic signatures tied to the data snapshot and relevant controls; the primary RF result is grouped cross-validation; and `artifacts/reproducible-results.json` records aggregate-only default-run evidence. The feature-selection leakage concerns remain intentionally out of scope for this pass.
+
 ## Architecture and data flow
 
 ```text
