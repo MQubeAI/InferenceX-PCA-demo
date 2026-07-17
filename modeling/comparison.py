@@ -173,7 +173,7 @@ def _catboost_fit_predict(train: pd.DataFrame, valid: pd.DataFrame, y_train: pd.
     return prediction, [{"feature": feature, "importance": float(value)} for feature, value in zip(train.columns, model.get_feature_importance())]
 
 
-def _tabfm_fit_predict(train: pd.DataFrame, valid: pd.DataFrame, y_train: pd.Series, seed: int, context_cap: int | None) -> tuple[np.ndarray, list[dict[str, Any]], dict[str, Any]]:
+def _tabfm_fit_predict(train: pd.DataFrame, valid: pd.DataFrame, y_train: pd.Series, seed: int, context_cap: int | None, context_metadata: dict[str, Any] | None = None) -> tuple[np.ndarray, list[dict[str, Any]], dict[str, Any]]:
     """Lazy TabFM boundary. This function is called only by an explicit tabfm run."""
     import os
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -187,7 +187,7 @@ def _tabfm_fit_predict(train: pd.DataFrame, valid: pd.DataFrame, y_train: pd.Ser
     model = tabfm_v1_0_0_pytorch.load(model_type="regression", device="cpu")
     regressor = TabFMRegressor(model=model, n_estimators=1, random_state=seed, use_amp=False, verbose=False, max_num_rows=context_cap)
     regressor.fit(context, context_y.to_numpy())
-    return regressor.predict(valid), [], {"available_context_rows": available, "used_context_rows": len(context), "device": "cpu", "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)", "package_version": importlib.metadata.version("tabfm")}
+    return regressor.predict(valid), [], {"available_context_rows": available, "used_context_rows": len(context), "device": "cpu", "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)", "package_version": importlib.metadata.version("tabfm"), **(context_metadata or {})}
 
 
 def model_available(model: str) -> tuple[bool, str]:
@@ -200,9 +200,10 @@ def model_available(model: str) -> tuple[bool, str]:
     return False, "unknown model"
 
 
-def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str, models: list[str], max_rows: int, seed: int, n_splits: int = 5, tabfm_max_context: int | None = None) -> dict[str, Any]:
+def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str, models: list[str], max_rows: int, seed: int, n_splits: int = 5, tabfm_max_context: int | None = None, target_transform: str = "raw", tabfm_context_strategy: str = "random", folds_override: list[tuple[np.ndarray, np.ndarray]] | None = None, evaluation_label: str = "unseen_config") -> dict[str, Any]:
+    from modeling.diagnostics import fold_difficulty, inverse_target, select_context, target_transform as transform_target
     work, preparation = prepare_model_frame(frame, feature_columns, target, max_rows, seed)
-    folds = deterministic_grouped_folds(work, n_splits)
+    folds = folds_override or deterministic_grouped_folds(work, n_splits)
     numeric, categorical = split_feature_types(work, feature_columns)
     result: dict[str, Any] = {"target": target, "feature_columns": feature_columns, "feature_types": {"numeric": numeric, "categorical": categorical}, "preparation": preparation, "fold_assignment": {"fold_count": len(folds), "groups": int(work["config_id"].nunique(dropna=False))}, "models": {}}
     for model_name in models:
@@ -217,24 +218,31 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
             groups_valid = set(valid_raw["config_id"].fillna("__missing_config_id__"))
             started = time.perf_counter()
             row: dict[str, Any] = {"fold": fold_number, "train_rows": len(train), "validation_rows": len(valid), "train_groups": len(groups_train), "validation_groups": len(groups_valid), "group_overlap": len(groups_train & groups_valid), "r2": None, "mae": None, "runtime_seconds": 0.0, "failure": "", "fallback": "", "available_context_rows": None, "used_context_rows": None}
-            if row["group_overlap"] != 0:
+            if evaluation_label == "unseen_config" and row["group_overlap"] != 0:
                 raise AssertionError("Grouped folds overlap on config_id.")
             if not available:
                 row["failure"] = availability_reason
             else:
                 try:
+                    y_train = transform_target(train_raw[target], target_transform)
                     if model_name == "random_forest":
-                        prediction, importance = _rf_fit_predict(train, valid, train_raw[target], valid_raw[target], seed + fold_number)
+                        prediction, importance = _rf_fit_predict(train, valid, y_train, transform_target(valid_raw[target], target_transform), seed + fold_number)
                         extra = {}
                     elif model_name == "catboost":
-                        prediction, importance = _catboost_fit_predict(train, valid, train_raw[target], seed + fold_number)
+                        prediction, importance = _catboost_fit_predict(train, valid, y_train, seed + fold_number)
                         extra = {}
                     elif model_name == "tabfm":
-                        prediction, importance, extra = _tabfm_fit_predict(train, valid, train_raw[target], seed + fold_number, tabfm_max_context)
+                        context_raw, context_meta = select_context(train_raw, valid_raw, feature_columns, tabfm_max_context or len(train_raw), tabfm_context_strategy, seed + fold_number)
+                        context = processor.transform(context_raw)
+                        prediction, importance, extra = _tabfm_fit_predict(context, valid, y_train.loc[context_raw.index], seed + fold_number, tabfm_max_context, context_meta)
                     else:
                         raise ValueError(f"Unsupported model: {model_name}")
-                    row["r2"] = float(r2_score(valid_raw[target], prediction))
-                    row["mae"] = float(mean_absolute_error(valid_raw[target], prediction))
+                    raw_prediction = inverse_target(prediction, target_transform)
+                    row["r2"] = float(r2_score(valid_raw[target], raw_prediction))
+                    row["mae"] = float(mean_absolute_error(valid_raw[target], raw_prediction))
+                    row["target_transform"] = target_transform
+                    if target_transform != "raw": row["transformed_r2"] = float(r2_score(transform_target(valid_raw[target], target_transform), prediction))
+                    row["difficulty"] = fold_difficulty(train_raw, valid_raw, target, raw_prediction)
                     row.update(extra)
                     importance_rows.extend({"fold": fold_number, **item} for item in importance)
                 except Exception as exc:
@@ -248,4 +256,7 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
             folds=("fold", "nunique"),
         ).fillna({"importance_std": 0.0}).sort_values("importance_mean", ascending=False).to_dict(orient="records"))
         result["models"][model_name] = {"available": available, "availability": availability_reason, "folds": folds_result, "metrics": _metric_summary(folds_result), "importance": [{key: _json_safe(value) for key, value in item.items()} for item in aggregate_importance], "runtime_seconds": float(sum(row["runtime_seconds"] for row in folds_result))}
+    result["evaluation_label"] = evaluation_label
+    result["target_transform"] = target_transform
+    result["tabfm_context_strategy"] = tabfm_context_strategy
     return result

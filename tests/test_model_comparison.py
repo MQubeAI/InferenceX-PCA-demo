@@ -10,6 +10,7 @@ import pandas as pd
 
 from apps import inferencex_pca_demo as app
 from modeling import comparison
+from modeling import diagnostics
 
 
 def fixture_frame() -> pd.DataFrame:
@@ -77,7 +78,7 @@ class ModelComparisonTests(unittest.TestCase):
         with patch.object(comparison, "model_available", return_value=(False, "unavailable")):
             unavailable = comparison.evaluate_models(self.frame, self.features, "metrics_p99_itl", ["tabfm"], 100, 42, 1)
         self.assertTrue(all(row["failure"] == "unavailable" for row in unavailable["models"]["tabfm"]["folds"]))
-        def fake_tabfm(_train, valid, _target, _seed, _cap):
+        def fake_tabfm(_train, valid, _target, _seed, _cap, _metadata=None):
             return np.array([1.0] * len(valid)), [], {"available_context_rows": 20, "used_context_rows": 8, "device": "cpu"}
         with patch.object(comparison, "model_available", return_value=(True, "mock")), patch.object(comparison, "_tabfm_fit_predict", side_effect=fake_tabfm):
             mocked = comparison.evaluate_models(self.frame, self.features, "metrics_p99_itl", ["tabfm"], 100, 42, 2, 8)
@@ -103,6 +104,30 @@ class ModelComparisonTests(unittest.TestCase):
         serialized = json.dumps(result, default=str)
         self.assertNotIn("predictions", serialized)
         self.assertNotIn("metrics_p99_itl\": [", serialized)
+
+    def test_context_selection_is_deterministic_bounded_and_target_free(self) -> None:
+        train, valid = self.frame.iloc[:20].copy(), self.frame.iloc[20:].copy()
+        train["metrics_p99_itl"] = np.arange(len(train))
+        first, meta = diagnostics.select_context(train, valid, self.features, 7, "coverage", 42)
+        second, _ = diagnostics.select_context(train.assign(metrics_p99_itl=-99), valid, self.features, 7, "coverage", 42)
+        self.assertEqual(len(first), 7); self.assertTrue(set(first.index).issubset(train.index))
+        self.assertListEqual(list(first.index), list(second.index)); self.assertEqual(meta["context_rows_used"], 7)
+
+    def test_stratified_and_nearest_context(self) -> None:
+        train, valid = self.frame.iloc[:20], self.frame.iloc[20:]
+        random, _ = diagnostics.select_context(train, valid, self.features, 6, "random", 42)
+        stratified, _ = diagnostics.select_context(train, valid, self.features, 6, "stratified", 42)
+        nearest, _ = diagnostics.select_context(train, valid, self.features, 6, "nearest", 42)
+        self.assertGreaterEqual(stratified["config_framework"].nunique(), random["config_framework"].nunique())
+        self.assertEqual(len(nearest), 6)
+
+    def test_transform_inverse_and_known_config_rows(self) -> None:
+        values = pd.Series([0.0, 1.0, 9.0]); transformed = diagnostics.target_transform(values, "log1p")
+        np.testing.assert_allclose(diagnostics.inverse_target(transformed.to_numpy(), "log1p"), values)
+        work, _ = comparison.prepare_model_frame(self.frame, self.features, "metrics_p99_itl", 100, 42)
+        for train, valid in diagnostics.known_config_folds(work, 3, 42):
+            self.assertFalse(set(train) & set(valid))
+            self.assertTrue(set(work.iloc[valid].config_id).issubset(set(work.iloc[train].config_id)))
 
 
 if __name__ == "__main__":
