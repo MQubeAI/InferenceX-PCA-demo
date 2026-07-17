@@ -35,7 +35,11 @@ class AnalysisWorkflowTests(unittest.TestCase):
         metadata = {"dataset_fingerprint": "dataset", "analysis_unit": "unit", "analysis_row_count": 40}
         first = app.analysis_signature(metadata, "pca", {"seed": 42})
         second = app.analysis_signature(metadata, "pca", {"seed": 43})
+        changed_data = app.analysis_signature(
+            {**metadata, "dataset_fingerprint": "replacement-dataset"}, "pca", {"seed": 42}
+        )
         self.assertNotEqual(first, second)
+        self.assertNotEqual(first, changed_data)
 
     def test_grouped_evaluation_has_no_group_overlap(self) -> None:
         result, error = app.grouped_rf_evaluation(

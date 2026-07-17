@@ -173,7 +173,7 @@ In this app:
 
 ## Reproducible PCA Findings
 
-Snapshot date: **2026-07-17**. The associated source commit and full dataset manifest are recorded in `artifacts/reproducible-results.json`.
+Snapshot date: **2026-07-17**. Source commit: `d2ec92073fc87e4c46777a02b9dfe6417e34d0c2`. The full dataset manifest is recorded in `artifacts/reproducible-results.json`.
 
 - Dataset fingerprint: `1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09`.
 - Default analysis unit: **Median aggregate per config/workload/concurrency** (7,462 rows from 79,830 joined benchmark rows).

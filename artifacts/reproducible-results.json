@@ -1,0 +1,518 @@
+{
+  "dataset": {
+    "active_dir": "/Users/vivaanbhargava/Documents/InferenceX-PCA-demo-clean/inferencex-pca-data",
+    "active_mode": "CSV",
+    "files": [
+      {
+        "content_sample_sha256": "62aef631674026d7bbb42653334a8bdd7981fc77dfa2b40adfa3e13d9dfb3673",
+        "modified_at_utc": "2026-07-03T03:45:05.439759+00:00",
+        "name": "benchmark_results.csv",
+        "size_bytes": 45074925
+      },
+      {
+        "content_sample_sha256": "38146e652ba71a23c0abe95e109a3408615471f26f231fa95e8bb71e0c9b391f",
+        "modified_at_utc": "2026-07-03T03:45:08.053514+00:00",
+        "name": "configs.csv",
+        "size_bytes": 125494
+      }
+    ],
+    "fingerprint": "1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09"
+  },
+  "default_analysis": {
+    "analysis_rows": 7462,
+    "analysis_unit": "Median aggregate per config/workload/concurrency",
+    "pca_features": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_dp_attention",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_dp_attention",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "pca_signature": "8ad6fc7db761a980d46242d1fc88b667828cd59d4dd053765b302e302d6e7e72",
+    "rf_features": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_dp_attention",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_dp_attention",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "rf_signature": "f0a03ed47a6d4884b6a88545e604f80dc9ef35105ff9fc610efa9f6bb4686152",
+    "sample_size_limit": 20000,
+    "seed": 42,
+    "target": "metrics_p99_itl"
+  },
+  "generation_timestamp_utc": "2026-07-17T20:34:13.451100+00:00",
+  "git_commit": "d2ec92073fc87e4c46777a02b9dfe6417e34d0c2",
+  "grouped_random_forest": {
+    "aggregate_metrics": {
+      "mae": {
+        "max": 0.7065189229207073,
+        "mean": 0.5680400955080948,
+        "min": 0.35454224756104996,
+        "std": 0.12174485903686041
+      },
+      "r2": {
+        "max": 0.6340760091656816,
+        "mean": 0.4662105635149573,
+        "min": 0.09312035120323447,
+        "std": 0.1956559712004783
+      }
+    },
+    "evaluation_mode": "Grouped cross-validation by config_id",
+    "fold_count": 5,
+    "fold_metrics": [
+      {
+        "fold": 1,
+        "group_overlap": 0,
+        "mae": 0.7065189229,
+        "r2": 0.0931203512,
+        "train_groups": 957,
+        "train_rows": 5969,
+        "validation_groups": 240,
+        "validation_rows": 1493
+      },
+      {
+        "fold": 2,
+        "group_overlap": 0,
+        "mae": 0.5642438699,
+        "r2": 0.6033680708,
+        "train_groups": 957,
+        "train_rows": 5969,
+        "validation_groups": 240,
+        "validation_rows": 1493
+      },
+      {
+        "fold": 3,
+        "group_overlap": 0,
+        "mae": 0.6632644004,
+        "r2": 0.5383389649,
+        "train_groups": 958,
+        "train_rows": 5970,
+        "validation_groups": 239,
+        "validation_rows": 1492
+      },
+      {
+        "fold": 4,
+        "group_overlap": 0,
+        "mae": 0.3545422476,
+        "r2": 0.6340760092,
+        "train_groups": 958,
+        "train_rows": 5970,
+        "validation_groups": 239,
+        "validation_rows": 1492
+      },
+      {
+        "fold": 5,
+        "group_overlap": 0,
+        "mae": 0.5516310367,
+        "r2": 0.4621494215,
+        "train_groups": 958,
+        "train_rows": 5970,
+        "validation_groups": 239,
+        "validation_rows": 1492
+      }
+    ],
+    "permutation_importance": [
+      {
+        "feature": "conc",
+        "folds": 5,
+        "importance_mean": 1.7158501381,
+        "importance_std": 1.4983142645
+      },
+      {
+        "feature": "config_framework",
+        "folds": 5,
+        "importance_mean": 0.753562618,
+        "importance_std": 0.4913534048
+      },
+      {
+        "feature": "config_spec_method",
+        "folds": 5,
+        "importance_mean": 0.3178084421,
+        "importance_std": 0.343263812
+      },
+      {
+        "feature": "config_hardware",
+        "folds": 5,
+        "importance_mean": 0.2988951135,
+        "importance_std": 0.2507181333
+      },
+      {
+        "feature": "config_precision",
+        "folds": 5,
+        "importance_mean": 0.1623200773,
+        "importance_std": 0.2163473057
+      },
+      {
+        "feature": "isl",
+        "folds": 5,
+        "importance_mean": 0.1415165846,
+        "importance_std": 0.0575345493
+      },
+      {
+        "feature": "config_model",
+        "folds": 5,
+        "importance_mean": 0.0382355021,
+        "importance_std": 0.0314466538
+      },
+      {
+        "feature": "config_decode_tp",
+        "folds": 5,
+        "importance_mean": 0.0199215028,
+        "importance_std": 0.0650516554
+      },
+      {
+        "feature": "config_prefill_tp",
+        "folds": 5,
+        "importance_mean": 0.0150381815,
+        "importance_std": 0.025623843
+      },
+      {
+        "feature": "config_decode_num_workers",
+        "folds": 5,
+        "importance_mean": 0.0148403783,
+        "importance_std": 0.0184445081
+      },
+      {
+        "feature": "config_num_prefill_gpu",
+        "folds": 5,
+        "importance_mean": 0.0084013094,
+        "importance_std": 0.0542910705
+      },
+      {
+        "feature": "config_decode_dp_attention",
+        "folds": 5,
+        "importance_mean": 0.0071981128,
+        "importance_std": 0.0278068749
+      },
+      {
+        "feature": "config_disagg",
+        "folds": 5,
+        "importance_mean": 0.0040995078,
+        "importance_std": 0.0043711075
+      },
+      {
+        "feature": "config_decode_ep",
+        "folds": 5,
+        "importance_mean": 0.0023737592,
+        "importance_std": 0.0042054339
+      },
+      {
+        "feature": "config_prefill_dp_attention",
+        "folds": 5,
+        "importance_mean": 0.0023418523,
+        "importance_std": 0.0314490249
+      },
+      {
+        "feature": "osl",
+        "folds": 5,
+        "importance_mean": 0.0001807614,
+        "importance_std": 0.0002012823
+      },
+      {
+        "feature": "config_is_multinode",
+        "folds": 5,
+        "importance_mean": -0.0004473171,
+        "importance_std": 0.0021000313
+      },
+      {
+        "feature": "config_prefill_ep",
+        "folds": 5,
+        "importance_mean": -0.0086993275,
+        "importance_std": 0.0348605544
+      },
+      {
+        "feature": "config_prefill_num_workers",
+        "folds": 5,
+        "importance_mean": -0.0121072877,
+        "importance_std": 0.0289818506
+      }
+    ],
+    "sampled_rows": 7462,
+    "warnings": []
+  },
+  "package_versions": {
+    "numpy": "2.5.0",
+    "pandas": "3.0.3",
+    "plotly": "6.8.0",
+    "scikit-learn": "1.9.0",
+    "streamlit": "1.58.0"
+  },
+  "pca": {
+    "explained_variance": [
+      {
+        "component": "PC1",
+        "cumulative_explained_variance": 0.2824628506,
+        "explained_variance_ratio": 0.2824628506
+      },
+      {
+        "component": "PC2",
+        "cumulative_explained_variance": 0.4175690064,
+        "explained_variance_ratio": 0.1351061558
+      },
+      {
+        "component": "PC3",
+        "cumulative_explained_variance": 0.5019359435,
+        "explained_variance_ratio": 0.0843669371
+      },
+      {
+        "component": "PC4",
+        "cumulative_explained_variance": 0.5791303614,
+        "explained_variance_ratio": 0.0771944179
+      },
+      {
+        "component": "PC5",
+        "cumulative_explained_variance": 0.64779299,
+        "explained_variance_ratio": 0.0686626286
+      }
+    ],
+    "sampled_rows": 7462,
+    "stability": {
+      "component_similarity": [
+        {
+          "component": "PC1",
+          "mean_sign_aligned_loading_similarity": 0.9999150036,
+          "min_sign_aligned_loading_similarity": 0.9998615938
+        },
+        {
+          "component": "PC2",
+          "mean_sign_aligned_loading_similarity": 0.9997101157,
+          "min_sign_aligned_loading_similarity": 0.9994687486
+        },
+        {
+          "component": "PC3",
+          "mean_sign_aligned_loading_similarity": 0.9961977781,
+          "min_sign_aligned_loading_similarity": 0.9929464865
+        },
+        {
+          "component": "PC4",
+          "mean_sign_aligned_loading_similarity": 0.9935179998,
+          "min_sign_aligned_loading_similarity": 0.9899952977
+        },
+        {
+          "component": "PC5",
+          "mean_sign_aligned_loading_similarity": 0.9950827722,
+          "min_sign_aligned_loading_similarity": 0.9912492237
+        }
+      ],
+      "explained_variance": [
+        {
+          "component": "PC1",
+          "max_explained_variance": 0.2835634736,
+          "mean_explained_variance": 0.2831286556,
+          "min_explained_variance": 0.282359681,
+          "std_explained_variance": 0.000442267
+        },
+        {
+          "component": "PC2",
+          "max_explained_variance": 0.1353477038,
+          "mean_explained_variance": 0.1344493696,
+          "min_explained_variance": 0.1338890729,
+          "std_explained_variance": 0.0005069516
+        },
+        {
+          "component": "PC3",
+          "max_explained_variance": 0.0852313092,
+          "mean_explained_variance": 0.0846628612,
+          "min_explained_variance": 0.0837496598,
+          "std_explained_variance": 0.0005147605
+        },
+        {
+          "component": "PC4",
+          "max_explained_variance": 0.0774389322,
+          "mean_explained_variance": 0.076930772,
+          "min_explained_variance": 0.0761560004,
+          "std_explained_variance": 0.0004284998
+        },
+        {
+          "component": "PC5",
+          "max_explained_variance": 0.068749241,
+          "mean_explained_variance": 0.0685456314,
+          "min_explained_variance": 0.0684129117,
+          "std_explained_variance": 0.0001396511
+        }
+      ],
+      "runs": 5,
+      "sample_fraction": 0.8000536049316537,
+      "sample_rows": 5970,
+      "top_driver_frequency": [
+        {
+          "source_feature": "config_decode_dp_attention",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_decode_num_workers",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_decode_tp",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_disagg",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_is_multinode",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_num_prefill_gpu",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_prefill_ep",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_prefill_num_workers",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_prefill_tp",
+          "top_driver_frequency": 1.0,
+          "top_driver_runs": 5
+        },
+        {
+          "source_feature": "config_decode_ep",
+          "top_driver_frequency": 0.8,
+          "top_driver_runs": 4
+        },
+        {
+          "source_feature": "config_prefill_dp_attention",
+          "top_driver_frequency": 0.2,
+          "top_driver_runs": 1
+        }
+      ],
+      "warnings": [
+        "Some top-driver appearances were inconsistent: config_prefill_dp_attention."
+      ]
+    },
+    "top_feature_groups": [
+      {
+        "contribution_share": 0.0820080167,
+        "source_feature": "config_disagg",
+        "weighted_contribution": 0.0531242184
+      },
+      {
+        "contribution_share": 0.0819935914,
+        "source_feature": "config_is_multinode",
+        "weighted_contribution": 0.0531148737
+      },
+      {
+        "contribution_share": 0.0808645202,
+        "source_feature": "config_decode_tp",
+        "weighted_contribution": 0.0523834694
+      },
+      {
+        "contribution_share": 0.0793774064,
+        "source_feature": "config_prefill_ep",
+        "weighted_contribution": 0.0514201274
+      },
+      {
+        "contribution_share": 0.0788702003,
+        "source_feature": "config_prefill_tp",
+        "weighted_contribution": 0.0510915629
+      },
+      {
+        "contribution_share": 0.0734539815,
+        "source_feature": "config_num_prefill_gpu",
+        "weighted_contribution": 0.0475829743
+      },
+      {
+        "contribution_share": 0.0704766256,
+        "source_feature": "config_decode_num_workers",
+        "weighted_contribution": 0.045654264
+      },
+      {
+        "contribution_share": 0.0666428315,
+        "source_feature": "config_decode_dp_attention",
+        "weighted_contribution": 0.0431707591
+      },
+      {
+        "contribution_share": 0.0620890887,
+        "source_feature": "config_decode_ep",
+        "weighted_contribution": 0.0402208764
+      },
+      {
+        "contribution_share": 0.0619708933,
+        "source_feature": "config_prefill_num_workers",
+        "weighted_contribution": 0.0401443103
+      },
+      {
+        "contribution_share": 0.0614330541,
+        "source_feature": "config_prefill_dp_attention",
+        "weighted_contribution": 0.0397959018
+      },
+      {
+        "contribution_share": 0.0591012095,
+        "source_feature": "isl",
+        "weighted_contribution": 0.0382853492
+      },
+      {
+        "contribution_share": 0.0571535598,
+        "source_feature": "osl",
+        "weighted_contribution": 0.0370236754
+      },
+      {
+        "contribution_share": 0.0533384168,
+        "source_feature": "conc",
+        "weighted_contribution": 0.0345522525
+      },
+      {
+        "contribution_share": 0.0123486858,
+        "source_feature": "config_framework",
+        "weighted_contribution": 0.0079993921
+      }
+    ]
+  },
+  "row_counts": {
+    "analysis_units": {
+      "Latest row per config/workload/concurrency": 7462,
+      "Median aggregate per config/workload/concurrency": 7462,
+      "One row per config": 1197,
+      "Raw benchmark rows": 79830
+    },
+    "benchmark_rows": 79830,
+    "joined_rows": 79830
+  },
+  "warnings": [
+    "Some top-driver appearances were inconsistent: config_prefill_dp_attention."
+  ]
+}
