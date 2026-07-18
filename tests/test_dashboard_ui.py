@@ -22,6 +22,25 @@ class DashboardUiTests(unittest.TestCase):
         for label in app.REMOVED_TOP_LEVEL_SECTION_LABELS:
             self.assertNotIn(label, main_source)
 
+    def test_overview_formatting_is_compact_without_losing_precision_helpers(self) -> None:
+        self.assertEqual(app.format_compact_count(79_830), "79.8K")
+        self.assertEqual(app.format_compact_count(7_462), "7,462")
+        self.assertEqual(app.format_compact_count(1_197), "1,197")
+        self.assertEqual(app.format_overview_r2(0.961979), "0.962")
+        self.assertEqual(app.format_overview_mae(338.540384), "338.5")
+        self.assertEqual(app.format_overview_percentage(0.9534), "95.3%")
+
+    def test_page_shell_uses_revised_title_collapsed_sidebar_and_research_paused_wording(self) -> None:
+        app_source = inspect.getsource(app)
+        main_source = inspect.getsource(app.main)
+        overview_source = inspect.getsource(app.render_overview)
+        self.assertIn('page_title="InferenceX Benchmark Research"', app_source)
+        self.assertIn('initial_sidebar_state="collapsed"', app_source)
+        self.assertIn("Research dashboard", main_source)
+        self.assertIn("Research paused", overview_source)
+        self.assertNotIn("Do not continue", overview_source)
+        self.assertIn("Exact full-context R²", overview_source)
+
     def test_normal_startup_does_not_fit_or_run_models(self) -> None:
         main_source = inspect.getsource(app.main)
         for operation in (

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import importlib.util
 import json
 import os
@@ -117,7 +118,70 @@ REMOVED_TOP_LEVEL_SECTION_LABELS = (
 )
 
 
-st.set_page_config(page_title="InferenceX PCA Demo", layout="wide")
+st.set_page_config(
+    page_title="InferenceX Benchmark Research",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+
+def format_compact_count(value: int | float) -> str:
+    """Format dashboard counts without changing the stored value."""
+    value = int(value)
+    return f"{value / 1_000:.1f}K" if abs(value) >= 10_000 else f"{value:,}"
+
+
+def format_overview_r2(value: float) -> str:
+    return f"{value:.3f}"
+
+
+def format_overview_mae(value: float) -> str:
+    return f"{value:.1f}"
+
+
+def format_overview_percentage(value: float) -> str:
+    return f"{value:.1%}"
+
+
+def render_dashboard_shell() -> None:
+    """Apply a small, theme-neutral visual foundation for the dashboard."""
+    st.markdown(
+        """
+        <style>
+        .main .block-container { max-width: 1200px; padding-top: 1.4rem; padding-bottom: 2.25rem; }
+        .dashboard-title { margin: 0; font-size: 2rem; font-weight: 650; letter-spacing: -0.025em; }
+        .dashboard-subtitle { margin: 0.3rem 0 0.55rem; color: rgba(127, 127, 127, 1); font-size: 1rem; }
+        .status-badge { display: inline-block; padding: 0.16rem 0.55rem; border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 999px; background: rgba(127, 127, 127, 0.10); font-size: 0.76rem; font-weight: 600; }
+        .dashboard-card { min-height: 102px; padding: 0.8rem 0.9rem; border: 1px solid rgba(127, 127, 127, 0.26); border-radius: 0.6rem; background: rgba(127, 127, 127, 0.07); }
+        .dashboard-card-label { color: rgba(127, 127, 127, 1); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.035em; }
+        .dashboard-card-value { margin-top: 0.3rem; font-size: 1.38rem; font-weight: 650; line-height: 1.15; }
+        .dashboard-card-detail { margin-top: 0.35rem; color: rgba(127, 127, 127, 1); font-size: 0.82rem; line-height: 1.3; }
+        .dashboard-surface { padding: 0.95rem 1rem; border: 1px solid rgba(127, 127, 127, 0.26); border-radius: 0.65rem; background: rgba(127, 127, 127, 0.055); }
+        .dashboard-takeaway { margin: 0.75rem 0 0.2rem; padding: 0.75rem 0.9rem; border-left: 3px solid rgba(127, 127, 127, 0.65); background: rgba(127, 127, 127, 0.08); border-radius: 0 0.45rem 0.45rem 0; }
+        [data-baseweb="tab-list"] { gap: 0.35rem; margin-bottom: 1rem; }
+        [data-baseweb="tab"] { height: 2.45rem; padding: 0 0.8rem; }
+        [data-baseweb="tab"][aria-selected="true"] { font-weight: 650; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_compact_card(label: str, value: str, detail: str = "") -> None:
+    """Render one escaped, compact display card."""
+    escaped_detail = (
+        f'<div class="dashboard-card-detail">{html.escape(detail)}</div>' if detail else ""
+    )
+    st.markdown(
+        f'<div class="dashboard-card"><div class="dashboard-card-label">{html.escape(label)}</div>'
+        f'<div class="dashboard-card-value">{html.escape(value)}</div>{escaped_detail}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_section_intro(title: str, description: str) -> None:
+    st.markdown(f"### {html.escape(title)}")
+    st.caption(description)
 
 
 def stable_json_value(value: Any) -> Any:
@@ -2306,7 +2370,7 @@ def render_data_understanding(
     max_rows: int,
     seed: int,
 ) -> None:
-    st.header("Data Understanding")
+    render_section_intro("Data Understanding", "Coverage, target availability, and the configuration and workload mix behind the active analysis unit.")
     st.caption(
         "Use this tab to understand table relationships, column meanings, missingness, "
         "cardinality, metric direction, and which fields are safe for PCA or supervised modeling."
@@ -3857,30 +3921,89 @@ def render_overview(
     source_info: dict[str, Any],
     research_summary: dict[str, Any] | None,
 ) -> None:
-    st.header("Overview")
     point_metrics = (
         research_summary or {}
     ).get("selected_throughput_point_model", {}).get("metrics") or {}
     uncertainty = (research_summary or {}).get("selected_uncertainty_method", {})
-    latency = (research_summary or {}).get("latency_recommendation", {}).get("decision")
+    configuration_count = benchmarks["config_id"].nunique() if "config_id" in benchmarks else 0
 
-    status_cols = st.columns(4)
-    status_cols[0].metric("Dataset", "Loaded" if source_info["active_mode"] != "missing" else "Unavailable")
-    status_cols[1].metric("Source", source_info["active_mode"])
-    status_cols[2].metric("Analysis unit", analysis_metadata["analysis_unit"])
-    status_cols[3].metric("Configurations", f"{benchmarks['config_id'].nunique():,}" if "config_id" in benchmarks else "n/a")
+    st.markdown("#### Dataset summary")
+    dataset_cards = st.columns(4)
+    with dataset_cards[0]:
+        render_compact_card("Benchmark rows", format_compact_count(analysis_metadata["raw_row_count"]), "Loaded")
+    with dataset_cards[1]:
+        render_compact_card("Analysis rows", format_compact_count(analysis_metadata["analysis_row_count"]), "Active analysis unit")
+    with dataset_cards[2]:
+        render_compact_card("Configurations", format_compact_count(configuration_count), "Unique configurations")
+    with dataset_cards[3]:
+        render_compact_card("Data source", source_info["active_mode"], "Dataset available")
 
-    data_cols = st.columns(3)
-    data_cols[0].metric("Raw benchmark rows", f"{analysis_metadata['raw_row_count']:,}")
-    data_cols[1].metric("Aggregated analysis rows", f"{analysis_metadata['analysis_row_count']:,}")
-    data_cols[2].metric("Throughput model", "Full-context TabFM" if point_metrics else "Artifact unavailable")
+    st.markdown("#### Throughput model")
+    with st.container(border=True):
+        throughput_cols = st.columns([1.8, 0.8, 0.85, 1.05, 1.35])
+        with throughput_cols[0]:
+            render_compact_card("Selected model", "Full-context TabFM" if point_metrics else "Artifact unavailable")
+        with throughput_cols[1]:
+            render_compact_card("R²", format_overview_r2(point_metrics["r2"]) if point_metrics else "—")
+        with throughput_cols[2]:
+            render_compact_card("Fold stability", f"±{format_overview_r2(point_metrics['r2_std'])}" if point_metrics else "—")
+        with throughput_cols[3]:
+            render_compact_card("MAE", f"{format_overview_mae(point_metrics['mae'])} tok/s/GPU" if point_metrics else "—")
+        with throughput_cols[4]:
+            render_compact_card("Evaluation", "Grouped by configuration")
+        st.caption("The model explains about 96% of held-out throughput variation across unseen configuration groups." if point_metrics else "The selected throughput aggregate artifact is unavailable.")
 
-    result_cols = st.columns(4)
-    result_cols[0].metric("Throughput R2", f"{point_metrics['r2']:.6f} +/- {point_metrics['r2_std']:.6f}" if point_metrics else "Unavailable")
-    result_cols[1].metric("Throughput MAE", f"{point_metrics['mae']:.6f}" if point_metrics else "Unavailable")
-    result_cols[2].metric("Uncertainty", "Research only" if uncertainty else "Unavailable")
-    result_cols[3].metric("Latency decision", "Do not continue" if latency else "Unavailable")
+    st.markdown("#### Research decisions")
+    decision_cols = st.columns(3)
+    with decision_cols[0]:
+        render_compact_card(
+            "Uncertainty",
+            "Experimental" if uncertainty else "Unavailable",
+            "Conditional-scale conformal · Not production-calibrated" if uncertainty else "Aggregate artifact unavailable",
+        )
+    with decision_cols[1]:
+        render_compact_card("Latency", "Research paused", "Tail specialization did not improve median TPOT")
+    with decision_cols[2]:
+        render_compact_card("Generative modeling", "Not pursued", "VAE and CRVAE were not justified by the results")
+    st.markdown(
+        '<div class="dashboard-takeaway"><strong>Key takeaway</strong><br>'
+        'Throughput prediction is the strongest validated result. Uncertainty remains research-grade, while latency modeling is paused.</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Model details"):
+        if point_metrics:
+            detail_cols = st.columns(2)
+            detail_cols[0].caption(f"Exact full-context R²: {point_metrics['r2']:.6f} +/- {point_metrics['r2_std']:.6f}")
+            detail_cols[1].caption(f"Exact full-context MAE: {point_metrics['mae']:.6f} tok/s/GPU")
+        else:
+            st.info("The selected throughput aggregate artifact is unavailable.")
     st.caption("This dashboard is descriptive: it summarizes benchmark structure and completed research results, not causal effects.")
+
+
+def render_data_source_details(
+    file_status: pd.DataFrame,
+    source_info: dict[str, Any],
+    analysis_metadata: dict[str, Any],
+) -> None:
+    """Keep exact data provenance details available without dominating the overview."""
+    detail_cols = st.columns(2)
+    with detail_cols[0]:
+        st.caption("Selected analysis unit")
+        st.write(analysis_metadata["analysis_unit"])
+        st.caption("Exact row counts")
+        st.write(
+            f"{analysis_metadata['raw_row_count']:,} raw benchmark rows · "
+            f"{analysis_metadata['analysis_row_count']:,} analysis rows"
+        )
+    with detail_cols[1]:
+        st.caption("Resolved source")
+        st.write(f"{source_info['active_mode']} · {source_info.get('active_candidate') or 'selected data directory'}")
+        st.caption("Required-file status")
+        st.write("Available")
+    st.caption("Local data directory")
+    st.code(str(source_info["active_dir"]), language=None)
+    st.dataframe(file_status, width="stretch", hide_index=True)
 
 
 def render_data_understanding_dashboard(
@@ -3890,7 +4013,10 @@ def render_data_understanding_dashboard(
     max_rows: int,
     seed: int,
 ) -> None:
-    st.header("Data Understanding")
+    render_section_intro(
+        "Data Understanding",
+        "Coverage, target availability, and the configuration and workload mix behind the active analysis unit.",
+    )
     feature_dictionary = build_feature_dictionary(joined)
     metrics = metric_like_numeric_columns(joined)
     target_availability = pd.DataFrame(
@@ -3902,10 +4028,13 @@ def render_data_understanding_dashboard(
     ).head(12)
 
     counts = st.columns(4)
-    counts[0].metric("Raw rows", f"{len(joined):,}")
-    counts[1].metric("Analysis rows", f"{len(analysis_frame):,}")
-    counts[2].metric("Configurations", f"{joined['config_id'].nunique():,}" if "config_id" in joined else "n/a")
-    counts[3].metric("Available targets", f"{len(metrics):,}")
+    for column, label, value in zip(
+        counts,
+        ("Raw rows", "Analysis rows", "Configurations", "Available targets"),
+        (format_compact_count(len(joined)), format_compact_count(len(analysis_frame)), format_compact_count(joined["config_id"].nunique()) if "config_id" in joined else "n/a", f"{len(metrics):,}"),
+    ):
+        with column:
+            render_compact_card(label, value)
 
     st.subheader("Target availability")
     st.dataframe(target_availability, width="stretch", hide_index=True)
@@ -3953,8 +4082,7 @@ def render_pca_dashboard(
     max_rows: int,
     seed: int,
 ) -> None:
-    st.header("PCA")
-    st.caption("PCA summarizes variation in configuration and workload fields; outcome metrics are overlays, not PCA inputs, and PCA does not prove performance impact.")
+    render_section_intro("PCA", "PCA summarizes configuration and workload variation; outcome metrics are overlays, not inputs, and PCA does not prove performance impact.")
     default_numeric, default_categorical = default_pca_features(joined)
     metric_cols = metric_like_numeric_columns(joined)
     with st.expander("PCA settings"):
@@ -4017,23 +4145,26 @@ def render_pca_dashboard(
 
 
 def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:
-    st.header("Model Results")
-    st.caption("Completed research artifacts only. No model is fit, imported, or run from this dashboard.")
+    render_section_intro("Model Results", "Completed aggregate research artifacts only. No model is fit, imported, or run from this dashboard.")
     if research_summary is None:
         st.info(f"Research artifacts are unavailable{': ' + error if error else '.'}")
         return
     point = research_summary["selected_throughput_point_model"]
     metrics = point.get("metrics") or {}
     uncertainty = research_summary["selected_uncertainty_method"]
+    st.markdown("#### Selected throughput result")
     metric_cols = st.columns(3)
-    metric_cols[0].metric("Selected model", "Full-context TabFM" if metrics else "Artifact unavailable")
-    metric_cols[1].metric("Grouped config_id R2", f"{metrics['r2']:.6f} +/- {metrics['r2_std']:.6f}" if metrics else "Unavailable")
-    metric_cols[2].metric("MAE", f"{metrics['mae']:.6f}" if metrics else "Unavailable")
+    with metric_cols[0]:
+        render_compact_card("Selected model", "Full-context TabFM" if metrics else "Artifact unavailable")
+    with metric_cols[1]:
+        render_compact_card("Grouped configuration R²", format_overview_r2(metrics["r2"]) if metrics else "—", f"Fold stability ±{format_overview_r2(metrics['r2_std'])}" if metrics else "")
+    with metric_cols[2]:
+        render_compact_card("MAE", f"{format_overview_mae(metrics['mae'])} tok/s/GPU" if metrics else "—")
 
-    st.subheader("Conditional-scale conformal uncertainty")
+    st.markdown("#### Experimental uncertainty")
     st.caption("Research only — not production-calibrated around the selected full-context point model.")
     interval_rows = [
-        {"Nominal coverage": f"{float(level):.0%}", "Empirical coverage": f"{values['empirical_coverage']:.2%}", "Average width": f"{values['average_interval_width']:.3f}"}
+        {"Nominal coverage": format_overview_percentage(float(level)), "Empirical coverage": format_overview_percentage(values['empirical_coverage']), "Average width": f"{values['average_interval_width']:.1f}"}
         for level, values in uncertainty.get("intervals", {}).items()
     ]
     if interval_rows:
@@ -4042,12 +4173,14 @@ def render_model_results_dashboard(research_summary: dict[str, Any] | None, erro
         st.info("The aggregate uncertainty artifact is not available.")
     split_metrics = uncertainty.get("uncertainty_evaluation_point_model") or {}
     if split_metrics:
-        st.info(f"Uncertainty-split R2: {split_metrics['r2']:.6f}. This reduced-context evaluation is separate from the full-context R2 above.")
+        st.info(f"Uncertainty-split R²: {format_overview_r2(split_metrics['r2'])}. This reduced-context evaluation is separate from the full-context R² above.")
 
-    st.subheader("Research decisions")
-    st.write(research_summary["latency_recommendation"]["decision"])
-    st.write("Reject two-stage TPOT tail modeling: it did not improve the global baseline consistently, including tail error.")
-    st.write(research_summary["vae_crvae"]["decision"])
+    st.markdown("#### Research decisions")
+    decision_cols = st.columns(2)
+    with decision_cols[0]:
+        render_compact_card("Latency", "Research paused", "Tail specialization did not improve the median-TPOT baseline.")
+    with decision_cols[1]:
+        render_compact_card("Generative modeling", "Not pursued", "VAE and CRVAE were not justified by the results.")
     with st.expander("Detailed fold results"):
         st.caption("The selected aggregate conclusion does not expose row-level predictions or residuals. Fold-level model outputs remain outside this dashboard.")
     with st.expander("Subgroup coverage"):
@@ -4065,8 +4198,16 @@ def render_model_results_dashboard(research_summary: dict[str, Any] | None, erro
 
 
 def main() -> None:
-    st.title("InferenceX Research Dashboard")
-    st.caption("A compact view of benchmark coverage, configuration structure, PCA interpretation, and completed model research.")
+    render_dashboard_shell()
+    st.markdown('<h1 class="dashboard-title">InferenceX Benchmark Research</h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="dashboard-subtitle">Configuration analysis and validated model results from the InferenceX benchmark dataset.</p>'
+        '<span class="status-badge">Research dashboard</span>',
+        unsafe_allow_html=True,
+    )
+
+    data_dir = st.session_state.get("data_dir_control", DEFAULT_DATA_DIR)
+    file_status, source_probe = data_source_status(data_dir)
 
     with st.sidebar:
         st.header("Controls")
@@ -4074,16 +4215,15 @@ def main() -> None:
         with st.expander("Advanced settings"):
             max_rows = st.number_input("Maximum rows", min_value=500, max_value=100_000, value=20_000, step=500)
             seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
-            data_dir = st.text_input("Data directory", value=DEFAULT_DATA_DIR)
-            st.caption("CSV is preferred; JSON remains a local fallback.")
-            st.caption("Source and fallback checks are available in Overview.")
+            data_dir = st.text_input("Data directory", value=data_dir, key="data_dir_control")
+            st.caption("CSV is preferred; JSON is retained as a local fallback.")
+            fallback_status = "available" if source_probe["json_ready"] else "not found"
+            st.caption(f"Source check: {source_probe['active_mode']}. JSON fallback: {fallback_status}.")
 
-    file_status, source_probe = data_source_status(data_dir)
     research_summary, research_error = research_summary_or_none()
     tabs = st.tabs(MAIN_TAB_LABELS)
     if source_probe["active_mode"] == "missing":
         with tabs[0]:
-            st.header("Overview")
             st.info("Benchmark data is unavailable. Update the data directory in Advanced settings.")
             with st.expander("Data source details"):
                 st.dataframe(file_status, width="stretch", hide_index=True)
@@ -4108,8 +4248,7 @@ def main() -> None:
     with tabs[0]:
         render_overview(benchmarks, analysis_metadata, source_info, research_summary)
         with st.expander("Data source details"):
-            st.dataframe(file_status, width="stretch", hide_index=True)
-            st.caption(f"Active source: {source_info['active_mode']} ({source_info.get('active_candidate') or 'selected data directory'}).")
+            render_data_source_details(file_status, source_info, analysis_metadata)
     with tabs[1]:
         render_data_understanding_dashboard(joined, analysis_frame, analysis_metadata, int(max_rows), int(seed))
     with tabs[2]:
