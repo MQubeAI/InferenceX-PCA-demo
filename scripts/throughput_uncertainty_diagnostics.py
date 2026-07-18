@@ -13,7 +13,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from apps import inferencex_pca_demo as app
-from modeling.throughput_uncertainty import evaluate_throughput_uncertainty
+from modeling.throughput_uncertainty import (
+    DEFAULT_SUBGROUP_MINIMUM_SUPPORT,
+    evaluate_throughput_uncertainty,
+)
 
 
 def write_atomic(path: Path, value: dict) -> None:
@@ -29,6 +32,15 @@ def main() -> None:
     parser.add_argument("--max-rows", type=int, default=4096)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--folds", type=int, default=3)
+    parser.add_argument(
+        "--subgroup-minimum-support",
+        type=int,
+        default=DEFAULT_SUBGROUP_MINIMUM_SUPPORT,
+        help=(
+            "Minimum rows required for a subgroup to be eligible for the headline "
+            "worst-undercoverage ranking. All subgroup rows remain in the artifact."
+        ),
+    )
     parser.add_argument("--output", default="artifacts/throughput-uncertainty-4096-seed-42.json")
     args = parser.parse_args()
 
@@ -43,7 +55,15 @@ def main() -> None:
         f"folds={args.folds} expected_tabfm_calls={args.folds} completed-work=0.00",
         flush=True,
     )
-    result = evaluate_throughput_uncertainty(frame, numeric + categorical, target, args.max_rows, args.seed, args.folds)
+    result = evaluate_throughput_uncertainty(
+        frame,
+        numeric + categorical,
+        target,
+        args.max_rows,
+        args.seed,
+        args.folds,
+        args.subgroup_minimum_support,
+    )
     artifact = {
         "aggregate_only": True,
         "generation_timestamp_utc": datetime.now(UTC).isoformat(),
@@ -53,6 +73,7 @@ def main() -> None:
             "max_rows": args.max_rows,
             "seed": args.seed,
             "folds": args.folds,
+            "subgroup_minimum_support": args.subgroup_minimum_support,
             "point_model": "tabfm",
             "uncertainty_models": ["global_split_conformal", "catboost_conditional_scale", "catboost_conditional_residual_quantiles"],
         },

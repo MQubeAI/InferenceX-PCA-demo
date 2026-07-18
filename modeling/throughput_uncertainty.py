@@ -23,6 +23,7 @@ from modeling.comparison import (
 )
 
 NOMINAL_LEVELS = (0.50, 0.80, 0.95)
+DEFAULT_SUBGROUP_MINIMUM_SUPPORT = 20
 WORKLOAD_PREDICTORS = ("benchmark_type", "isl", "osl", "conc")
 REPORT_FEATURES = (
     "config_hardware",
@@ -198,20 +199,34 @@ def _group_rows(frame: pd.DataFrame, covered: np.ndarray, width: np.ndarray, col
 
 
 def summarize_interval(
-    observed: np.ndarray, lower: np.ndarray, upper: np.ndarray, nominal: float, report_frame: pd.DataFrame, throughput_bins: np.ndarray
+    observed: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    nominal: float,
+    report_frame: pd.DataFrame,
+    throughput_bins: np.ndarray,
+    subgroup_minimum_support: int = DEFAULT_SUBGROUP_MINIMUM_SUPPORT,
 ) -> dict[str, Any]:
-    """Compute aggregate-only coverage, width, score, and subgroup summaries."""
+    """Compute aggregate-only interval summaries.
+
+    Every subgroup remains in ``coverage_by_feature``.  Only subgroups with at
+    least ``subgroup_minimum_support`` rows are eligible for the headline worst
+    undercoverage ranking, so a one-row category cannot dominate that report.
+    """
+    if subgroup_minimum_support < 1:
+        raise ValueError("subgroup_minimum_support must be at least 1.")
     observed, lower, upper = (np.asarray(value, dtype=float) for value in (observed, lower, upper))
     covered = (observed >= lower) & (observed <= upper)
     width = upper - lower
     bin_frame = pd.DataFrame({"throughput_bin": throughput_bins})
     by_bin = _group_rows(bin_frame, covered, width, ("throughput_bin",)).get("throughput_bin", [])
     by_feature = _group_rows(report_frame, covered, width, REPORT_FEATURES)
-    candidates = [
+    all_candidates = [
         {"feature": feature, **row, "undercoverage": max(0.0, float(nominal) - row["coverage"])}
         for feature, rows in by_feature.items()
         for row in rows
     ]
+    candidates = [row for row in all_candidates if row["rows"] >= subgroup_minimum_support]
     worst = max(candidates, key=lambda row: (row["undercoverage"], -row["rows"], row["feature"], row["value"])) if candidates else None
     return {
         "nominal_coverage": float(nominal),
@@ -221,6 +236,8 @@ def summarize_interval(
         "interval_score": float(np.mean(interval_score(observed, lower, upper, nominal))),
         "coverage_and_width_by_throughput_bin": by_bin,
         "coverage_by_feature": by_feature,
+        "subgroup_minimum_support": int(subgroup_minimum_support),
+        "subgroup_groups_excluded_from_worst_ranking": int(len(all_candidates) - len(candidates)),
         "worst_subgroup_undercoverage": worst,
     }
 
@@ -239,8 +256,16 @@ def evaluate_throughput_uncertainty(
     max_rows: int = 4096,
     seed: int = 42,
     n_splits: int = 3,
+    subgroup_minimum_support: int = DEFAULT_SUBGROUP_MINIMUM_SUPPORT,
 ) -> dict[str, Any]:
-    """Evaluate three leakage-safe uncertainty interval baselines by outer fold."""
+    """Evaluate three leakage-safe uncertainty baselines by outer fold.
+
+    ``subgroup_minimum_support`` affects reporting only; it never affects model
+    fitting, calibration, or the complete subgroup tables retained in the
+    aggregate-only artifact.
+    """
+    if subgroup_minimum_support < 1:
+        raise ValueError("subgroup_minimum_support must be at least 1.")
     predictors = throughput_predictors(features)
     work, preparation = prepare_model_frame(frame, predictors, target, max_rows, seed)
     folds = deterministic_grouped_folds(work, n_splits)
@@ -368,7 +393,15 @@ def evaluate_throughput_uncertainty(
             upper = np.concatenate([entry[2] for entry in entries])
             report_frame = pd.concat([entry[3] for entry in entries], ignore_index=True)
             bins = np.concatenate([entry[4] for entry in entries])
-            interval_summary[method][str(level)] = summarize_interval(truth, lower, upper, level, report_frame, bins)
+            interval_summary[method][str(level)] = summarize_interval(
+                truth,
+                lower,
+                upper,
+                level,
+                report_frame,
+                bins,
+                subgroup_minimum_support,
+            )
 
     point_truth = np.concatenate(all_truth)
     point_prediction = np.concatenate(all_prediction)

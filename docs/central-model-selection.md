@@ -67,14 +67,12 @@ tail behavior and workload coverage remain important.
 
 ## Recommendation
 
-The current evidence recommends **CatBoost, raw `metrics_tput_per_gpu`, grouped
-unseen-configuration evaluation** as the central baseline: it is the strongest
-measured target (R2 0.643), deterministic, fast, and does not depend on an
-unvalidated TabFM context heuristic. `metrics_median_tpot` is the preferred
-latency-focused secondary target.
+This historical diagnostic is superseded for final throughput selection by the
+completed 4,096-row full-context TabFM experiment: grouped R2 **0.961979 +/-
+0.008605** and MAE **338.540384** for raw `metrics_tput_per_gpu`. Select that
+throughput point model for research reporting.
 
-Do **not** begin CRVAE implementation yet. First complete one sequential TabFM
-context grid for the selected target (random/stratified/coverage/nearest at 128,
-256, and 512) and repeat the known/unseen comparison with the selected target.
-Only then should a residual model be assessed against the measured central
-baseline.
+The latency-focused median-TPOT two-stage experiment failed to improve the
+weaker global latency baseline consistently. Do not pursue latency segmentation
+or residual modeling. Do not implement CRVAE/VAE, and do not schedule another
+expensive context or latency run at this time.

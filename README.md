@@ -75,6 +75,31 @@ python3 scripts/reproducible_analysis.py \
   --max-rows 20000 --seed 42 --stability-runs 5
 ```
 
+## Completed Model Research
+
+The completed throughput research selects **full-context TabFM** for
+`metrics_tput_per_gpu`, evaluated on 4,096 rows with grouped `config_id` folds:
+R2 **0.961979 +/- 0.008605** and MAE **338.540384**. This is the final point-model
+research result, not a model that Streamlit fits on startup.
+
+Throughput residuals are strongly heteroskedastic and non-Gaussian. The preferred
+uncertainty research method is **conditional-scale split conformal**. In the
+leakage-safe uncertainty experiment, its 95% result was 95.34% coverage, 2485.442
+average width, and 4739.169 interval score (34.62% narrower than global conformal;
+global score 8235.473). Conditional quantiles narrowly won at 50%, but conditional
+scale is the consistent choice across coverage levels.
+
+Important calibration boundary: the uncertainty experiment's TabFM point model had
+R2 **0.913897**, because only about half of each outer-training fold was context.
+That number must not be substituted for the full-context R2 above. These intervals
+are experimental and research-grade; they are not calibrated around the selected
+full-context point model and are not production predictions.
+
+Median-TPOT two-stage tail modeling did not provide a consistent improvement over
+the weaker global latency baseline. Do not pursue latency segmentation or residual
+models now. Do not implement VAE/CRVAE. No further expensive model runs are
+currently required. See [the final research conclusion](docs/model-research-conclusion.md).
+
 ## Model Comparison (RF, CatBoost, and optional TabFM)
 
 The reproducible comparison layer is separate from PCA. It reuses the selected
@@ -145,7 +170,8 @@ of 48 available context rows, completed in 20.40 seconds, and produced R2
 The matching 96-row RF/CatBoost/TabFM artifact is
 `artifacts/bounded-model-comparison.json`.
 
-The next larger TabFM command remains deliberately bounded:
+The following larger TabFM command is retained as historical bounded-run
+documentation; it is **not currently required** by the completed model research:
 
 ```bash
 .venv-tabfm/bin/python scripts/model_comparison.py \
@@ -157,9 +183,10 @@ The next larger TabFM command remains deliberately bounded:
   --output artifacts/tabfm-512-context-256.json
 ```
 
-In Streamlit, use **Model Comparison**, choose the target/models and click the
-explicit run button. Its stored result is invalidated when model selection,
-target, features, fold count, row/context cap, seed, or dataset signature changes.
+In Streamlit, **Model Comparison** remains an explicit exploratory action. The
+separate **Research Results** tab only reads completed aggregate artifacts; it
+does not import TabFM or fit any model. No additional expensive run is currently
+required for the final research decision.
 
 The committed `artifacts/reproducible-results.json` contains aggregate metadata only: source file names/sizes/mtimes and bounded file fingerprints, aggregate PCA/RF results, package versions, warnings, and signatures. It contains no benchmark rows. Re-run this command after changing code or data before updating the findings below.
 

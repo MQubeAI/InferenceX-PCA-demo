@@ -1,0 +1,1358 @@
+{
+  "aggregate_only": true,
+  "controls": {
+    "context": "full_fold_local",
+    "folds": 3,
+    "max_rows": 4096,
+    "model": "tabfm",
+    "seed": 42,
+    "target": "metrics_tput_per_gpu"
+  },
+  "dataset": {
+    "active_dir": "/Users/vivaanbhargava/Documents/InferenceX-PCA-demo-clean/inferencex-pca-data",
+    "active_mode": "CSV",
+    "files": [
+      {
+        "content_sample_sha256": "62aef631674026d7bbb42653334a8bdd7981fc77dfa2b40adfa3e13d9dfb3673",
+        "modified_at_utc": "2026-07-03T03:45:05.439759+00:00",
+        "name": "benchmark_results.csv",
+        "size_bytes": 45074925
+      },
+      {
+        "content_sample_sha256": "38146e652ba71a23c0abe95e109a3408615471f26f231fa95e8bb71e0c9b391f",
+        "modified_at_utc": "2026-07-03T03:45:08.053514+00:00",
+        "name": "configs.csv",
+        "size_bytes": 125494
+      }
+    ],
+    "fingerprint": "1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09"
+  },
+  "generation_timestamp_utc": "2026-07-18T04:05:10.310270+00:00",
+  "result": {
+    "aggregate_only": true,
+    "folds": [
+      {
+        "available_context_rows": 2730,
+        "available_training_rows": 2730,
+        "categorical_coverage": {
+          "config_disagg": 2,
+          "config_framework": 11,
+          "config_hardware": 9,
+          "config_is_multinode": 2,
+          "config_model": 10,
+          "config_precision": 4,
+          "config_spec_method": 2
+        },
+        "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+        "context_rows_used": 2730,
+        "device": "cpu",
+        "fold": 1,
+        "group_overlap": 0,
+        "mae": 301.2251828813397,
+        "package_version": "1.0.1",
+        "r2": 0.9726508141664602,
+        "signature": "bd60f563715fcf49b1e0c8a0bbc02ced4058b0798397bc5f37add0a4a68dadc1",
+        "strategy": "random",
+        "train_rows": 2730,
+        "unique_groups": 662,
+        "used_context_rows": 2730,
+        "validation_rows": 1366,
+        "workload_bin_coverage": {
+          "conc_bin": 125,
+          "isl_bin": 2,
+          "osl_bin": 2
+        }
+      },
+      {
+        "available_context_rows": 2731,
+        "available_training_rows": 2731,
+        "categorical_coverage": {
+          "config_disagg": 2,
+          "config_framework": 11,
+          "config_hardware": 9,
+          "config_is_multinode": 2,
+          "config_model": 10,
+          "config_precision": 4,
+          "config_spec_method": 2
+        },
+        "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+        "context_rows_used": 2731,
+        "device": "cpu",
+        "fold": 2,
+        "group_overlap": 0,
+        "mae": 373.55549906983697,
+        "package_version": "1.0.1",
+        "r2": 0.9515788895228826,
+        "signature": "5770633bd5ec51105d882f999fdb4b8a1146cb3548e5f9edcb36abcbe738383c",
+        "strategy": "random",
+        "train_rows": 2731,
+        "unique_groups": 662,
+        "used_context_rows": 2731,
+        "validation_rows": 1365,
+        "workload_bin_coverage": {
+          "conc_bin": 115,
+          "isl_bin": 2,
+          "osl_bin": 2
+        }
+      },
+      {
+        "available_context_rows": 2731,
+        "available_training_rows": 2731,
+        "categorical_coverage": {
+          "config_disagg": 2,
+          "config_framework": 10,
+          "config_hardware": 9,
+          "config_is_multinode": 2,
+          "config_model": 10,
+          "config_precision": 4,
+          "config_spec_method": 2
+        },
+        "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+        "context_rows_used": 2731,
+        "device": "cpu",
+        "fold": 3,
+        "group_overlap": 0,
+        "mae": 340.84047061758275,
+        "package_version": "1.0.1",
+        "r2": 0.9617065479172494,
+        "signature": "f607c2314eddfd9d8574661c4adcce4615ea3aba96fb016dc565f1dd6e06d8b8",
+        "strategy": "random",
+        "train_rows": 2731,
+        "unique_groups": 662,
+        "used_context_rows": 2731,
+        "validation_rows": 1365,
+        "workload_bin_coverage": {
+          "conc_bin": 113,
+          "isl_bin": 2,
+          "osl_bin": 2
+        }
+      }
+    ],
+    "metrics": {
+      "mae_mean": 338.5403841895865,
+      "r2_mean": 0.9619787505355307,
+      "r2_std": 0.008604730200891525
+    },
+    "preparation": {
+      "missing_target_rows_excluded": 0,
+      "sampled_rows_before_target_exclusion": 4096,
+      "usable_rows": 4096
+    },
+    "residual_diagnostics": {
+      "absolute_error_percentiles": {
+        "p1": 1.2217994367534033,
+        "p10": 13.903132527381025,
+        "p25": 34.73420080345055,
+        "p5": 7.411071124199907,
+        "p50": 96.8914457289136,
+        "p75": 294.3405451457277,
+        "p90": 809.3529084760311,
+        "p95": 1468.4642839957164,
+        "p99": 3631.7710697015946
+      },
+      "correlation_absolute_residual_predicted": 0.6949703217834095,
+      "correlation_absolute_residual_target": 0.6745635118424564,
+      "heteroskedasticity": {
+        "conditional_on_target": true,
+        "target_bin_levene_pvalue": 9.303051316255884e-212
+      },
+      "mean": 11.437053261822001,
+      "median": 1.1090777314781448,
+      "normality": {
+        "dagostino_k2": 4002.4672228303048,
+        "histogram_local_peak_count": 2,
+        "pvalue": 0.0
+      },
+      "overprediction_rate": 0.495849609375,
+      "percentiles": {
+        "p1": -2426.494591200562,
+        "p10": -410.71218937047524,
+        "p25": -98.81571978518969,
+        "p5": -817.4966692279044,
+        "p50": 1.1090777314781448,
+        "p75": 95.70092068795023,
+        "p90": 415.7098711667493,
+        "p95": 775.5631832338102,
+        "p99": 2561.0309549578974
+      },
+      "residual_definition": "observed_minus_predicted",
+      "residual_scale_by_feature": {
+        "conc": [
+          {
+            "mae": 5107.52921853431,
+            "residual_std": 6924.689486757186,
+            "rows": 4,
+            "value": "384"
+          },
+          {
+            "mae": 4030.6210815799623,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "7680"
+          },
+          {
+            "mae": 3729.0399748794093,
+            "residual_std": 4225.42991843762,
+            "rows": 3,
+            "value": "2560"
+          },
+          {
+            "mae": 3686.8060106032553,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "7168"
+          },
+          {
+            "mae": 3476.4078595368264,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "11264"
+          },
+          {
+            "mae": 3127.5860588450014,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "3226"
+          },
+          {
+            "mae": 2485.1660926304903,
+            "residual_std": 2253.707930628107,
+            "rows": 4,
+            "value": "16384"
+          },
+          {
+            "mae": 2062.912549692268,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "21504"
+          },
+          {
+            "mae": 1958.5648196896163,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1691"
+          },
+          {
+            "mae": 1755.6399529622777,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "16500"
+          },
+          {
+            "mae": 1683.3981037963995,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2192"
+          },
+          {
+            "mae": 1552.4258595530036,
+            "residual_std": 1552.4258595530036,
+            "rows": 2,
+            "value": "538"
+          },
+          {
+            "mae": 1533.8805826898151,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2222"
+          },
+          {
+            "mae": 1522.7537840009293,
+            "residual_std": 1522.7537840009293,
+            "rows": 2,
+            "value": "5120"
+          },
+          {
+            "mae": 1489.6335841107266,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "16130"
+          },
+          {
+            "mae": 1447.6137152164818,
+            "residual_std": 1865.0815499922446,
+            "rows": 51,
+            "value": "4096"
+          },
+          {
+            "mae": 1432.393270274749,
+            "residual_std": 2039.46069135849,
+            "rows": 57,
+            "value": "2048"
+          },
+          {
+            "mae": 1371.3435719159843,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4405"
+          },
+          {
+            "mae": 1336.4498812440925,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "658"
+          },
+          {
+            "mae": 1232.1022474908414,
+            "residual_std": 2006.0608476805132,
+            "rows": 29,
+            "value": "8192"
+          },
+          {
+            "mae": 1189.3321765226756,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2342"
+          },
+          {
+            "mae": 1188.5008743598064,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "12000"
+          },
+          {
+            "mae": 1120.3758333911524,
+            "residual_std": 1120.3758333911524,
+            "rows": 2,
+            "value": "269"
+          },
+          {
+            "mae": 1083.4640608079633,
+            "residual_std": 823.9364877940858,
+            "rows": 10,
+            "value": "6144"
+          },
+          {
+            "mae": 995.0706949343366,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "12926"
+          },
+          {
+            "mae": 975.9302299220004,
+            "residual_std": 1167.3249920298385,
+            "rows": 8,
+            "value": "4301"
+          },
+          {
+            "mae": 969.992038807366,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "10860"
+          },
+          {
+            "mae": 965.5398431112844,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2252"
+          },
+          {
+            "mae": 963.8161029676686,
+            "residual_std": 968.1800193378305,
+            "rows": 6,
+            "value": "2150"
+          },
+          {
+            "mae": 940.1433493228833,
+            "residual_std": 1867.698271036582,
+            "rows": 111,
+            "value": "1024"
+          },
+          {
+            "mae": 814.6469565835637,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "7300"
+          },
+          {
+            "mae": 794.4929695884075,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "12288"
+          },
+          {
+            "mae": 794.1368547098966,
+            "residual_std": 800.9217753335273,
+            "rows": 4,
+            "value": "3072"
+          },
+          {
+            "mae": 794.1324094975403,
+            "residual_std": 794.1324094975403,
+            "rows": 2,
+            "value": "308"
+          },
+          {
+            "mae": 768.8361105592354,
+            "residual_std": 1276.299103632694,
+            "rows": 154,
+            "value": "512"
+          },
+          {
+            "mae": 752.7406886034714,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1093"
+          },
+          {
+            "mae": 742.6680380896523,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "3000"
+          },
+          {
+            "mae": 714.695034379688,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "640"
+          },
+          {
+            "mae": 713.1301326736011,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "8300"
+          },
+          {
+            "mae": 693.8691213381335,
+            "residual_std": 1295.9823317489745,
+            "rows": 252,
+            "value": "256"
+          },
+          {
+            "mae": 691.0682447345107,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "156"
+          },
+          {
+            "mae": 666.3419595877094,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4608"
+          },
+          {
+            "mae": 660.0872257815445,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1606"
+          },
+          {
+            "mae": 629.8163586735814,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4992"
+          },
+          {
+            "mae": 628.7958611678596,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1127"
+          },
+          {
+            "mae": 625.7430670965059,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1096"
+          },
+          {
+            "mae": 624.952523005292,
+            "residual_std": 764.7603415456041,
+            "rows": 10,
+            "value": "1075"
+          },
+          {
+            "mae": 623.515677895748,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4864"
+          },
+          {
+            "mae": 622.1668448735741,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1365"
+          },
+          {
+            "mae": 578.7465093196442,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1197"
+          },
+          {
+            "mae": 571.7729723852531,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "5700"
+          },
+          {
+            "mae": 568.0391012239688,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1076"
+          },
+          {
+            "mae": 549.3473600475836,
+            "residual_std": 1197.3218168877252,
+            "rows": 336,
+            "value": "128"
+          },
+          {
+            "mae": 537.3054456375929,
+            "residual_std": 571.0026889240623,
+            "rows": 13,
+            "value": "2253"
+          },
+          {
+            "mae": 524.4440002822444,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "5632"
+          },
+          {
+            "mae": 475.4378898550653,
+            "residual_std": 594.676832155704,
+            "rows": 9,
+            "value": "1536"
+          },
+          {
+            "mae": 469.69487859823084,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "560"
+          },
+          {
+            "mae": 447.62225411222016,
+            "residual_std": 551.8461062963786,
+            "rows": 4,
+            "value": "564"
+          },
+          {
+            "mae": 442.3049719360797,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "7500"
+          },
+          {
+            "mae": 435.3231403542248,
+            "residual_std": 491.2269268003076,
+            "rows": 10,
+            "value": "666"
+          },
+          {
+            "mae": 419.9451527148458,
+            "residual_std": 419.9451527148458,
+            "rows": 2,
+            "value": "4300"
+          },
+          {
+            "mae": 414.3009031251112,
+            "residual_std": 510.00891010594313,
+            "rows": 5,
+            "value": "180"
+          },
+          {
+            "mae": 399.50825380646927,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "154"
+          },
+          {
+            "mae": 386.29746392296147,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "102"
+          },
+          {
+            "mae": 385.5521945878454,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1600"
+          },
+          {
+            "mae": 350.9236419315225,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1845"
+          },
+          {
+            "mae": 342.30523683225056,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "544"
+          },
+          {
+            "mae": 337.1857217366978,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "5152"
+          },
+          {
+            "mae": 334.360323110368,
+            "residual_std": 334.360323110368,
+            "rows": 2,
+            "value": "563"
+          },
+          {
+            "mae": 333.06190945856713,
+            "residual_std": 393.35248131616476,
+            "rows": 9,
+            "value": "333"
+          },
+          {
+            "mae": 324.71292342790474,
+            "residual_std": 372.19958633461056,
+            "rows": 12,
+            "value": "1229"
+          },
+          {
+            "mae": 301.0468919230842,
+            "residual_std": 686.5658270284304,
+            "rows": 522,
+            "value": "64"
+          },
+          {
+            "mae": 282.1799371220404,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2500"
+          },
+          {
+            "mae": 273.3755902812732,
+            "residual_std": 369.4779424651217,
+            "rows": 3,
+            "value": "768"
+          },
+          {
+            "mae": 264.7878903891092,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "271"
+          },
+          {
+            "mae": 259.9501984926441,
+            "residual_std": 259.9501984926441,
+            "rows": 2,
+            "value": "105"
+          },
+          {
+            "mae": 257.72556756830966,
+            "residual_std": 263.9079877662889,
+            "rows": 5,
+            "value": "2151"
+          },
+          {
+            "mae": 254.13778898240707,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1176"
+          },
+          {
+            "mae": 251.6169269176396,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1248"
+          },
+          {
+            "mae": 243.75107650601626,
+            "residual_std": 299.28849649545276,
+            "rows": 6,
+            "value": "615"
+          },
+          {
+            "mae": 237.76101249868407,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4611"
+          },
+          {
+            "mae": 234.5833676904258,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1088"
+          },
+          {
+            "mae": 231.14679924560483,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "4916"
+          },
+          {
+            "mae": 228.67832569482061,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "50"
+          },
+          {
+            "mae": 228.57503263999138,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "76"
+          },
+          {
+            "mae": 227.00853899273352,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "668"
+          },
+          {
+            "mae": 224.61419601923262,
+            "residual_std": 224.61419601923262,
+            "rows": 2,
+            "value": "63"
+          },
+          {
+            "mae": 217.5111759862093,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "224"
+          },
+          {
+            "mae": 208.4078451116423,
+            "residual_std": 235.62970670330208,
+            "rows": 5,
+            "value": "288"
+          },
+          {
+            "mae": 198.51469578029375,
+            "residual_std": 503.53695854923984,
+            "rows": 523,
+            "value": "32"
+          },
+          {
+            "mae": 196.9150456451116,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "33"
+          },
+          {
+            "mae": 185.42047813071395,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "1184"
+          },
+          {
+            "mae": 172.94393717779667,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "240"
+          },
+          {
+            "mae": 172.91946558306395,
+            "residual_std": 238.37225103537568,
+            "rows": 4,
+            "value": "144"
+          },
+          {
+            "mae": 170.2929481146026,
+            "residual_std": 137.3084447913169,
+            "rows": 2,
+            "value": "160"
+          },
+          {
+            "mae": 162.31644105516784,
+            "residual_std": 162.31644105516784,
+            "rows": 2,
+            "value": "100"
+          },
+          {
+            "mae": 157.13054251576068,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2112"
+          },
+          {
+            "mae": 156.76981765559867,
+            "residual_std": 217.20823462453384,
+            "rows": 6,
+            "value": "24"
+          },
+          {
+            "mae": 146.6461127550596,
+            "residual_std": 385.3349311210217,
+            "rows": 497,
+            "value": "16"
+          },
+          {
+            "mae": 142.6766687898098,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "282"
+          },
+          {
+            "mae": 132.264721609218,
+            "residual_std": 134.07116346352305,
+            "rows": 3,
+            "value": "192"
+          },
+          {
+            "mae": 131.82222276587845,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "360"
+          },
+          {
+            "mae": 129.26997502901685,
+            "residual_std": 129.26997502901685,
+            "rows": 2,
+            "value": "462"
+          },
+          {
+            "mae": 128.44536028493263,
+            "residual_std": 192.43918535554656,
+            "rows": 5,
+            "value": "60"
+          },
+          {
+            "mae": 123.76512977565575,
+            "residual_std": 146.70716351620376,
+            "rows": 3,
+            "value": "3"
+          },
+          {
+            "mae": 121.37564850102717,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2576"
+          },
+          {
+            "mae": 120.00360842838548,
+            "residual_std": 74.01298933773039,
+            "rows": 2,
+            "value": "55"
+          },
+          {
+            "mae": 118.62164668044724,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "45"
+          },
+          {
+            "mae": 117.21898107737736,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "231"
+          },
+          {
+            "mae": 96.04982302824612,
+            "residual_std": 122.21921345256023,
+            "rows": 4,
+            "value": "72"
+          },
+          {
+            "mae": 94.51274103705077,
+            "residual_std": 202.7053093091797,
+            "rows": 490,
+            "value": "8"
+          },
+          {
+            "mae": 94.20119772508545,
+            "residual_std": 80.77636755688393,
+            "rows": 7,
+            "value": "30"
+          },
+          {
+            "mae": 92.39230732425995,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "54"
+          },
+          {
+            "mae": 77.97508394724264,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "837"
+          },
+          {
+            "mae": 74.51946891531166,
+            "residual_std": 195.24797865337928,
+            "rows": 121,
+            "value": "2"
+          },
+          {
+            "mae": 73.91913308182215,
+            "residual_std": 163.39681565414446,
+            "rows": 485,
+            "value": "4"
+          },
+          {
+            "mae": 73.41682532297412,
+            "residual_std": 129.53457839276177,
+            "rows": 10,
+            "value": "6"
+          },
+          {
+            "mae": 69.99957982426304,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "896"
+          },
+          {
+            "mae": 69.67458737644452,
+            "residual_std": 57.80291705940804,
+            "rows": 2,
+            "value": "44"
+          },
+          {
+            "mae": 69.59395842031248,
+            "residual_std": 22.058442197759348,
+            "rows": 5,
+            "value": "9"
+          },
+          {
+            "mae": 67.01446281946983,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "245"
+          },
+          {
+            "mae": 63.40061520482734,
+            "residual_std": 85.97549201494992,
+            "rows": 12,
+            "value": "12"
+          },
+          {
+            "mae": 61.29632377751187,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "90"
+          },
+          {
+            "mae": 58.651070951276594,
+            "residual_std": 97.64925978477137,
+            "rows": 132,
+            "value": "1"
+          },
+          {
+            "mae": 52.75288232594666,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "117"
+          },
+          {
+            "mae": 51.325228479897916,
+            "residual_std": 56.14474190557192,
+            "rows": 10,
+            "value": "15"
+          },
+          {
+            "mae": 51.24902231884392,
+            "residual_std": 67.11999521225297,
+            "rows": 9,
+            "value": "5"
+          },
+          {
+            "mae": 48.561558942842794,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "96"
+          },
+          {
+            "mae": 45.920631432347854,
+            "residual_std": 44.99348972967249,
+            "rows": 5,
+            "value": "10"
+          },
+          {
+            "mae": 42.807334243184876,
+            "residual_std": 44.45918924097396,
+            "rows": 6,
+            "value": "48"
+          },
+          {
+            "mae": 41.63207717253533,
+            "residual_std": 41.63207717253533,
+            "rows": 2,
+            "value": "28"
+          },
+          {
+            "mae": 41.520224675501936,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "576"
+          },
+          {
+            "mae": 40.27887202530019,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "66"
+          },
+          {
+            "mae": 35.64450148893536,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "20"
+          },
+          {
+            "mae": 33.5992676722808,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2152"
+          },
+          {
+            "mae": 32.50332375540688,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "40"
+          },
+          {
+            "mae": 31.9465558860729,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "13"
+          },
+          {
+            "mae": 31.399164993829686,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "18"
+          },
+          {
+            "mae": 30.504124752299504,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "2800"
+          },
+          {
+            "mae": 27.305058286074626,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "84"
+          },
+          {
+            "mae": 22.427858681475044,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "36"
+          },
+          {
+            "mae": 21.51257670778746,
+            "residual_std": 19.241468752251755,
+            "rows": 2,
+            "value": "7"
+          },
+          {
+            "mae": 19.114598728733057,
+            "residual_std": 14.660296059339341,
+            "rows": 3,
+            "value": "25"
+          },
+          {
+            "mae": 17.960510511618196,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "88"
+          },
+          {
+            "mae": 17.92496199435982,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "352"
+          },
+          {
+            "mae": 17.014997003520307,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "150"
+          },
+          {
+            "mae": 12.44167972806622,
+            "residual_std": 0.0,
+            "rows": 1,
+            "value": "200"
+          }
+        ],
+        "config_framework": [
+          {
+            "mae": 892.9520341021991,
+            "residual_std": 1041.5293029920251,
+            "rows": 17,
+            "value": "mooncake-atom"
+          },
+          {
+            "mae": 736.7201151988636,
+            "residual_std": 1369.3166614637112,
+            "rows": 258,
+            "value": "dynamo-vllm"
+          },
+          {
+            "mae": 538.7947025447824,
+            "residual_std": 1438.109278804744,
+            "rows": 369,
+            "value": "dynamo-trt"
+          },
+          {
+            "mae": 445.27129142656946,
+            "residual_std": 1269.2074213939054,
+            "rows": 277,
+            "value": "atom"
+          },
+          {
+            "mae": 421.3798646940112,
+            "residual_std": 785.9337107504482,
+            "rows": 291,
+            "value": "dynamo-sglang"
+          },
+          {
+            "mae": 380.4762200372632,
+            "residual_std": 914.1036423861689,
+            "rows": 178,
+            "value": "mori-sglang"
+          },
+          {
+            "mae": 380.429890185947,
+            "residual_std": 1045.0763448286464,
+            "rows": 454,
+            "value": "trt"
+          },
+          {
+            "mae": 285.85623320632516,
+            "residual_std": 393.7275745122957,
+            "rows": 12,
+            "value": "atom-disagg"
+          },
+          {
+            "mae": 263.8169460081569,
+            "residual_std": 420.73072022689973,
+            "rows": 58,
+            "value": "vllm-disagg"
+          },
+          {
+            "mae": 228.57263485397067,
+            "residual_std": 514.6227336335267,
+            "rows": 1467,
+            "value": "vllm"
+          },
+          {
+            "mae": 198.74900732765775,
+            "residual_std": 396.5720624098526,
+            "rows": 715,
+            "value": "sglang"
+          }
+        ],
+        "config_hardware": [
+          {
+            "mae": 739.8317931508142,
+            "residual_std": 1705.6364013937543,
+            "rows": 297,
+            "value": "gb200"
+          },
+          {
+            "mae": 589.1494530993845,
+            "residual_std": 1135.6105580589715,
+            "rows": 238,
+            "value": "gb300"
+          },
+          {
+            "mae": 355.0084000037653,
+            "residual_std": 749.2005528694962,
+            "rows": 579,
+            "value": "b300"
+          },
+          {
+            "mae": 337.8173827622271,
+            "residual_std": 862.7337252261045,
+            "rows": 972,
+            "value": "b200"
+          },
+          {
+            "mae": 328.659219175648,
+            "residual_std": 838.5626401075674,
+            "rows": 1105,
+            "value": "mi355x"
+          },
+          {
+            "mae": 166.18762507429665,
+            "residual_std": 362.90414439199685,
+            "rows": 156,
+            "value": "h100"
+          },
+          {
+            "mae": 150.69375678530415,
+            "residual_std": 308.6131910394079,
+            "rows": 440,
+            "value": "h200"
+          },
+          {
+            "mae": 132.9407759494089,
+            "residual_std": 283.3838014550941,
+            "rows": 130,
+            "value": "mi300x"
+          },
+          {
+            "mae": 112.21712753681238,
+            "residual_std": 200.99172909928475,
+            "rows": 179,
+            "value": "mi325x"
+          }
+        ],
+        "config_model": [
+          {
+            "mae": 762.0598893859558,
+            "residual_std": 2013.7681014426894,
+            "rows": 351,
+            "value": "gptoss120b"
+          },
+          {
+            "mae": 544.8876084407982,
+            "residual_std": 1143.6666487656191,
+            "rows": 503,
+            "value": "minimaxm2.5"
+          },
+          {
+            "mae": 308.27236296790636,
+            "residual_std": 593.4911083362902,
+            "rows": 391,
+            "value": "dsv4"
+          },
+          {
+            "mae": 296.61266104754105,
+            "residual_std": 557.7400110882324,
+            "rows": 400,
+            "value": "qwen3.5"
+          },
+          {
+            "mae": 294.95188785046076,
+            "residual_std": 640.8740179086524,
+            "rows": 1040,
+            "value": "dsr1"
+          },
+          {
+            "mae": 291.27108507506307,
+            "residual_std": 610.4196404293482,
+            "rows": 196,
+            "value": "kimik2.5"
+          },
+          {
+            "mae": 242.5077354438672,
+            "residual_std": 518.1385437331683,
+            "rows": 658,
+            "value": "minimaxm3"
+          },
+          {
+            "mae": 159.9698037718185,
+            "residual_std": 315.151615987553,
+            "rows": 183,
+            "value": "glm5"
+          },
+          {
+            "mae": 149.57068355381784,
+            "residual_std": 263.04387780662347,
+            "rows": 21,
+            "value": "glm5.1"
+          },
+          {
+            "mae": 141.80851975481303,
+            "residual_std": 262.885468892558,
+            "rows": 353,
+            "value": "llama70b"
+          }
+        ],
+        "config_precision": [
+          {
+            "mae": 458.50456453818987,
+            "residual_std": 1116.5684773426078,
+            "rows": 2010,
+            "value": "fp4"
+          },
+          {
+            "mae": 241.1645780322341,
+            "residual_std": 362.4738285537427,
+            "rows": 62,
+            "value": "int4"
+          },
+          {
+            "mae": 222.42006682771265,
+            "residual_std": 530.8390371008088,
+            "rows": 1950,
+            "value": "fp8"
+          },
+          {
+            "mae": 221.0620211545708,
+            "residual_std": 422.66571759308823,
+            "rows": 74,
+            "value": "bf16"
+          }
+        ],
+        "isl": [
+          {
+            "mae": 478.57536792344223,
+            "residual_std": 1091.6401295588596,
+            "rows": 1825,
+            "value": "8192"
+          },
+          {
+            "mae": 225.99033552574016,
+            "residual_std": 631.761967757703,
+            "rows": 2271,
+            "value": "1024"
+          }
+        ],
+        "osl": [
+          {
+            "mae": 371.26953369976275,
+            "residual_std": 921.0955773004056,
+            "rows": 3616,
+            "value": "1024"
+          },
+          {
+            "mae": 91.90305121019968,
+            "residual_std": 168.84985913186796,
+            "rows": 480,
+            "value": "8192"
+          }
+        ]
+      },
+      "rows": 4096,
+      "skewness": 4.101449899634529,
+      "std": 867.3823007406025,
+      "target_value_bins": [
+        {
+          "bin": "(1540.55, 3684.067]",
+          "mae": 350.45510717935554,
+          "residual_std": 590.3123672644907,
+          "rows": 819
+        },
+        {
+          "bin": "(2.66, 249.295]",
+          "mae": 51.771325898678775,
+          "residual_std": 109.2160532277471,
+          "rows": 820
+        },
+        {
+          "bin": "(249.295, 701.538]",
+          "mae": 84.64849889874542,
+          "residual_std": 151.78194626240153,
+          "rows": 819
+        },
+        {
+          "bin": "(3684.067, 53262.601]",
+          "mae": 1049.566358805861,
+          "residual_std": 1808.006627186724,
+          "rows": 819
+        },
+        {
+          "bin": "(701.538, 1540.55]",
+          "mae": 156.56521362925093,
+          "residual_std": 253.3964471776129,
+          "rows": 819
+        }
+      ],
+      "uncertainty_baselines": {
+        "empirical_absolute_residual_nominal_to_coverage": {
+          "0.5": 0.5,
+          "0.8": 0.800048828125,
+          "0.95": 0.949951171875
+        },
+        "gaussian_nominal_to_coverage": {
+          "0.5": 0.853271484375,
+          "0.8": 0.93212890625,
+          "0.95": 0.9619140625
+        },
+        "note": "In-sample OOF descriptive coverage; calibrate on a separate split before deployment."
+      },
+      "underprediction_rate": 0.504150390625
+    },
+    "seed": 42,
+    "target": "metrics_tput_per_gpu"
+  }
+}

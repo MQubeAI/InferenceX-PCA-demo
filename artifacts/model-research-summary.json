@@ -1,0 +1,131 @@
+{
+  "aggregate_only": true,
+  "artifact_status": {
+    "full_context_throughput": "available",
+    "median_tpot_tail": "available",
+    "throughput_residuals": "available",
+    "throughput_uncertainty": "available"
+  },
+  "latency_recommendation": {
+    "decision": "Do not continue latency modeling, segmentation, or residual modeling now.",
+    "rejection_reason": "Two-stage TPOT variants did not improve the global baseline consistently, including tail error.",
+    "two_stage_tpot_summary": {
+      "global_tabfm": {
+        "mae_mean": 0.005913240866795699,
+        "mae_std": 0.0005105253172773496
+      },
+      "hard_catboost_tail_catboost": {
+        "mae_mean": 0.006431542535774818,
+        "mae_std": 0.00017073156378855398
+      },
+      "hard_catboost_tail_fallback": {
+        "mae_mean": 0.00782255963458658,
+        "mae_std": 0.0002639565986478709
+      },
+      "hard_catboost_tail_tabfm": {
+        "mae_mean": 0.006101221658967016,
+        "mae_std": 3.379288407376482e-05
+      },
+      "hard_logistic_tail_catboost": {
+        "mae_mean": 0.020185250615196302,
+        "mae_std": 0.001173085248956012
+      },
+      "weighted_catboost_tail_catboost": {
+        "mae_mean": 0.006980756879176071,
+        "mae_std": 0.0003505202576709698
+      }
+    }
+  },
+  "next_step": "No further expensive model runs are currently required.",
+  "residual_evidence": {
+    "correlation_absolute_residual_predicted": 0.6949703217834095,
+    "correlation_absolute_residual_target": 0.6745635118424564,
+    "heteroskedasticity": {
+      "conditional_on_target": true,
+      "target_bin_levene_pvalue": 9.303051316255884e-212
+    },
+    "normality": {
+      "dagostino_k2": 4002.4672228303048,
+      "histogram_local_peak_count": 2,
+      "pvalue": 0.0
+    }
+  },
+  "schema_version": 1,
+  "selected_throughput_point_model": {
+    "context": "full fold-local context",
+    "decision": "selected research point model",
+    "metrics": {
+      "mae": 338.5403841895865,
+      "r2": 0.9619787505355307,
+      "r2_std": 0.008604730200891525
+    },
+    "model": "TabFM",
+    "target": "metrics_tput_per_gpu"
+  },
+  "selected_uncertainty_method": {
+    "intervals": {
+      "0.5": {
+        "average_interval_width": 544.688086867516,
+        "empirical_coverage": 0.5283203125,
+        "interval_score": 1554.9391778654601,
+        "median_interval_width": 271.16788010592427,
+        "nominal_coverage": 0.5,
+        "subgroup_groups_excluded_from_worst_ranking": 135,
+        "subgroup_minimum_support": 20,
+        "worst_subgroup_undercoverage": {
+          "average_width": 1262.3515089478083,
+          "coverage": 0.0,
+          "feature": "config_model",
+          "rows": 21,
+          "undercoverage": 0.5,
+          "value": "glm5.1"
+        }
+      },
+      "0.8": {
+        "average_interval_width": 1237.9455243155485,
+        "empirical_coverage": 0.821044921875,
+        "interval_score": 2634.966075625931,
+        "median_interval_width": 615.4480805044414,
+        "nominal_coverage": 0.8,
+        "subgroup_groups_excluded_from_worst_ranking": 135,
+        "subgroup_minimum_support": 20,
+        "worst_subgroup_undercoverage": {
+          "average_width": 1471.9847604052609,
+          "coverage": 0.6210826210826211,
+          "feature": "config_model",
+          "rows": 351,
+          "undercoverage": 0.1789173789173789,
+          "value": "gptoss120b"
+        }
+      },
+      "0.95": {
+        "average_interval_width": 2485.4419291063464,
+        "empirical_coverage": 0.953369140625,
+        "interval_score": 4739.169188408817,
+        "median_interval_width": 1253.5418817316831,
+        "nominal_coverage": 0.95,
+        "subgroup_groups_excluded_from_worst_ranking": 135,
+        "subgroup_minimum_support": 20,
+        "worst_subgroup_undercoverage": {
+          "average_width": 8106.875552023734,
+          "coverage": 0.8245614035087719,
+          "feature": "conc",
+          "rows": 57,
+          "undercoverage": 0.12543859649122802,
+          "value": "2048"
+        }
+      }
+    },
+    "method": "conditional-scale split conformal",
+    "point_model_context": "about half of each outer-training fold was TabFM context",
+    "selection_reason": "One consistent conditional method across coverage levels; conditional quantiles only narrowly won at 50%.",
+    "status": "research_only_not_production_calibrated",
+    "uncertainty_evaluation_point_model": {
+      "mae": 449.8033434233695,
+      "r2": 0.9138973265570004
+    }
+  },
+  "vae_crvae": {
+    "decision": "Do not implement VAE or CRVAE."
+  }
+}

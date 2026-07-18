@@ -26,6 +26,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from modeling.comparison import evaluate_models, missingness_report
+from modeling.research_summary import build_research_summary
 
 
 DEFAULT_DATA_DIR = "inferencex-pca-data"
@@ -103,6 +104,7 @@ DEFAULT_GROUPED_FOLDS = 5
 DEFAULT_PERMUTATION_REPEATS = 5
 DEFAULT_PCA_STABILITY_RUNS = 5
 DEFAULT_PCA_STABILITY_FRACTION = 0.8
+RESEARCH_ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
 
 
 st.set_page_config(page_title="InferenceX PCA Demo", layout="wide")
@@ -3758,6 +3760,62 @@ def render_notes() -> None:
     )
 
 
+def render_research_results() -> None:
+    """Show completed aggregate-only research; never fit or import a model runtime."""
+    st.subheader("Research Results")
+    st.warning(
+        "Research-only model diagnostics. This section reads aggregate JSON artifacts only; "
+        "it does not fit models or provide production predictions."
+    )
+    try:
+        summary = build_research_summary(RESEARCH_ARTIFACT_DIR)
+    except Exception as exc:
+        st.info(f"Research artifacts are unavailable: {exc}")
+        return
+
+    point = summary["selected_throughput_point_model"]
+    metrics = point.get("metrics") or {}
+    st.markdown("### Throughput point model")
+    if metrics:
+        columns = st.columns(3)
+        columns[0].metric("Model", "Full-context TabFM")
+        columns[1].metric("Grouped R2", f"{metrics['r2']:.6f} +/- {metrics['r2_std']:.6f}")
+        columns[2].metric("MAE", f"{metrics['mae']:.6f}")
+    else:
+        st.info("The full-context throughput aggregate artifact is not available.")
+
+    uncertainty = summary["selected_uncertainty_method"]
+    st.markdown("### Experimental uncertainty")
+    st.write("Selected research method: conditional-scale split conformal.")
+    interval_rows = []
+    for level, values in uncertainty.get("intervals", {}).items():
+        interval_rows.append({
+            "Nominal coverage": f"{float(level):.0%}",
+            "Empirical coverage": f"{values['empirical_coverage']:.2%}",
+            "Average width": f"{values['average_interval_width']:.3f}",
+        })
+    if interval_rows:
+        st.dataframe(pd.DataFrame(interval_rows), width="stretch", hide_index=True)
+    else:
+        st.info("The aggregate uncertainty artifact is not available.")
+    split_metrics = uncertainty.get("uncertainty_evaluation_point_model") or {}
+    if split_metrics:
+        st.caption(
+            "Important: the leakage-safe uncertainty evaluation used only about half of "
+            f"each outer-training fold as TabFM context (R2 {split_metrics['r2']:.6f}). "
+            "Its intervals are research-grade and are not calibrated around the final "
+            "full-context point model."
+        )
+
+    st.markdown("### Scope decision")
+    st.write(summary["latency_recommendation"]["decision"])
+    st.write(summary["vae_crvae"]["decision"])
+    st.caption(summary["next_step"])
+    unavailable = [name for name, state in summary["artifact_status"].items() if state != "available"]
+    if unavailable:
+        st.caption("Missing aggregate artifacts: " + ", ".join(unavailable))
+
+
 def main() -> None:
     st.title("InferenceX PCA Demo")
 
@@ -3806,6 +3864,7 @@ def main() -> None:
             "`benchmark_results.json` and `configs.json` in the selected data directory, "
             f"`{DEFAULT_JSON_DUMP_DIR}`, another local `inferencex-dump-*` folder, or `DUMP_DIR`."
         )
+        render_research_results()
         return
     csv_status = file_status[file_status["mode"] == "CSV"]
     json_status = file_status[file_status["mode"] == "JSON fallback"]
@@ -3856,6 +3915,7 @@ def main() -> None:
         "Model Comparison",
         "Findings",
         "Sales Pitch Visuals",
+        "Research Results",
         "Notes",
     ]
     selected_tab = st.radio(
@@ -3915,6 +3975,8 @@ def main() -> None:
             int(max_rows),
             int(seed),
         )
+    elif selected_tab == "Research Results":
+        render_research_results()
     elif selected_tab == "Notes":
         render_notes()
 

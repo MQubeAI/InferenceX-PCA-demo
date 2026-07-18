@@ -25,7 +25,7 @@ component. Hard gating and probability-weighted predictions are evaluated on
 the original raw target scale. A deterministic median fallback is used when a
 fold has fewer than 64 training tail rows.
 
-## Existing baseline and required decision
+## Existing baseline and final decision
 
 At 4,096 rows, seed 42, the global TabFM baseline has R2
 **0.604782 +/- 0.198737** (folds 0.718840, 0.770212, 0.325294) and MAE
@@ -33,7 +33,14 @@ At 4,096 rows, seed 42, the global TabFM baseline has R2
 (R2 0.481594 +/- 0.187365), so a single favorable split must not choose a
 segmented model.
 
-Run and retain separate aggregate-only artifacts for both 4,096-row seeds:
+The completed seed-42 two-stage experiment did not consistently improve the
+global TabFM baseline, including tail-focused error. The median TPOT global model
+therefore remains a weaker research baseline only. Do not continue latency
+segmentation, a latency residual model, or additional expensive latency runs.
+Do not implement CRVAE or VAE.
+
+The prior repeat command is retained only as historical reproducibility context;
+it is not a currently requested experiment:
 
 ```bash
 .venv-tabfm/bin/python scripts/tail_model_diagnostics.py --kind median-tpot \
@@ -44,10 +51,8 @@ Run and retain separate aggregate-only artifacts for both 4,096-row seeds:
   --output artifacts/median-tpot-tail-model-4096-seed-123.json
 ```
 
-Adopt a segmented latency model only when it improves both seeds' aggregate
-stability and true-tail/worst-decile error without degrading ordinary cases.
-Until those artifacts exist, keep the global model as the baseline and postpone
-latency residual modeling. Do not begin CRVAE work.
+No segmented latency model is selected. The two-stage result is rejected because
+it did not beat the global baseline consistently on aggregate and tail metrics.
 
 ## Long-run Mac guidance
 

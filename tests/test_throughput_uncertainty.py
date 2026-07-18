@@ -64,11 +64,35 @@ class ThroughputUncertaintyTests(unittest.TestCase):
 
     def test_coverage_summary_and_subgroups(self) -> None:
         frame = pd.DataFrame({"config_hardware": ["a", "b"], "conc": [1, 1]})
-        summary = uncertainty.summarize_interval(np.array([0.0, 10.0]), np.array([-1.0, 1.0]), np.array([1.0, 5.0]), 0.8, frame, np.array(["q1", "q2"]))
+        summary = uncertainty.summarize_interval(
+            np.array([0.0, 10.0]), np.array([-1.0, 1.0]), np.array([1.0, 5.0]),
+            0.8, frame, np.array(["q1", "q2"]), subgroup_minimum_support=1,
+        )
         self.assertEqual(summary["empirical_coverage"], 0.5)
         self.assertEqual(summary["average_interval_width"], 3.0)
         self.assertEqual(summary["coverage_and_width_by_throughput_bin"][0]["rows"], 1)
         self.assertEqual(summary["worst_subgroup_undercoverage"]["value"], "b")
+
+    def test_default_subgroup_support_excludes_one_row_groups_but_retains_them(self) -> None:
+        frame = pd.DataFrame({"config_hardware": ["covered"] * 20 + ["one-row"] + ["large-miss"] * 20})
+        observed = np.zeros(len(frame))
+        lower = np.full(len(frame), -1.0)
+        upper = np.r_[np.ones(20), np.array([-1.0]), -np.ones(20)]
+        summary = uncertainty.summarize_interval(observed, lower, upper, 0.8, frame, np.array(["q1"] * len(frame)))
+        subgroup_rows = summary["coverage_by_feature"]["config_hardware"]
+        self.assertIn("one-row", [row["value"] for row in subgroup_rows])
+        self.assertEqual(summary["subgroup_minimum_support"], 20)
+        self.assertEqual(summary["subgroup_groups_excluded_from_worst_ranking"], 1)
+        self.assertEqual(summary["worst_subgroup_undercoverage"]["value"], "large-miss")
+
+    def test_subgroup_support_is_configurable(self) -> None:
+        frame = pd.DataFrame({"config_hardware": ["a", "b"]})
+        summary = uncertainty.summarize_interval(
+            np.array([0.0, 2.0]), np.array([-1.0, -1.0]), np.array([1.0, 1.0]),
+            0.8, frame, np.array(["q1", "q2"]), subgroup_minimum_support=2,
+        )
+        self.assertEqual(summary["subgroup_groups_excluded_from_worst_ranking"], 2)
+        self.assertIsNone(summary["worst_subgroup_undercoverage"])
 
     def test_outer_evaluation_has_one_tabfm_call_per_fold_and_no_validation_target_leakage(self) -> None:
         calls: list[tuple[str, np.ndarray]] = []

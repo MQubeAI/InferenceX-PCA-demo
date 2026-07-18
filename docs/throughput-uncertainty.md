@@ -62,3 +62,22 @@ quintile, coverage by hardware/model/framework/precision/concurrency/input
 length/output length, and the subgroup with the largest undercoverage. It also
 reports point-model R2/MAE, fold runtimes, partition counts, and TabFM call
 counts.
+
+All subgroup rows remain in the artifact. The reporting-only
+`--subgroup-minimum-support` argument defaults to **20**; groups below that
+support are excluded only from the headline worst-undercoverage ranking. The
+artifact records the applied support and the number of smaller groups excluded,
+so one-row concurrency categories cannot become the headline failure.
+
+## Final interpretation
+
+Conditional-scale split conformal is the selected **research** uncertainty
+method. At 95%, it achieved 95.34% coverage, 2485.442 average width, and a
+4739.169 interval score; global conformal scored 8235.473 and was 34.62% wider.
+Conditional quantiles narrowly won at 50%, but conditional scale is preferred as
+one method across coverage levels.
+
+This is not production calibration. The uncertainty evaluation's point model had
+R2 0.913897 because approximately half of each outer-training fold was available
+as TabFM context. The selected full-context point-model result is R2 0.961979 +/-
+0.008605 (MAE 338.540384); do not merge or compare the two as equivalent runs.
