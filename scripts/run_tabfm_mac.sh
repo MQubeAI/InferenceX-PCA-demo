@@ -17,6 +17,7 @@ while (($#)); do
       esac
       shift 2 ;;
     --help) echo "Usage: $0 [--threads N] [--log PATH] [--script throughput_uncertainty_diagnostics.py] -- diagnostic-script arguments"; exit 0 ;;
+    --) shift; forwarded+=("$@"); break ;;
     *) forwarded+=("$1"); shift ;;
   esac
 done

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -117,6 +118,11 @@ class ThroughputUncertaintyTests(unittest.TestCase):
             first = uncertainty.evaluate_throughput_uncertainty(self.frame, self.features, max_rows=100, seed=42, n_splits=1)
             second = uncertainty.evaluate_throughput_uncertainty(changed, self.features, max_rows=100, seed=42, n_splits=1)
         self.assertEqual(first["folds"][0]["calibration_quantiles"], second["folds"][0]["calibration_quantiles"])
+
+    def test_mac_launcher_accepts_script_and_argument_separator(self) -> None:
+        launcher = (Path(__file__).parents[1] / "scripts" / "run_tabfm_mac.sh").read_text()
+        self.assertIn("throughput_uncertainty_diagnostics.py", launcher)
+        self.assertIn('--) shift; forwarded+=("$@"); break ;;', launcher)
 
 
 if __name__ == "__main__":
