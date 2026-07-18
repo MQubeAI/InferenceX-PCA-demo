@@ -105,6 +105,16 @@ DEFAULT_PERMUTATION_REPEATS = 5
 DEFAULT_PCA_STABILITY_RUNS = 5
 DEFAULT_PCA_STABILITY_FRACTION = 0.8
 RESEARCH_ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
+MAIN_TAB_LABELS = ("Overview", "Data Understanding", "PCA", "Model Results")
+REMOVED_TOP_LEVEL_SECTION_LABELS = (
+    "Data Preview",
+    "Target-Aware Feature Value",
+    "Model Comparison",
+    "Findings",
+    "Sales Pitch Visuals",
+    "Research Results",
+    "Notes",
+)
 
 
 st.set_page_config(page_title="InferenceX PCA Demo", layout="wide")
@@ -3816,169 +3826,296 @@ def render_research_results() -> None:
         st.caption("Missing aggregate artifacts: " + ", ".join(unavailable))
 
 
+def compact_value_chart(frame: pd.DataFrame, column: str, title: str) -> None:
+    """Render one small categorical/workload distribution when the field exists."""
+    if column not in frame.columns:
+        return
+    counts = (
+        frame[column]
+        .dropna()
+        .map(safe_hashable_value)
+        .value_counts()
+        .head(12)
+        .rename_axis(column)
+        .reset_index(name="rows")
+    )
+    if not counts.empty:
+        st.plotly_chart(px.bar(counts, x=column, y="rows", title=title), width="stretch")
+
+
+def research_summary_or_none() -> tuple[dict[str, Any] | None, str]:
+    """Read completed aggregate artifacts without touching a model runtime."""
+    try:
+        return build_research_summary(RESEARCH_ARTIFACT_DIR), ""
+    except Exception as exc:
+        return None, str(exc)
+
+
+def render_overview(
+    benchmarks: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+    source_info: dict[str, Any],
+    research_summary: dict[str, Any] | None,
+) -> None:
+    st.header("Overview")
+    point_metrics = (
+        research_summary or {}
+    ).get("selected_throughput_point_model", {}).get("metrics") or {}
+    uncertainty = (research_summary or {}).get("selected_uncertainty_method", {})
+    latency = (research_summary or {}).get("latency_recommendation", {}).get("decision")
+
+    status_cols = st.columns(4)
+    status_cols[0].metric("Dataset", "Loaded" if source_info["active_mode"] != "missing" else "Unavailable")
+    status_cols[1].metric("Source", source_info["active_mode"])
+    status_cols[2].metric("Analysis unit", analysis_metadata["analysis_unit"])
+    status_cols[3].metric("Configurations", f"{benchmarks['config_id'].nunique():,}" if "config_id" in benchmarks else "n/a")
+
+    data_cols = st.columns(3)
+    data_cols[0].metric("Raw benchmark rows", f"{analysis_metadata['raw_row_count']:,}")
+    data_cols[1].metric("Aggregated analysis rows", f"{analysis_metadata['analysis_row_count']:,}")
+    data_cols[2].metric("Throughput model", "Full-context TabFM" if point_metrics else "Artifact unavailable")
+
+    result_cols = st.columns(4)
+    result_cols[0].metric("Throughput R2", f"{point_metrics['r2']:.6f} +/- {point_metrics['r2_std']:.6f}" if point_metrics else "Unavailable")
+    result_cols[1].metric("Throughput MAE", f"{point_metrics['mae']:.6f}" if point_metrics else "Unavailable")
+    result_cols[2].metric("Uncertainty", "Research only" if uncertainty else "Unavailable")
+    result_cols[3].metric("Latency decision", "Do not continue" if latency else "Unavailable")
+    st.caption("This dashboard is descriptive: it summarizes benchmark structure and completed research results, not causal effects.")
+
+
+def render_data_understanding_dashboard(
+    joined: pd.DataFrame,
+    analysis_frame: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+    max_rows: int,
+    seed: int,
+) -> None:
+    st.header("Data Understanding")
+    feature_dictionary = build_feature_dictionary(joined)
+    metrics = metric_like_numeric_columns(joined)
+    target_availability = pd.DataFrame(
+        {
+            "target": metrics,
+            "available rows": [int(joined[column].notna().sum()) for column in metrics],
+            "missing": [f"{joined[column].isna().mean():.1%}" for column in metrics],
+        }
+    ).head(12)
+
+    counts = st.columns(4)
+    counts[0].metric("Raw rows", f"{len(joined):,}")
+    counts[1].metric("Analysis rows", f"{len(analysis_frame):,}")
+    counts[2].metric("Configurations", f"{joined['config_id'].nunique():,}" if "config_id" in joined else "n/a")
+    counts[3].metric("Available targets", f"{len(metrics):,}")
+
+    st.subheader("Target availability")
+    st.dataframe(target_availability, width="stretch", hide_index=True)
+
+    distribution_cols = st.columns(2)
+    throughput = next((column for column in metrics if "tput" in column.lower() or "throughput" in column.lower()), None)
+    latency = next((column for column in metrics if any(term in column.lower() for term in ("itl", "tpot", "ttft", "e2el"))), None)
+    if throughput:
+        distribution_cols[0].plotly_chart(px.histogram(joined, x=throughput, nbins=30, title="Throughput distribution"), width="stretch")
+    if latency:
+        distribution_cols[1].plotly_chart(px.histogram(joined, x=latency, nbins=30, title="Latency distribution"), width="stretch")
+
+    st.subheader("Configuration and workload mix")
+    config_cols = st.columns(2)
+    for target, column, title in zip(config_cols, ("config_hardware", "config_model"), ("Hardware", "Model")):
+        with target:
+            compact_value_chart(joined, column, title)
+    workload_cols = st.columns(3)
+    for target, column, title in zip(workload_cols, ("conc", "isl", "osl"), ("Concurrency", "Input length", "Output length")):
+        with target:
+            compact_value_chart(joined, column, title)
+
+    full_missingness = pd.DataFrame(
+        {
+            "column": joined.columns,
+            "missing rows": [int(joined[column].isna().sum()) for column in joined.columns],
+            "missing": [f"{joined[column].isna().mean():.1%}" for column in joined.columns],
+        }
+    ).sort_values("missing rows", ascending=False)
+    with st.expander("Column schema"):
+        st.dataframe(feature_dictionary, width="stretch", height=420, hide_index=True)
+    with st.expander("Raw data preview"):
+        st.dataframe(joined.head(50), width="stretch", height=360, hide_index=True)
+    with st.expander("Full missingness table"):
+        st.dataframe(full_missingness, width="stretch", height=420, hide_index=True)
+    with st.expander("Developer metadata"):
+        st.caption(f"Sample cap: {max_rows:,}; random seed: {seed}; grouping keys: {', '.join(analysis_metadata['grouping_keys']) or 'none'}.")
+        if analysis_metadata.get("warning"):
+            st.caption(analysis_metadata["warning"])
+
+
+def render_pca_dashboard(
+    joined: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+    max_rows: int,
+    seed: int,
+) -> None:
+    st.header("PCA")
+    st.caption("PCA summarizes variation in configuration and workload fields; outcome metrics are overlays, not PCA inputs, and PCA does not prove performance impact.")
+    default_numeric, default_categorical = default_pca_features(joined)
+    metric_cols = metric_like_numeric_columns(joined)
+    with st.expander("PCA settings"):
+        selected_numeric = st.multiselect("Numeric features", numeric_columns(joined), default=default_numeric, key="pca_numeric_features")
+        selected_categorical = st.multiselect("Categorical features", categorical_columns(joined), default=default_categorical, key="pca_categorical_features")
+        color_options = unique_preserve_order([""] + metric_cols + config_categorical_columns(joined))
+        color_by = st.selectbox("Projection overlay", color_options, index=1 if len(color_options) > 1 else 0, key="pca_color_by")
+        target_metric = st.selectbox("Metric for correlation", metric_cols, key="pca_target_correlation_metric") if metric_cols else ""
+        stability_runs = st.slider("Stability runs", 2, 10, DEFAULT_PCA_STABILITY_RUNS, key="pca_stability_runs")
+    selected_numeric, selected_categorical, _ = normalize_feature_groups(selected_numeric, selected_categorical)
+    feature_columns = [column for column in selected_numeric + selected_categorical if not is_metric_column(column)]
+    if not feature_columns:
+        st.info("No configuration or workload features are available for PCA.")
+        return
+    controls = pca_controls_from_state(joined, max_rows, seed)
+    controls.update({"target_metric": target_metric, "stability_runs": stability_runs})
+    signature = analysis_signature(analysis_metadata, "pca", controls)
+    pca_analysis = current_artifact("pca_analysis", signature)
+    if pca_analysis is None:
+        if not st.button("Run PCA analysis", type="primary"):
+            st.info("Run PCA analysis to inspect the selected configuration and workload fields.")
+            return
+        with st.spinner("Fitting PCA and deterministic stability samples"):
+            pca_analysis, error = fit_pca_analysis(joined, feature_columns, max_rows, seed, target_metric)
+            if pca_analysis is not None:
+                stability, stability_error = pca_stability_summary(joined, feature_columns, max_rows, seed, stability_runs)
+                error = error or stability_error
+                if not error:
+                    pca_analysis["stability"] = stability
+        if pca_analysis is None or error:
+            st.error(error)
+            return
+        pca_analysis.update({"analysis_signature": signature, "controls": controls})
+        st.session_state["pca_analysis"] = pca_analysis
+
+    explained = pca_analysis["explained_variance"]
+    source_contributions = pca_analysis["source_contributions"]
+    stability = pca_analysis["stability"]
+    st.subheader("Explained variance")
+    st.plotly_chart(px.bar(explained, x="component", y="explained_variance_ratio", text="explained_variance_ratio").update_traces(texttemplate="%{text:.1%}", textposition="outside"), width="stretch")
+    stable_cols = st.columns(2)
+    stable_cols[0].metric("Stability result", "Stable" if not stability["warnings"] else "Review diagnostics")
+    stable_cols[1].metric("Deterministic samples", str(stability["runs"]))
+    st.subheader("Most stable source-feature drivers")
+    st.dataframe(stability["top_driver_frequency"].head(10), width="stretch", hide_index=True)
+    st.subheader("Configuration projection")
+    plot_frame = pca_analysis["pc_scores"][["PC1", "PC2"]].copy()
+    if color_by and color_by in joined.columns:
+        plot_frame[color_by] = joined.reindex(plot_frame.index)[color_by]
+    st.plotly_chart(px.scatter(plot_frame, x="PC1", y="PC2", color=color_by if color_by in plot_frame else None, opacity=0.72, render_mode="webgl"), width="stretch")
+    with st.expander("Source-feature contribution details"):
+        st.dataframe(source_contributions.head(30), width="stretch", hide_index=True)
+    with st.expander("Raw loading matrix and encoded features"):
+        st.dataframe(pca_analysis["encoded_contributions"].head(50), width="stretch", hide_index=True)
+    with st.expander("Technical diagnostics"):
+        st.dataframe(stability["explained_variance"], width="stretch", hide_index=True)
+        st.dataframe(stability["component_similarity"], width="stretch", hide_index=True)
+        if target_metric:
+            st.dataframe(pca_analysis["pc_target_correlations"], width="stretch", hide_index=True)
+
+
+def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:
+    st.header("Model Results")
+    st.caption("Completed research artifacts only. No model is fit, imported, or run from this dashboard.")
+    if research_summary is None:
+        st.info(f"Research artifacts are unavailable{': ' + error if error else '.'}")
+        return
+    point = research_summary["selected_throughput_point_model"]
+    metrics = point.get("metrics") or {}
+    uncertainty = research_summary["selected_uncertainty_method"]
+    metric_cols = st.columns(3)
+    metric_cols[0].metric("Selected model", "Full-context TabFM" if metrics else "Artifact unavailable")
+    metric_cols[1].metric("Grouped config_id R2", f"{metrics['r2']:.6f} +/- {metrics['r2_std']:.6f}" if metrics else "Unavailable")
+    metric_cols[2].metric("MAE", f"{metrics['mae']:.6f}" if metrics else "Unavailable")
+
+    st.subheader("Conditional-scale conformal uncertainty")
+    st.caption("Research only — not production-calibrated around the selected full-context point model.")
+    interval_rows = [
+        {"Nominal coverage": f"{float(level):.0%}", "Empirical coverage": f"{values['empirical_coverage']:.2%}", "Average width": f"{values['average_interval_width']:.3f}"}
+        for level, values in uncertainty.get("intervals", {}).items()
+    ]
+    if interval_rows:
+        st.dataframe(pd.DataFrame(interval_rows), width="stretch", hide_index=True)
+    else:
+        st.info("The aggregate uncertainty artifact is not available.")
+    split_metrics = uncertainty.get("uncertainty_evaluation_point_model") or {}
+    if split_metrics:
+        st.info(f"Uncertainty-split R2: {split_metrics['r2']:.6f}. This reduced-context evaluation is separate from the full-context R2 above.")
+
+    st.subheader("Research decisions")
+    st.write(research_summary["latency_recommendation"]["decision"])
+    st.write("Reject two-stage TPOT tail modeling: it did not improve the global baseline consistently, including tail error.")
+    st.write(research_summary["vae_crvae"]["decision"])
+    with st.expander("Detailed fold results"):
+        st.caption("The selected aggregate conclusion does not expose row-level predictions or residuals. Fold-level model outputs remain outside this dashboard.")
+    with st.expander("Subgroup coverage"):
+        detail_rows = []
+        for level, values in uncertainty.get("intervals", {}).items():
+            worst = values.get("worst_subgroup_undercoverage") or {}
+            detail_rows.append({"coverage": f"{float(level):.0%}", "minimum subgroup rows": values.get("subgroup_minimum_support", "n/a"), "worst supported subgroup": f"{worst.get('feature', 'n/a')} = {worst.get('value', 'n/a')}"})
+        st.dataframe(pd.DataFrame(detail_rows), width="stretch", hide_index=True)
+    with st.expander("Methodology"):
+        st.write("Throughput uses grouped evaluation by config_id. Conditional-scale split conformal was selected as one consistent method across 50%, 80%, and 95% coverage levels.")
+        st.write("The uncertainty evaluation uses about half of each outer-training fold as context, so it is research-grade only and cannot replace the full-context point-model result.")
+    unavailable = [name for name, state in research_summary["artifact_status"].items() if state != "available"]
+    if unavailable:
+        st.caption("Missing aggregate artifacts: " + ", ".join(unavailable))
+
+
 def main() -> None:
-    st.title("InferenceX PCA Demo")
+    st.title("InferenceX Research Dashboard")
+    st.caption("A compact view of benchmark coverage, configuration structure, PCA interpretation, and completed model research.")
 
     with st.sidebar:
-        st.header("Data")
-        data_dir = st.text_input("Data directory", value=DEFAULT_DATA_DIR)
-        analysis_unit = st.selectbox(
-            "Analysis Unit",
-            options=ANALYSIS_UNIT_OPTIONS,
-            index=2,
-            help=(
-                "Choose whether PCA/modeling use raw rows, latest rows, median aggregates, "
-                "or one row per config."
-            ),
-        )
-        max_rows = st.number_input(
-            "Max rows for PCA/modeling",
-            min_value=500,
-            max_value=100_000,
-            value=20_000,
-            step=500,
-        )
-        seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
-        st.caption("CSV mode loads benchmark_results.csv and configs.csv; JSON fallback remains supported.")
+        st.header("Controls")
+        analysis_unit = st.selectbox("Analysis unit", options=ANALYSIS_UNIT_OPTIONS, index=2)
+        with st.expander("Advanced settings"):
+            max_rows = st.number_input("Maximum rows", min_value=500, max_value=100_000, value=20_000, step=500)
+            seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
+            data_dir = st.text_input("Data directory", value=DEFAULT_DATA_DIR)
+            st.caption("CSV is preferred; JSON remains a local fallback.")
+            st.caption("Source and fallback checks are available in Overview.")
 
-    st.subheader("Data Location")
     file_status, source_probe = data_source_status(data_dir)
-    status_cols = st.columns(3)
-    status_cols[0].metric("Data directory", str(resolve_data_dir(data_dir)))
-    status_cols[1].metric("Active source", source_probe["active_mode"])
-    status_cols[2].metric(
-        "Required files",
-        "found" if source_probe["active_mode"] != "missing" else "missing",
-    )
-    if source_probe["active_mode"] == "JSON fallback":
-        st.warning(
-            "Loaded in JSON fallback mode. CSV is recommended for team/demo use. "
-            f"JSON source: `{source_probe['active_dir']}` "
-            f"({source_probe.get('active_candidate') or 'fallback candidate'})."
-        )
+    research_summary, research_error = research_summary_or_none()
+    tabs = st.tabs(MAIN_TAB_LABELS)
     if source_probe["active_mode"] == "missing":
-        st.error(
-            "Required data files are missing. For team CSV mode, place "
-            "`benchmark_results.csv` and `configs.csv` under `inferencex-pca-data`, "
-            "or update the sidebar path. For JSON fallback, provide "
-            "`benchmark_results.json` and `configs.json` in the selected data directory, "
-            f"`{DEFAULT_JSON_DUMP_DIR}`, another local `inferencex-dump-*` folder, or `DUMP_DIR`."
-        )
-        render_research_results()
+        with tabs[0]:
+            st.header("Overview")
+            st.info("Benchmark data is unavailable. Update the data directory in Advanced settings.")
+            with st.expander("Data source details"):
+                st.dataframe(file_status, width="stretch", hide_index=True)
+        with tabs[1]:
+            st.info("Data Understanding is available after benchmark data loads.")
+        with tabs[2]:
+            st.info("PCA is available after benchmark data loads.")
+        with tabs[3]:
+            render_model_results_dashboard(research_summary, research_error)
         return
-    csv_status = file_status[file_status["mode"] == "CSV"]
-    json_status = file_status[file_status["mode"] == "JSON fallback"]
-    with st.expander("Required CSV file status", expanded=source_probe["active_mode"] == "missing"):
-        st.dataframe(csv_status, width="stretch", hide_index=True)
-    with st.expander(
-        "Developer fallback status",
-        expanded=source_probe["active_mode"] in {"JSON fallback", "missing"},
-    ):
-        st.dataframe(json_status, width="stretch", hide_index=True)
 
     dataset_manifest = build_dataset_manifest(source_probe)
     try:
-        benchmarks, configs, joined, source_info = load_joined_data(
-            data_dir, dataset_manifest["fingerprint"]
-        )
+        benchmarks, _configs, joined, source_info = load_joined_data(data_dir, dataset_manifest["fingerprint"])
+        analysis_frame, analysis_metadata = build_analysis_frame(joined, analysis_unit)
     except Exception as exc:
-        st.error(f"Could not load data: {exc}")
+        st.error(f"Could not load benchmark data: {exc}")
         return
-    st.caption(
-        f"Loaded in {source_info['active_mode']} mode from `{source_info['active_dir']}`."
-    )
-    if source_info["active_mode"] == "JSON fallback":
-        st.caption("CSV remains the official team/demo workflow; JSON fallback is for local development.")
+    analysis_metadata["dataset_fingerprint"] = dataset_manifest["fingerprint"]
+    analysis_metadata["dataset_manifest"] = dataset_manifest
 
-    with st.sidebar:
-        st.metric("Raw rows", f"{len(joined):,}")
-
-    default_split_label = (
-        "Grouped cross-validation by config_id" if "config_id" in joined.columns else "Random K-fold fallback"
-    )
-    with st.container(border=True):
-        st.markdown("### Project Status")
-        status_a, status_b, status_c, status_d = st.columns(4)
-        status_a.success("Data loaded")
-        status_b.info(f"Analysis unit: {analysis_unit}")
-        status_c.success("PCA inputs exclude outcome metrics by default")
-        status_d.info(f"Target split shown in UI; default is {default_split_label}")
-        st.caption(
-            "Caveat: this is descriptive analysis for structure and prediction, not causal proof."
-        )
-
-    tab_names = [
-        "Data Preview",
-        "Data Understanding",
-        "PCA Explorer",
-        "Target-Aware Feature Value",
-        "Model Comparison",
-        "Findings",
-        "Sales Pitch Visuals",
-        "Research Results",
-        "Notes",
-    ]
-    selected_tab = st.radio(
-        "Dashboard tabs",
-        options=tab_names,
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-
-    def selected_analysis() -> tuple[pd.DataFrame, dict[str, Any]]:
-        with st.spinner(f"Building analysis unit: {analysis_unit}"):
-            analysis, metadata = build_analysis_frame(joined, analysis_unit)
-        metadata["dataset_fingerprint"] = dataset_manifest["fingerprint"]
-        metadata["dataset_manifest"] = dataset_manifest
-        with st.sidebar:
-            st.metric("Analysis rows", f"{len(analysis):,}")
-            if metadata["grouping_keys"]:
-                st.caption("Grouping keys: " + ", ".join(metadata["grouping_keys"]))
-            if metadata.get("timestamp_column"):
-                st.caption(f"Latest-row timestamp: {metadata['timestamp_column']}")
-            if metadata.get("warning"):
-                st.warning(metadata["warning"])
-        return analysis, metadata
-
-    if selected_tab == "Data Preview":
-        render_data_preview(benchmarks, configs, joined)
-    elif selected_tab == "Data Understanding":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_data_understanding(
-            joined,
-            analysis_frame,
-            analysis_metadata,
-            data_dir,
-            int(max_rows),
-            int(seed),
-        )
-    elif selected_tab == "PCA Explorer":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_pca_explorer(analysis_frame, analysis_metadata, int(max_rows), int(seed))
-    elif selected_tab == "Target-Aware Feature Value":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_target_feature_value(analysis_frame, analysis_metadata, int(max_rows), int(seed))
-    elif selected_tab == "Model Comparison":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_model_comparison(
-            analysis_frame, analysis_metadata, data_dir, int(max_rows), int(seed)
-        )
-    elif selected_tab == "Findings":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_findings(analysis_frame, benchmarks, analysis_metadata, int(max_rows), int(seed))
-    elif selected_tab == "Sales Pitch Visuals":
-        analysis_frame, analysis_metadata = selected_analysis()
-        render_sales_pitch_visuals(
-            analysis_frame,
-            benchmarks,
-            analysis_metadata,
-            int(max_rows),
-            int(seed),
-        )
-    elif selected_tab == "Research Results":
-        render_research_results()
-    elif selected_tab == "Notes":
-        render_notes()
+    with tabs[0]:
+        render_overview(benchmarks, analysis_metadata, source_info, research_summary)
+        with st.expander("Data source details"):
+            st.dataframe(file_status, width="stretch", hide_index=True)
+            st.caption(f"Active source: {source_info['active_mode']} ({source_info.get('active_candidate') or 'selected data directory'}).")
+    with tabs[1]:
+        render_data_understanding_dashboard(joined, analysis_frame, analysis_metadata, int(max_rows), int(seed))
+    with tabs[2]:
+        render_pca_dashboard(analysis_frame, analysis_metadata, int(max_rows), int(seed))
+    with tabs[3]:
+        render_model_results_dashboard(research_summary, research_error)
 
 
 if __name__ == "__main__":
