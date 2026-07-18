@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-CONTEXT_CATEGORICAL = ("config_framework", "config_hardware", "config_model", "config_precision", "config_disagg", "config_is_multinode")
+CONTEXT_CATEGORICAL = ("config_framework", "config_hardware", "config_model", "config_precision", "config_spec_method", "config_disagg", "config_is_multinode")
 WORKLOAD_COLUMNS = ("isl", "osl", "conc")
 
 def target_transform(y: pd.Series, name: str) -> pd.Series:
@@ -94,26 +94,85 @@ def select_context(train: pd.DataFrame, valid: pd.DataFrame, features: list[str]
 
 def distribution(series: pd.Series) -> dict[str, Any]:
     y = pd.to_numeric(series, errors="coerce").dropna()
-    q = y.quantile([.01,.05,.25,.5,.75,.95,.99]).to_dict() if len(y) else {}
-    q1, q3 = y.quantile(.25), y.quantile(.75) if len(y) else (np.nan, np.nan)
+    if not len(y):
+        return {"count": 0, "mean": np.nan, "median": np.nan, "std": np.nan, "min": np.nan, "max": np.nan, "p1": np.nan, "p5": np.nan, "p25": np.nan, "p75": np.nan, "p95": np.nan, "p99": np.nan, "percentiles": {}, "skewness": np.nan, "outlier_rule": "1.5*IQR", "outlier_count": 0}
+    q = y.quantile([.01, .05, .25, .5, .75, .95, .99]).to_dict()
+    q1, q3 = q[0.25], q[0.75]
     iqr = q3-q1
-    return {"count": int(len(y)), "mean": float(y.mean()), "median": float(y.median()), "std": float(y.std(ddof=0)), "min": float(y.min()), "max": float(y.max()), "percentiles": {str(k): float(v) for k,v in q.items()}, "skewness": float(y.skew()), "outlier_rule": "1.5*IQR", "outlier_count": int(((y < q1-1.5*iqr)|(y > q3+1.5*iqr)).sum())}
+    return {"count": int(len(y)), "mean": float(y.mean()), "median": float(y.median()), "std": float(y.std(ddof=0)), "min": float(y.min()), "max": float(y.max()), "p1": float(q[0.01]), "p5": float(q[0.05]), "p25": float(q1), "p75": float(q3), "p95": float(q[0.95]), "p99": float(q[0.99]), "percentiles": {str(k): float(v) for k,v in q.items()}, "skewness": float(y.skew()), "outlier_rule": "1.5*IQR", "outlier_count": int(((y < q1-1.5*iqr)|(y > q3+1.5*iqr)).sum())}
+
+def category_distribution(series: pd.Series) -> list[dict[str, Any]]:
+    """Full aggregate category counts, with deterministic ordering."""
+    values = series.astype("string").fillna("__MISSING__")
+    counts = values.value_counts(dropna=False).rename_axis("value").reset_index(name="count")
+    counts["value"] = counts["value"].astype(str)
+    counts = counts.sort_values(["count", "value"], ascending=[False, True], kind="stable")
+    total = max(len(values), 1)
+    return [{"value": str(row["value"]), "count": int(row["count"]), "fraction": float(row["count"] / total)} for row in counts.to_dict(orient="records")]
+
+def error_attribution(valid: pd.DataFrame, target: str, prediction: np.ndarray, columns: list[str]) -> dict[str, Any]:
+    """Aggregate residual attribution; predictions never leave process memory."""
+    actual = pd.to_numeric(valid[target], errors="coerce").to_numpy(dtype=float)
+    predicted = np.asarray(prediction, dtype=float)
+    if len(actual) != len(predicted):
+        raise ValueError("Prediction length must match validation rows.")
+    residual = actual - predicted  # positive means the model underpredicted.
+    absolute = np.abs(residual)
+    q1, q3 = np.quantile(actual, [.25, .75])
+    large_threshold = float(1.5 * (q3 - q1))
+    large = absolute > large_threshold
+    under = residual > 0
+    over = residual < 0
+    result: dict[str, Any] = {
+        "residual_definition": "actual_minus_prediction",
+        "large_residual_rule": "absolute residual > 1.5 * validation target IQR",
+        "large_residual_threshold": large_threshold,
+        "fold_totals": {
+            "rows": int(len(valid)),
+            "total_absolute_error": float(absolute.sum()),
+            "mean_absolute_error": float(absolute.mean()),
+            "large_residual_count": int(large.sum()),
+            "underprediction_count": int(under.sum()),
+            "underprediction_absolute_error": float(absolute[under].sum()),
+            "overprediction_count": int(over.sum()),
+            "overprediction_absolute_error": float(absolute[over].sum()),
+        },
+        "by_feature": {},
+    }
+    for col in columns:
+        values = valid[col].astype("string").fillna("__MISSING__").astype(str)
+        grouped = pd.DataFrame({"value": values, "absolute": absolute, "large": large, "under": under, "over": over})
+        summary = grouped.groupby("value", sort=True).agg(
+            rows=("absolute", "size"),
+            total_absolute_error=("absolute", "sum"),
+            mean_absolute_error=("absolute", "mean"),
+            large_residual_count=("large", "sum"),
+            underprediction_count=("under", "sum"),
+            overprediction_count=("over", "sum"),
+        )
+        under_error = grouped.loc[grouped["under"]].groupby("value")["absolute"].sum()
+        over_error = grouped.loc[grouped["over"]].groupby("value")["absolute"].sum()
+        summary["underprediction_absolute_error"] = under_error.reindex(summary.index, fill_value=0.0)
+        summary["overprediction_absolute_error"] = over_error.reindex(summary.index, fill_value=0.0)
+        summary = summary.reset_index().sort_values(["total_absolute_error", "value"], ascending=[False, True], kind="stable")
+        result["by_feature"][col] = [
+            {key: (int(value) if key in {"rows", "large_residual_count", "underprediction_count", "overprediction_count"} else float(value) if key != "value" else str(value)) for key, value in row.items()}
+            for row in summary.to_dict(orient="records")
+        ]
+    return result
 
 def fold_difficulty(train: pd.DataFrame, valid: pd.DataFrame, target: str, prediction: np.ndarray | None = None) -> dict[str, Any]:
     cols = [c for c in (*CONTEXT_CATEGORICAL, *WORKLOAD_COLUMNS) if c in train]
     category = {}
     for col in cols:
         tr = train[col].astype("string").fillna("__MISSING__"); va = valid[col].astype("string").fillna("__MISSING__")
-        counts = tr.value_counts(); unseen = sorted(set(va)-set(tr)); rare = sorted([str(v) for v in va.unique() if counts.get(v,0) <= 2])
-        category[col] = {"training_top": counts.head(10).to_dict(), "validation_top": va.value_counts().head(10).to_dict(), "validation_unseen": unseen, "rare_validation": rare, "validation_coverage_in_training": float(va.isin(counts.index).mean())}
+        counts = tr.value_counts(); validation_counts = va.value_counts()
+        unseen = sorted(str(v) for v in set(va) - set(tr))
+        rare = [{"value": str(value), "training_count": int(counts.get(value, 0)), "validation_count": int(validation_counts[value])} for value in sorted(validation_counts.index, key=str) if counts.get(value, 0) <= 2]
+        category[col] = {"training_distribution": category_distribution(tr), "validation_distribution": category_distribution(va), "validation_unseen": unseen, "rare_validation": rare, "rare_validation_rule": "training count <= 2", "validation_coverage_in_training": float(va.isin(counts.index).mean())}
     result = {"train_target": distribution(train[target]), "validation_target": distribution(valid[target]), "category_coverage": category}
     if prediction is not None:
-        abs_error = np.abs(valid[target].to_numpy()-prediction)
-        contributions = {}
-        for col in cols:
-            grouped = pd.DataFrame({"value":valid[col].astype(str),"error":abs_error}).groupby("value").agg(rows=("error","size"), mean_absolute_error=("error","mean"), total_absolute_error=("error","sum")).sort_values("total_absolute_error", ascending=False).head(10)
-            contributions[col] = grouped.reset_index().to_dict(orient="records")
-        result["absolute_error_by_feature"] = contributions
+        result["error_attribution"] = error_attribution(valid, target, prediction, cols)
     return result
 
 def known_config_folds(work: pd.DataFrame, folds: int, seed: int) -> list[tuple[np.ndarray,np.ndarray]]:

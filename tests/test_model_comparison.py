@@ -11,6 +11,7 @@ import pandas as pd
 from apps import inferencex_pca_demo as app
 from modeling import comparison
 from modeling import diagnostics
+from scripts import model_diagnostics
 
 
 def fixture_frame() -> pd.DataFrame:
@@ -112,6 +113,42 @@ class ModelComparisonTests(unittest.TestCase):
         second, _ = diagnostics.select_context(train.assign(metrics_p99_itl=-99), valid, self.features, 7, "coverage", 42)
         self.assertEqual(len(first), 7); self.assertTrue(set(first.index).issubset(train.index))
         self.assertListEqual(list(first.index), list(second.index)); self.assertEqual(meta["context_rows_used"], 7)
+
+    def test_context_selection_does_not_use_validation_targets(self) -> None:
+        train, valid = self.frame.iloc[:20].copy(), self.frame.iloc[20:].copy()
+        valid["metrics_p99_itl"] = np.arange(len(valid), dtype=float)
+        first, _ = diagnostics.select_context(train, valid, self.features, 7, "nearest", 42)
+        second, _ = diagnostics.select_context(train, valid.assign(metrics_p99_itl=-999.0), self.features, 7, "nearest", 42)
+        self.assertListEqual(list(first.index), list(second.index))
+
+    def test_fold_diagnostics_are_deterministic_and_aggregate_only(self) -> None:
+        train, valid = self.frame.iloc[:20].copy(), self.frame.iloc[20:].copy()
+        prediction = np.linspace(0.1, 1.0, len(valid))
+        first = diagnostics.fold_difficulty(train, valid, "metrics_p99_itl", prediction)
+        second = diagnostics.fold_difficulty(train, valid, "metrics_p99_itl", prediction)
+        self.assertEqual(json.dumps(first, sort_keys=True), json.dumps(second, sort_keys=True))
+        hardware = first["category_coverage"]["config_hardware"]
+        self.assertIn("training_distribution", hardware)
+        self.assertIn("validation_distribution", hardware)
+        serialized = json.dumps(first)
+        self.assertNotIn('"actual"', serialized)
+        self.assertNotIn('"residual"', serialized)
+
+    def test_subgroup_totals_match_fold_totals(self) -> None:
+        valid = self.frame.iloc[20:].copy()
+        prediction = np.linspace(0.1, 1.0, len(valid))
+        attribution = diagnostics.error_attribution(valid, "metrics_p99_itl", prediction, ["config_hardware", "conc"])
+        totals = attribution["fold_totals"]
+        for rows in attribution["by_feature"].values():
+            self.assertEqual(sum(row["rows"] for row in rows), totals["rows"])
+            self.assertAlmostEqual(sum(row["total_absolute_error"] for row in rows), totals["total_absolute_error"])
+            self.assertEqual(sum(row["large_residual_count"] for row in rows), totals["large_residual_count"])
+            self.assertEqual(sum(row["underprediction_count"] for row in rows), totals["underprediction_count"])
+            self.assertEqual(sum(row["overprediction_count"] for row in rows), totals["overprediction_count"])
+
+    def test_seed_specific_artifact_resume_isolated(self) -> None:
+        self.assertTrue(model_diagnostics.artifact_seed_is_compatible({"controls": {"seed": 123}}, 123))
+        self.assertFalse(model_diagnostics.artifact_seed_is_compatible({"controls": {"seed": 42}}, 123))
 
     def test_stratified_and_nearest_context(self) -> None:
         train, valid = self.frame.iloc[:20], self.frame.iloc[20:]

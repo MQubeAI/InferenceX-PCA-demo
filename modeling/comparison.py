@@ -210,6 +210,9 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
         available, availability_reason = model_available(model_name)
         folds_result: list[dict[str, Any]] = []
         importance_rows: list[dict[str, Any]] = []
+        # OOF values are intentionally process-local: only their aggregate fold
+        # diagnostics are serialized below.
+        oof_prediction = np.full(len(work), np.nan, dtype=float)
         for fold_number, (train_index, validation_index) in enumerate(folds, 1):
             train_raw, valid_raw = work.iloc[train_index], work.iloc[validation_index]
             processor = FoldPreprocessor.fit(train_raw, feature_columns)
@@ -238,6 +241,7 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
                     else:
                         raise ValueError(f"Unsupported model: {model_name}")
                     raw_prediction = inverse_target(prediction, target_transform)
+                    oof_prediction[validation_index] = raw_prediction
                     row["r2"] = float(r2_score(valid_raw[target], raw_prediction))
                     row["mae"] = float(mean_absolute_error(valid_raw[target], raw_prediction))
                     row["target_transform"] = target_transform
@@ -249,6 +253,9 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
                     row["failure"] = f"{type(exc).__name__}: {exc}"
             row["runtime_seconds"] = float(time.perf_counter() - started)
             folds_result.append(row)
+        # Keep the OOF vector alive through all fold diagnostics, but do not put
+        # row-level predictions or residuals into the result/artifact.
+        _ = oof_prediction
         importance = pd.DataFrame(importance_rows)
         aggregate_importance = ([] if importance.empty else importance.groupby("feature", as_index=False).agg(
             importance_mean=("importance", "mean"),
