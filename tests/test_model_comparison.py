@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -11,6 +13,7 @@ import pandas as pd
 from apps import inferencex_pca_demo as app
 from modeling import comparison
 from modeling import diagnostics
+from modeling import tail_diagnostics
 from scripts import model_diagnostics
 
 
@@ -149,6 +152,55 @@ class ModelComparisonTests(unittest.TestCase):
     def test_seed_specific_artifact_resume_isolated(self) -> None:
         self.assertTrue(model_diagnostics.artifact_seed_is_compatible({"controls": {"seed": 123}}, 123))
         self.assertFalse(model_diagnostics.artifact_seed_is_compatible({"controls": {"seed": 42}}, 123))
+
+    def test_tail_thresholds_are_train_only_and_deterministic(self) -> None:
+        train = pd.Series([.01] * 95 + [.2] * 5)
+        valid_a = pd.Series([.01, 9.0])
+        valid_b = pd.Series([999.0, 1000.0])
+        threshold = tail_diagnostics.tail_threshold(train, "p95")
+        self.assertEqual(threshold, tail_diagnostics.tail_threshold(train, "p95"))
+        self.assertEqual(tail_diagnostics.tail_labels(valid_a, threshold).shape, tail_diagnostics.tail_labels(valid_b, threshold).shape)
+
+    def test_tail_labels_are_deterministic(self) -> None:
+        values = pd.Series([.1, .2, .3, .4])
+        first = tail_diagnostics.tail_labels(values, .2)
+        np.testing.assert_array_equal(first, tail_diagnostics.tail_labels(values, .2))
+        np.testing.assert_array_equal(first, np.array([0, 0, 1, 1], dtype=np.int8))
+
+    def test_two_stage_gating_and_insufficient_tail_fallback(self) -> None:
+        ordinary = np.array([1.0, 1.0]); tail = np.array([9.0, 9.0]); probability = np.array([.49, .5])
+        np.testing.assert_allclose(tail_diagnostics.combine_predictions(ordinary, tail, probability, True), [1.0, 9.0])
+        np.testing.assert_allclose(tail_diagnostics.combine_predictions(ordinary, tail, probability, False), [4.92, 5.0])
+        fallback, mode = tail_diagnostics.conservative_tail_prediction(pd.Series([1., 3., 100.]), np.array([2]), 2)
+        self.assertEqual(mode, "train_median_fallback")
+        np.testing.assert_allclose(fallback, [3., 3.])
+
+    def test_atomic_artifact_replacement_and_signature_invalidation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "artifact.json"
+            model_diagnostics.atomic_write_json(path, {"complete": True})
+            self.assertEqual(json.loads(path.read_text()), {"complete": True})
+            first = model_diagnostics.experiment_signature("x", {"seed": 42}, self.features)
+            self.assertNotEqual(first, model_diagnostics.experiment_signature("x", {"seed": 123}, self.features))
+
+    def test_launcher_forwards_arguments_and_is_sequential(self) -> None:
+        launcher = (Path(__file__).parents[1] / "scripts" / "run_tabfm_mac.sh").read_text()
+        self.assertIn('forwarded+=("$1")', launcher)
+        self.assertIn("caffeinate -dimsu", launcher)
+        self.assertIn("PYTHONUNBUFFERED=1", launcher)
+
+    def test_resume_skips_only_signature_matched_fold_and_reports_progress(self) -> None:
+        work, _ = comparison.prepare_model_frame(self.frame, self.features, "metrics_p99_itl", 100, 42)
+        folds = comparison.deterministic_grouped_folds(work, 2)
+        train_i, valid_i = folds[0]
+        signature = comparison.fold_signature(train_i, valid_i, "random_forest", "metrics_p99_itl", self.features, 42, "raw", None, "random")
+        completed = {"random_forest": [{"fold": 1, "signature": signature, "r2": .5, "mae": .1}]}
+        progress = []
+        with patch.object(comparison, "_rf_fit_predict", return_value=(np.ones(len(folds[1][1])), [])) as fit:
+            result = comparison.evaluate_models(self.frame, self.features, "metrics_p99_itl", ["random_forest"], 100, 42, 2, completed_folds=completed, on_fold_complete=lambda model, rows: progress.append((model, len(rows))))
+        self.assertEqual(fit.call_count, 1)
+        self.assertEqual(progress, [("random_forest", 2)])
+        self.assertEqual(result["models"]["random_forest"]["folds"][0]["signature"], signature)
 
     def test_stratified_and_nearest_context(self) -> None:
         train, valid = self.frame.iloc[:20], self.frame.iloc[20:]

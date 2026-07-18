@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import importlib.util
+import hashlib
 import time
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -24,6 +25,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 MISSING_CATEGORY = "__MISSING__"
 DEFAULT_MODELS = ("random_forest", "catboost")
+_TABFM_MODEL_CACHE: Any | None = None
 
 
 def _json_safe(value: Any) -> Any:
@@ -184,10 +186,25 @@ def _tabfm_fit_predict(train: pd.DataFrame, valid: pd.DataFrame, y_train: pd.Ser
         context_y = y_train.loc[context.index]
     else:
         context, context_y = train, y_train
-    model = tabfm_v1_0_0_pytorch.load(model_type="regression", device="cpu")
+    global _TABFM_MODEL_CACHE
+    if _TABFM_MODEL_CACHE is None:
+        _TABFM_MODEL_CACHE = tabfm_v1_0_0_pytorch.load(model_type="regression", device="cpu")
+    model = _TABFM_MODEL_CACHE
     regressor = TabFMRegressor(model=model, n_estimators=1, random_state=seed, use_amp=False, verbose=False, max_num_rows=context_cap)
     regressor.fit(context, context_y.to_numpy())
     return regressor.predict(valid), [], {"available_context_rows": available, "used_context_rows": len(context), "device": "cpu", "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)", "package_version": importlib.metadata.version("tabfm"), **(context_metadata or {})}
+
+
+def fold_signature(
+    train_index: np.ndarray, validation_index: np.ndarray, model_name: str, target: str,
+    feature_columns: list[str], seed: int, target_transform: str, context_cap: int | None,
+    context_strategy: str,
+) -> str:
+    """Stable signature used to reject stale fold checkpoints."""
+    payload = "|".join((model_name, target, ",".join(feature_columns), str(seed), target_transform,
+                        str(context_cap), context_strategy, ",".join(map(str, train_index)),
+                        ",".join(map(str, validation_index))))
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def model_available(model: str) -> tuple[bool, str]:
@@ -200,7 +217,7 @@ def model_available(model: str) -> tuple[bool, str]:
     return False, "unknown model"
 
 
-def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str, models: list[str], max_rows: int, seed: int, n_splits: int = 5, tabfm_max_context: int | None = None, target_transform: str = "raw", tabfm_context_strategy: str = "random", folds_override: list[tuple[np.ndarray, np.ndarray]] | None = None, evaluation_label: str = "unseen_config") -> dict[str, Any]:
+def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str, models: list[str], max_rows: int, seed: int, n_splits: int = 5, tabfm_max_context: int | None = None, target_transform: str = "raw", tabfm_context_strategy: str = "random", folds_override: list[tuple[np.ndarray, np.ndarray]] | None = None, evaluation_label: str = "unseen_config", completed_folds: dict[str, list[dict[str, Any]]] | None = None, on_fold_complete: Callable[[str, list[dict[str, Any]]], None] | None = None) -> dict[str, Any]:
     from modeling.diagnostics import fold_difficulty, inverse_target, select_context, target_transform as transform_target
     work, preparation = prepare_model_frame(frame, feature_columns, target, max_rows, seed)
     folds = folds_override or deterministic_grouped_folds(work, n_splits)
@@ -213,14 +230,19 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
         # OOF values are intentionally process-local: only their aggregate fold
         # diagnostics are serialized below.
         oof_prediction = np.full(len(work), np.nan, dtype=float)
+        prior = {int(row.get("fold", -1)): row for row in (completed_folds or {}).get(model_name, [])}
         for fold_number, (train_index, validation_index) in enumerate(folds, 1):
+            signature = fold_signature(train_index, validation_index, model_name, target, feature_columns, seed, target_transform, tabfm_max_context, tabfm_context_strategy)
+            if fold_number in prior and prior[fold_number].get("signature") == signature:
+                folds_result.append(prior[fold_number])
+                continue
             train_raw, valid_raw = work.iloc[train_index], work.iloc[validation_index]
             processor = FoldPreprocessor.fit(train_raw, feature_columns)
             train, valid = processor.transform(train_raw), processor.transform(valid_raw)
             groups_train = set(train_raw["config_id"].fillna("__missing_config_id__"))
             groups_valid = set(valid_raw["config_id"].fillna("__missing_config_id__"))
             started = time.perf_counter()
-            row: dict[str, Any] = {"fold": fold_number, "train_rows": len(train), "validation_rows": len(valid), "train_groups": len(groups_train), "validation_groups": len(groups_valid), "group_overlap": len(groups_train & groups_valid), "r2": None, "mae": None, "runtime_seconds": 0.0, "failure": "", "fallback": "", "available_context_rows": None, "used_context_rows": None}
+            row: dict[str, Any] = {"fold": fold_number, "signature": signature, "train_rows": len(train), "validation_rows": len(valid), "train_groups": len(groups_train), "validation_groups": len(groups_valid), "group_overlap": len(groups_train & groups_valid), "r2": None, "mae": None, "runtime_seconds": 0.0, "failure": "", "fallback": "", "available_context_rows": None, "used_context_rows": None}
             if evaluation_label == "unseen_config" and row["group_overlap"] != 0:
                 raise AssertionError("Grouped folds overlap on config_id.")
             if not available:
@@ -253,6 +275,8 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
                     row["failure"] = f"{type(exc).__name__}: {exc}"
             row["runtime_seconds"] = float(time.perf_counter() - started)
             folds_result.append(row)
+            if on_fold_complete:
+                on_fold_complete(model_name, folds_result)
         # Keep the OOF vector alive through all fold diagnostics, but do not put
         # row-level predictions or residuals into the result/artifact.
         _ = oof_prediction
@@ -262,7 +286,7 @@ def evaluate_models(frame: pd.DataFrame, feature_columns: list[str], target: str
             importance_std=("importance", "std"),
             folds=("fold", "nunique"),
         ).fillna({"importance_std": 0.0}).sort_values("importance_mean", ascending=False).to_dict(orient="records"))
-        result["models"][model_name] = {"available": available, "availability": availability_reason, "folds": folds_result, "metrics": _metric_summary(folds_result), "importance": [{key: _json_safe(value) for key, value in item.items()} for item in aggregate_importance], "runtime_seconds": float(sum(row["runtime_seconds"] for row in folds_result))}
+        result["models"][model_name] = {"available": available, "availability": availability_reason, "folds": folds_result, "metrics": _metric_summary(folds_result), "importance": [{key: _json_safe(value) for key, value in item.items()} for item in aggregate_importance], "runtime_seconds": float(sum(row.get("runtime_seconds", 0.0) for row in folds_result))}
     result["evaluation_label"] = evaluation_label
     result["target_transform"] = target_transform
     result["tabfm_context_strategy"] = tabfm_context_strategy
