@@ -1,23 +1,21 @@
 # InferenceX PCA Demo
 
-This is a Streamlit analysis app built on local InferenceX benchmark exports to understand which inference configuration features explain structural benchmark variance and which features predict selected performance targets.
+This repository contains a Streamlit research dashboard and reproducible modeling pipeline for understanding which inference configuration features structure benchmark performance and which features predict selected outcomes.
 
 ## What This Project Does
 
-- Loads local InferenceX benchmark/config CSV data, with JSON dump fallback for local development.
+- Loads local InferenceX benchmark and configuration CSV data, with JSON fallback for local development.
 - Joins `benchmark_results.config_id = configs.id`.
-- Builds a data dictionary and data-understanding layer.
-- Explains feature families, missingness, cardinality, distributions, and data quality checks.
-- Runs PCA on setup/configuration features only.
-- Maps PC1, PC2, and other synthetic PCA axes back to original features through loadings and contribution summaries.
-- Uses outcome metrics as overlays or targets, not PCA inputs.
-- Runs target-aware `RandomForestRegressor` models with permutation importance.
-- Uses deterministic grouped cross-validation by `config_id` when available.
-- Produces executive Findings and downloadable summaries.
+- Builds a data-understanding layer for missingness, cardinality, distributions, workload coverage, and data quality.
+- Runs PCA on configuration and workload features only.
+- Uses outcome metrics as overlays or supervised targets, not PCA inputs.
+- Evaluates Random Forest, CatBoost, and TabFM with deterministic grouped validation by `config_id`.
+- Diagnoses residual behavior and compares conformal uncertainty methods.
+- Reads aggregate research artifacts in Streamlit without fitting TabFM during normal startup.
 
 ## Why This Matters
 
-Inference performance is not only a model/hardware story. Serving architecture, parallelism, disaggregation, prefill/decode split, concurrency, framework, precision, and speculative method are key parts of inference infrastructure value. This demo supports datacenter and inference infrastructure analysis by tying benchmark configuration choices to performance outcomes.
+Inference performance depends on more than model and hardware. Serving framework, precision, concurrency, workload length, parallelism, disaggregation, speculative decoding, and worker allocation can all affect throughput and latency. Benchmarking every possible combination is expensive, so this project tests whether performance can be predicted for configurations that were not present in training.
 
 ## Data Source
 
@@ -28,7 +26,7 @@ Required files:
 - `benchmark_results.csv`
 - `configs.csv`
 
-Optional/supported later:
+Optional or supported later:
 
 - `availability.csv`
 - `eval_results.csv`
@@ -41,32 +39,28 @@ Intentionally skipped:
 - `server_logs.json`
 - `eval_samples.json`
 
-Those skipped files can be extremely large and are unnecessary for this PCA workflow. The app can still fall back to JSON dump mode for local development if `inferencex-pca-data/benchmark_results.csv` and `inferencex-pca-data/configs.csv` are not present.
+The skipped files can be extremely large and are unnecessary for this workflow.
 
-## Internal Data Setup
+## Local Data Setup
 
-Download the approved InferenceX PCA CSV export folder from: [Google Drive](https://drive.google.com/drive/u/2/folders/1RQYKaliWtJym1kbGH9A4SwfzqSh1RBvR).
-
-Place the downloaded folder at the repo root and rename it to:
+Place the approved CSV export at the repository root and name the folder:
 
 ```text
 inferencex-pca-data/
 ```
 
-## Local Setup
+The application prefers CSV. It can fall back to compatible JSON or JSONL dumps for local development.
+
+## Local App Setup
 
 ```bash
 python3 -m venv .venv-streamlit
 source .venv-streamlit/bin/activate
 python3 -m pip install -r requirements-streamlit.txt
-python3 -m streamlit run apps/inferencex_pca_demo.py
+PYTHONPATH=. streamlit run apps/inferencex_pca_demo.py
 ```
 
-Open the Streamlit localhost URL shown in the terminal. If the CSV folder is in a different location, update the sidebar data directory in the app.
-
 ## Reproducible Analysis Run
-
-The default result snapshot is generated outside Streamlit using the same production analysis functions:
 
 ```bash
 python3 scripts/reproducible_analysis.py \
@@ -77,63 +71,254 @@ python3 scripts/reproducible_analysis.py \
 
 ## Completed Model Research
 
-The completed throughput research selects **full-context TabFM** for
-`metrics_tput_per_gpu`, evaluated on 4,096 rows with grouped `config_id` folds:
-R2 **0.961979 +/- 0.008605** and MAE **338.540384**. This is the final point-model
-research result, not a model that Streamlit fits on startup.
+The selected research point model is full fold-context TabFM for `metrics_tput_per_gpu`.
 
-Throughput residuals are strongly heteroskedastic and non-Gaussian. The preferred
-uncertainty research method is **conditional-scale split conformal**. In the
-leakage-safe uncertainty experiment, its 95% result was 95.34% coverage, 2485.442
-average width, and 4739.169 interval score (34.62% narrower than global conformal;
-global score 8235.473). Conditional quantiles narrowly won at 50%, but conditional
-scale is the consistent choice across coverage levels.
+| Result | Value |
+|---|---:|
+| Rows in experiment | 4,096 |
+| Validation | 3 grouped folds by `config_id` |
+| R2 | **0.961979 +/- 0.008605** |
+| MAE | **338.540384 tokens/s/GPU** |
 
-Important calibration boundary: the uncertainty experiment's TabFM point model had
-R2 **0.913897**, because only about half of each outer-training fold was context.
-That number must not be substituted for the full-context R2 above. These intervals
-are experimental and research-grade; they are not calibrated around the selected
-full-context point model and are not production predictions.
+Throughput residuals were strongly heteroskedastic and non-Gaussian. Conditional-scale split conformal was selected as the single uncertainty research method. At 95% nominal coverage it achieved 95.34% empirical coverage, 2,485.442 average interval width, and a 4,739.169 interval score. Its intervals were 34.62% narrower than global conformal.
 
-Median-TPOT two-stage tail modeling did not provide a consistent improvement over
-the weaker global latency baseline. Do not pursue latency segmentation or residual
-models now. Do not implement VAE/CRVAE. No further expensive model runs are
-currently required. See [the final research conclusion](docs/model-research-conclusion.md).
+The uncertainty experiment used only about half of each outer-training fold as TabFM context because separate rows were required for uncertainty training and calibration. Its internal point-model R2 was 0.913897. That result must not replace the 0.961979 full-context result. The intervals remain research-only and are not calibrated around the selected full-context point model.
 
-## Model Comparison (RF, CatBoost, and optional TabFM)
+Median-TPOT two-stage tail modeling did not consistently improve the weaker global latency baseline. Latency segmentation, residual modeling, VAE, and CRVAE were not pursued.
 
-The reproducible comparison layer is separate from PCA. It reuses the selected
-analysis frame and approved configuration/workload features, then evaluates every
-requested model against the exact same deterministic `config_id` folds. PCA inputs
-and its existing reproducible artifact are unchanged.
+See `docs/model-research-conclusion.md` for the final decision record.
 
-- `modeling/comparison.py` owns target eligibility, deterministic grouped folds,
-  fold-local preprocessing, adapters, metrics, runtime metadata, and
-  aggregate-only serialization inputs.
-- `RandomForestRegressor` remains the baseline. CatBoost uses a small fixed,
-  deterministic CPU configuration with native categorical columns. Its feature
-  importance is calculated only from each training fold.
-- TabFM is research-only, lazy-loaded, and executed only in `.venv-tabfm` through
-  the CLI/subprocess boundary. Normal Streamlit startup does not import TabFM or
-  load its checkpoint.
+# Full Model Comparison Ledger
 
-### Missingness policy
+## How to Read These Results
 
-The comparison report records missing counts/percentages, complete-case counts,
-target eligibility, grouped missingness by available hardware/framework/model/
-benchmark/date fields, and failed-run relationships when a status-like field is
-available. It is aggregate-only: no source rows, labels, or predictions are
-written to artifacts.
+Not every row below is directly comparable.
 
-- Rows with a missing target are excluded for that target; target labels are never
-  imputed.
-- Within each training fold, numerical predictors receive the training-fold
-  median plus a missingness indicator.
-- Categorical predictors receive the explicit `__MISSING__` category.
-- All fold preprocessing is fitted on training rows only.
+- A direct comparison requires the same target, sampled rows, feature set, and fold assignment.
+- A dash means that model was not run or the metric was not preserved for that exact setup.
+- Negative R2 means the model performed worse than predicting the validation-set mean.
+- All primary evaluations hold out complete `config_id` groups unless explicitly labeled as a smoke test or interpolation diagnostic.
+- The final throughput result used 4,096 sampled rows, not all 7,462 aggregate rows.
+- "Full context" means all fold-training rows available inside that experiment were used as TabFM context. It does not mean every source column or every row in the complete dataset was used.
 
-Run the full RF/CatBoost comparison (the default median analysis unit, 7,462 rows
-on the current local snapshot):
+## 1. Direct Head-to-Head Experiments
+
+These are the cleanest Random Forest, CatBoost, and TabFM comparisons.
+
+| Target and experiment | Rows | Validation | Random Forest | CatBoost | TabFM | Winner |
+|---|---:|---|---|---|---|---|
+| p99 ITL smoke test | 96 | One grouped split | R2 `-5.674`, MAE `1.551` | R2 `-1.290`, MAE `0.973` | R2 `-1.323`, MAE `1.175` | CatBoost, but all unusable |
+| p99 ITL fair bounded run | 1,024 | One grouped fold | R2 `0.270` | R2 `0.120` | R2 `0.635` | TabFM |
+| p99 ITL main bounded comparison | 1,024 | Three grouped folds | R2 `-0.044 +/- 0.403` | R2 `0.145 +/- 0.036` | R2 `0.294 +/- 0.134`, MAE `0.642 +/- 0.147` | TabFM |
+| p99 ITL with `log1p` target | 1,024 | Three grouped folds | R2 `0.328` | R2 `0.229` | Not run | Random Forest |
+| p99 ITL known-configuration diagnostic | 1,024 | Interpolation only | R2 `-0.060`, MAE `0.564` | R2 `-0.334`, MAE `0.717` | Not run | Random Forest, but both weak |
+| p99 ITL full aggregate table | 7,462 | Five grouped folds | R2 `0.465 +/- 0.195`, MAE `0.568 +/- 0.122` | R2 `0.337 +/- 0.136`, MAE `0.811 +/- 0.140` | Not run | Random Forest |
+
+### 96-Row Smoke-Test Details
+
+The smoke test verified that all three model adapters worked locally. It was not intended as a quality conclusion.
+
+| Model | Train rows | Validation rows | R2 | MAE | Runtime |
+|---|---:|---:|---:|---:|---:|
+| Random Forest | 48 | 48 | `-5.674155` | `1.551187` | `0.565 s` |
+| CatBoost | 48 | 48 | `-1.289875` | `0.972537` | `0.119 s` |
+| TabFM | 48 available, 32 used as context | 48 | `-1.323274` | `1.175118` | `20.400 s` |
+
+### Full 7,462-Row p99 ITL Fold Results
+
+| Fold | Random Forest R2 | Random Forest MAE | CatBoost R2 | CatBoost MAE |
+|---:|---:|---:|---:|---:|
+| 1 | `0.095898` | `0.704520` | `0.170178` | `0.875647` |
+| 2 | `0.605779` | `0.563509` | `0.385961` | `0.847494` |
+| 3 | `0.538133` | `0.662711` | `0.253291` | `0.973158` |
+| 4 | `0.633757` | `0.353146` | `0.570187` | `0.554708` |
+| 5 | `0.451159` | `0.555376` | `0.305019` | `0.802908` |
+| **Mean** | **`0.464945`** | **`0.567852`** | **`0.336927`** | **`0.810783`** |
+| **Std. dev.** | **`0.194974`** | **`0.121614`** | **`0.136112`** | **`0.139683`** |
+
+Runtime:
+
+| Model | Total runtime |
+|---|---:|
+| Random Forest | `20.10 s` |
+| CatBoost | `0.95 s` |
+
+For full-data p99 ITL, Random Forest was more accurate while CatBoost was much faster.
+
+## 2. Target-Screening Comparison
+
+This 1,024-row CatBoost diagnostic identified which targets were worth additional TabFM compute.
+
+| Target | CatBoost raw R2 | CatBoost `log1p` R2 | Random Forest result | TabFM result |
+|---|---:|---:|---|---|
+| Throughput per GPU | **`0.643`** | `0.634` | No preserved comparable run | Later reached `0.962` |
+| Median TPOT | `0.588` | `0.589` | No preserved comparable run | Later ranged from `0.48` to `0.79` |
+| Mean E2EL | `0.487` | `0.436` | Not run | Not run |
+| Median ITL | `0.462` | `0.443` | Not run | Not run |
+| Mean ITL | `0.367` | `0.379` | Not run | Not run |
+| p99 ITL | `0.145` | `0.229` | Raw `-0.044`, log `0.328` | Raw `0.294 +/- 0.134` |
+| Median TTFT | `0.107` | `0.069` | Not run | Not run |
+
+Throughput was the strongest screened target. Median TPOT was the strongest latency candidate. p99 ITL remained tail-heavy and unstable.
+
+## 3. Throughput Comparison and TabFM Context Scaling
+
+After throughput emerged as the strongest target, most later experiments focused on how TabFM changed with more context.
+
+### 1,024-Row Context Experiments
+
+| Model | Context strategy | Context rows | R2 | MAE |
+|---|---|---:|---:|---:|
+| CatBoost | Standard supervised baseline | Full fold training data | `0.643` | Not preserved in the screening summary |
+| TabFM | Coverage | 128 | `0.66586` | Not preserved |
+| TabFM | Random | 128 | `0.67695` | Not preserved |
+| TabFM | Coverage | 256 | `0.79541` | Not preserved |
+| TabFM | Random | 256 | `0.83714` | Not preserved |
+| TabFM | Coverage | 512 | `0.90325` | Not preserved |
+| TabFM | Random | 512 | `0.90231` | Not preserved |
+| TabFM | Nearest | 512 | `0.77774` | Not preserved |
+| TabFM | Stratified | 512 | `0.88043` | Not preserved |
+| TabFM | Random | 640 | `0.91543` | Not preserved |
+| TabFM | Full fold context | About 682 | **`0.924474 +/- 0.009809`** | `461.217` |
+| Random Forest | Same final setup | Not run | Not run | Not run |
+
+### Larger Throughput Experiments
+
+| Model | Total sampled rows | Context rows per fold | R2 | MAE |
+|---|---:|---:|---:|---:|
+| CatBoost screening baseline | 1,024 | Standard fold training | `0.643` | Not preserved in the screening summary |
+| TabFM | 1,024 | About 682 | `0.924474 +/- 0.009809` | `461.217` |
+| TabFM | 2,048 | About 1,024 | `0.934478 +/- 0.022792` | `408.911` |
+| TabFM | 4,096 | About 2,730 | **`0.961979 +/- 0.008605`** | **`338.540384`** |
+| TabFM uncertainty experiment | 4,096 | About 1,350 to 1,400 | `0.913897` | `449.803343` |
+| Random Forest | These exact setups | Not run | Not run | Not run |
+
+### Final 4,096-Row Throughput Folds
+
+| Fold | TabFM R2 | TabFM MAE |
+|---:|---:|---:|
+| 1 | `0.972651` | `301.225` |
+| 2 | `0.951579` | `373.555` |
+| 3 | `0.961707` | `340.840` |
+| **Mean** | **`0.961979`** | **`338.540`** |
+| **R2 std. dev.** | **`0.008605`** | - |
+
+The supported conclusion is that TabFM strongly outperformed the preserved CatBoost throughput screening baseline. A final Random Forest throughput comparison under the exact 4,096-row folds was not completed, so the repository does not claim that TabFM beat every possible Random Forest implementation under an identical final setup.
+
+## 4. Median TPOT Comparison
+
+Median TPOT initially looked promising, but larger TabFM experiments became much less stable.
+
+| Model | Rows | Context or setup | R2 | MAE |
+|---|---:|---|---:|---:|
+| CatBoost | 1,024 | Three grouped folds | `0.588` | Not preserved in the screening summary |
+| TabFM | 1,024 | Coverage, 512 context | `0.726524 +/- 0.051359` | `0.006412` |
+| TabFM | 1,024 | Random, 512 context | `0.723389 +/- 0.024264` | `0.006210` |
+| TabFM | 1,024 | Full context, about 682 | **`0.789370 +/- 0.046334`** | **`0.005644`** |
+| TabFM | 2,048 | 1,024 context | `0.609838 +/- 0.188622` | `0.006582` |
+| TabFM | 2,048 | Full context, about 1,365 | `0.605943 +/- 0.182013` | `0.006122` |
+| TabFM, seed 123 | 2,048 | Full context, about 1,365 | `0.481594 +/- 0.187365` | `0.007142` |
+| TabFM | 4,096 | Full fold context | `0.604782 +/- 0.198737` | `0.005893` |
+| TabFM tail-diagnostic rerun | 4,096 | Full fold context | `0.602290 +/- 0.198851` | `0.005913` |
+| Random Forest | Median TPOT | No preserved grouped run | Not run | Not run |
+
+### Final 4,096-Row Median TPOT Folds
+
+| Fold | TabFM R2 | TabFM MAE |
+|---:|---:|---:|
+| 1 | `0.718840` | `0.005953` |
+| 2 | `0.765655` | `0.005269` |
+| 3 | `0.322375` | `0.006518` |
+| **Mean** | **`0.602290`** | **`0.005913`** |
+
+The large Fold 3 drop was the main reason median TPOT was treated as unstable.
+
+## 5. CatBoost and TabFM Latency Hybrids
+
+These were two-stage systems rather than standalone CatBoost models. A classifier attempted to identify difficult tail cases and route them to a specialized model.
+
+| Architecture | Mean R2 | Overall MAE | Ordinary-case MAE | True-tail MAE | Worst-decile MAE |
+|---|---:|---:|---:|---:|---:|
+| Global TabFM | **`0.602290`** | **`0.005913`** | `0.003642` | **`0.049681`** | **`0.039893`** |
+| CatBoost classifier -> CatBoost tail model | `0.506481` | `0.006432` | `0.003473` | `0.063141` | `0.045965` |
+| CatBoost classifier -> fallback tail model | `0.223170` | `0.007823` | **`0.003136`** | `0.097284` | `0.059624` |
+| CatBoost classifier -> TabFM tail model | `0.554491` | `0.006101` | `0.003336` | `0.059114` | `0.042747` |
+| Logistic classifier -> CatBoost tail model | `-0.770218` | `0.020185` | `0.018074` | `0.060690` | `0.122285` |
+| Weighted CatBoost tail model | `0.535279` | `0.006981` | `0.004396` | `0.056611` | `0.044819` |
+
+The global TabFM baseline had the best overall R2, overall MAE, true-tail MAE, and worst-decile MAE. Some hybrids marginally improved ordinary-case MAE, but they harmed the difficult cases they were designed to fix.
+
+### Tail Classifier Behavior
+
+| Classifier | Fold 1 precision / recall | Fold 2 precision / recall | Fold 3 precision / recall |
+|---|---:|---:|---:|
+| CatBoost | `0.688 / 0.349` | `0.705 / 0.388` | `0.938 / 0.469` |
+| Logistic regression | `0.188 / 0.762` | `0.230 / 0.813` | `0.205 / 0.844` |
+
+CatBoost was precise but missed most real tail cases. Logistic regression found more tail cases but incorrectly routed too many ordinary rows.
+
+## 6. Model-by-Model Record
+
+### Random Forest
+
+| Experiment | Result |
+|---|---|
+| 96-row p99 smoke | R2 `-5.674`, MAE `1.551` |
+| 1,024-row p99 one-fold | R2 `0.270` |
+| 1,024-row p99 three-fold raw | R2 `-0.044 +/- 0.403` |
+| 1,024-row p99 `log1p` | R2 `0.328` |
+| Known-config p99 | R2 `-0.060`, MAE `0.564` |
+| Full 7,462-row p99 | R2 `0.465 +/- 0.195`, MAE `0.568 +/- 0.122` |
+| Throughput | No preserved comparable final run |
+| Median TPOT | No preserved comparable grouped run |
+
+### CatBoost
+
+| Experiment | Result |
+|---|---|
+| 96-row p99 smoke | R2 `-1.290`, MAE `0.973` |
+| 1,024-row p99 one-fold | R2 `0.120` |
+| 1,024-row p99 three-fold raw | R2 `0.145 +/- 0.036` |
+| 1,024-row p99 `log1p` | R2 `0.229` |
+| Known-config p99 | R2 `-0.334`, MAE `0.717` |
+| Full 7,462-row p99 | R2 `0.337 +/- 0.136`, MAE `0.811 +/- 0.140` |
+| 1,024-row throughput screening | R2 `0.643` |
+| 1,024-row median TPOT screening | R2 `0.588` |
+| Mean E2EL | R2 `0.487` |
+| Median ITL | R2 `0.462` |
+| Mean ITL | R2 `0.367` |
+| Median TTFT | R2 `0.107` |
+| Best latency hybrid | CatBoost classifier -> TabFM tail, R2 `0.554`, MAE `0.006101` |
+
+### TabFM
+
+| Experiment | Result |
+|---|---|
+| 96-row p99 smoke | R2 `-1.323`, MAE `1.175` |
+| 1,024-row p99 one-fold | R2 `0.635` |
+| 1,024-row p99 three-fold | R2 `0.294 +/- 0.134`, MAE `0.642 +/- 0.147` |
+| 1,024-row throughput full context | R2 `0.924 +/- 0.010`, MAE `461.217` |
+| 2,048-row throughput | R2 `0.934 +/- 0.023`, MAE `408.911` |
+| 4,096-row throughput | **R2 `0.962 +/- 0.009`, MAE `338.540`** |
+| Split-context throughput | R2 `0.914`, MAE `449.803` |
+| Best 1,024-row median TPOT | R2 `0.789 +/- 0.046`, MAE `0.005644` |
+| 2,048-row median TPOT | About R2 `0.606`, MAE `0.006122` |
+| 4,096-row median TPOT | R2 `0.602 +/- 0.199`, MAE `0.005913` |
+
+## 7. Final Comparison Summary
+
+| Target | Random Forest | CatBoost | TabFM | Final interpretation |
+|---|---|---|---|---|
+| p99 ITL | Sometimes beat CatBoost, but unstable | Weak but comparatively stable | Best in the bounded three-model run, but still weak | Do not use as the central target |
+| Throughput | No final identical-fold comparison | Strongest screened tree result at `0.643` | Reached `0.962` | TabFM selected |
+| Median TPOT | No preserved grouped comparison | Screening R2 `0.588` | Reached `0.789` early, then fell to about `0.602` at scale | Keep as a weaker research baseline |
+| Tail-specialized latency | Not used | Routing and tail components worsened results | Global TabFM remained best | Reject the two-stage approach |
+
+The central conclusion is:
+
+> TabFM produced the strongest throughput result. Random Forest was the strongest conventional model for full-data p99 ITL, while CatBoost was substantially faster. TabFM also beat both conventional models in the bounded p99 comparison, but p99 remained too unstable. Median TPOT showed early promise, but larger TabFM runs were inconsistent, and CatBoost-based tail specialization failed to improve it.
+
+## Reproducing the Conventional p99 Comparison
 
 ```bash
 .venv-streamlit/bin/python scripts/model_comparison.py \
@@ -144,15 +329,9 @@ on the current local snapshot):
   --output artifacts/model-comparison.json
 ```
 
-The committed aggregate artifact from that run reports RF R2 **0.465 ± 0.195**
-and MAE **0.568 ± 0.122**; CatBoost R2 **0.337 ± 0.136** and MAE **0.811 ±
-0.140**. These are descriptive grouped-CV estimates, not causal or general
-performance claims.
+## Running the TabFM Smoke Test
 
-TabFM has been confirmed locally with the PyTorch CPU backend, cached regression
-checkpoint, `TabFMRegressor.fit()` and `predict()`, and `safetensors`. It must be
-explicitly requested; do not install or download anything in the normal app
-environment:
+TabFM is research-only, lazy-loaded, and run through the separate `.venv-tabfm` environment. Normal Streamlit startup does not import TabFM or load its checkpoint.
 
 ```bash
 .venv-tabfm/bin/python scripts/model_comparison.py \
@@ -164,52 +343,35 @@ environment:
   --output artifacts/tabfm-smoke-results.json
 ```
 
-That bounded CPU smoke test held out 48 rows from 45 `config_id` groups, used 32
-of 48 available context rows, completed in 20.40 seconds, and produced R2
-**-1.323** / MAE **1.175**. It is a smoke test, not a model-quality conclusion.
-The matching 96-row RF/CatBoost/TabFM artifact is
-`artifacts/bounded-model-comparison.json`.
+## Missingness and Preprocessing Policy
 
-The following larger TabFM command is retained as historical bounded-run
-documentation; it is **not currently required** by the completed model research:
+- Rows with a missing target are excluded for that target. Target labels are never imputed.
+- Within each training fold, numerical predictors receive the training-fold median plus a missingness indicator.
+- Categorical predictors receive the explicit `__MISSING__` category.
+- All fold preprocessing is fitted on training rows only.
+- Model artifacts contain aggregate metadata and metrics, not source rows or row-level predictions.
 
-```bash
-.venv-tabfm/bin/python scripts/model_comparison.py \
-  --data-dir inferencex-pca-data \
-  --target metrics_p99_itl \
-  --models tabfm \
-  --folds 1 --seed 42 --max-rows 512 \
-  --tabfm-max-context 256 \
-  --output artifacts/tabfm-512-context-256.json
-```
-
-In Streamlit, **Model Comparison** remains an explicit exploratory action. The
-separate **Research Results** tab only reads completed aggregate artifacts; it
-does not import TabFM or fit any model. No additional expensive run is currently
-required for the final research decision.
-
-The committed `artifacts/reproducible-results.json` contains aggregate metadata only: source file names/sizes/mtimes and bounded file fingerprints, aggregate PCA/RF results, package versions, warnings, and signatures. It contains no benchmark rows. Re-run this command after changing code or data before updating the findings below.
-
-## Repo Layout
+## Repository Layout
 
 ```text
 apps/inferencex_pca_demo.py
-scripts/reproducible_analysis.py
-tests/test_analysis_workflow.py
-artifacts/reproducible-results.json
+modeling/
+scripts/
+tests/
+artifacts/
+docs/
 requirements-streamlit.txt
 README.md
-.gitignore
 ```
 
-`inferencex-pca-data/`, `inferencex-dump-*`, and `exports/` are intentionally excluded from git.
+`inferencex-pca-data/`, `inferencex-dump-*`, and `exports/` are intentionally excluded from Git.
 
 ## Data Model
 
-- `benchmark_results.csv` contains measured benchmark rows, workload shape, outcome metrics, and provenance ids.
+- `benchmark_results.csv` contains measured benchmark rows, workload shape, outcome metrics, and provenance IDs.
 - `configs.csv` contains model, hardware, framework, precision, and parallelism setup.
 - The core join is `benchmark_results.config_id = configs.id`.
-- One joined row means one benchmark workload/config observation.
+- One joined row represents one benchmark workload and configuration observation.
 
 ## Feature Families
 
@@ -217,31 +379,31 @@ README.md
 
 - `isl`: input sequence length.
 - `osl`: output sequence length.
-- `conc`: concurrency / concurrent requests.
-- `benchmark_type`: test or workload type.
+- `conc`: concurrency or concurrent requests.
+- `benchmark_type`: benchmark or workload type.
 
-### Model / Hardware / Software
+### Model, Hardware, and Software
 
-- `config_model`: model key.
-- `config_hardware`: GPU/system target.
-- `config_framework`: inference serving framework.
-- `config_precision`: numerical precision.
-- `config_spec_method`: speculative decoding / speculative method.
+- `config_model`
+- `config_hardware`
+- `config_framework`
+- `config_precision`
+- `config_spec_method`
 
-### Serving Topology / Parallelism
+### Serving Topology and Parallelism
 
-- `config_disagg`: whether prefill and decode are separated.
-- `config_is_multinode`: whether the run spans multiple nodes.
-- `config_prefill_tp`: prefill tensor parallelism.
-- `config_prefill_ep`: prefill expert parallelism.
-- `config_prefill_dp_attention`: prefill DP-attention flag.
-- `config_prefill_num_workers`: prefill worker count.
-- `config_decode_tp`: decode tensor parallelism.
-- `config_decode_ep`: decode expert parallelism.
-- `config_decode_dp_attention`: decode DP-attention flag.
-- `config_decode_num_workers`: decode worker count.
-- `config_num_prefill_gpu`: GPUs allocated to prefill.
-- `config_num_decode_gpu`: GPUs allocated to decode.
+- `config_disagg`
+- `config_is_multinode`
+- `config_prefill_tp`
+- `config_prefill_ep`
+- `config_prefill_dp_attention`
+- `config_prefill_num_workers`
+- `config_decode_tp`
+- `config_decode_ep`
+- `config_decode_dp_attention`
+- `config_decode_num_workers`
+- `config_num_prefill_gpu`
+- `config_num_decode_gpu`
 
 ### Outcome Metrics
 
@@ -254,16 +416,16 @@ README.md
 
 ## Analysis Units
 
-The app supports four analysis units:
+| Analysis unit | Verified row count |
+|---|---:|
+| Raw benchmark rows | 79,830 |
+| Latest row per config/workload/concurrency | 7,462 |
+| Median aggregate per config/workload/concurrency | 7,462 |
+| One row per config | 1,197 |
 
-| Analysis unit                                    | Verified row count |
-| ------------------------------------------------ | -----------------: |
-| Raw benchmark rows                               |             79,830 |
-| Latest row per config/workload/concurrency       |              7,462 |
-| Median aggregate per config/workload/concurrency |              7,462 |
-| One row per config                               |              1,197 |
+The default analysis unit is **Median aggregate per config/workload/concurrency**.
 
-For config/workload/concurrency analysis, grouping keys are:
+Grouping keys:
 
 - `config_id`
 - `benchmark_type`
@@ -271,69 +433,51 @@ For config/workload/concurrency analysis, grouping keys are:
 - `osl`
 - `conc`
 
-The default is **Median aggregate per config/workload/concurrency** because it reduces repeat-run bias, preserves workload shape, and is more defensible for team findings.
-
 ## PCA Methodology
 
-PCA is unsupervised. It finds structural variance, not value.
+PCA is unsupervised. It identifies structural variance, not causal value.
 
-In this app:
-
-- PCA inputs should be setup/configuration features only.
-- Outcome metrics should not be PCA inputs.
-- Metrics can be used to color the PCA scatter or as target variables.
-- Loadings and feature contributions translate synthetic PC axes back to real features.
+- PCA inputs are configuration and workload features only.
+- Outcome metrics are not PCA inputs.
+- Metrics may be used as color overlays or supervised targets.
+- Encoded loading contributions are regrouped to their original source features.
 
 ## Reproducible PCA Findings
 
-Snapshot date: **2026-07-17**. Source commit: `d2ec92073fc87e4c46777a02b9dfe6417e34d0c2`. The full dataset manifest is recorded in `artifacts/reproducible-results.json`.
+Snapshot date: **2026-07-17**.
 
 - Dataset fingerprint: `1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09`.
-- Default analysis unit: **Median aggregate per config/workload/concurrency** (7,462 rows from 79,830 joined benchmark rows).
-- PCA feature set: `isl`, `osl`, `conc`, 12 setup numeric fields through `config_num_prefill_gpu`, plus hardware, framework, model, precision, speculative method, disaggregation, and multinode fields (19 source features total).
-- Sample limit: 20,000; all 7,462 default analysis rows were used. Seed: 42.
-- PC1–PC5 explain **28.25%, 13.51%, 8.44%, 7.72%, and 6.87%** respectively (**64.78% cumulative**).
-- Top five retained-PC contribution groups are `config_disagg`, `config_is_multinode`, `config_decode_tp`, `config_prefill_ep`, and `config_prefill_tp`.
+- Default analysis unit: 7,462 median aggregate rows from 79,830 joined benchmark rows.
+- PCA feature set: 19 configuration and workload source features.
+- PC1 through PC5 explain 28.25%, 13.51%, 8.44%, 7.72%, and 6.87% of variance.
+- Cumulative explained variance for PC1 through PC5: **64.78%**.
+- Top retained-component contribution groups: `config_disagg`, `config_is_multinode`, `config_decode_tp`, `config_prefill_ep`, and `config_prefill_tp`.
 
-PCA stability uses five deterministic 80% samples (5,970 rows each), with component-loading cosine similarity after sign alignment and top-10 driver frequency. PC1–PC5 minimum loading similarities were 0.9999, 0.9995, 0.9929, 0.9900, and 0.9912. Ten of eleven observed top drivers appeared in at least four of five runs; `config_prefill_dp_attention` appeared once and is flagged as unstable. Treat axis labels and individual signed sides as descriptive rather than fixed findings.
+PCA stability used five deterministic 80% samples. Minimum sign-aligned loading similarities were:
 
-## Target-Aware Modeling
+| Component | Minimum similarity |
+|---|---:|
+| PC1 | `0.9999` |
+| PC2 | `0.9995` |
+| PC3 | `0.9929` |
+| PC4 | `0.9900` |
+| PC5 | `0.9912` |
 
-The target-aware layer uses `RandomForestRegressor` as a baseline supervised model. Its primary report uses deterministic grouped cross-validation and computes permutation importance on each validation fold only.
-
-Defaults:
-
-- Predictors are config/setup fields.
-- Targets are selected outcome metric columns.
-- Split mode defaults to five-fold grouped cross-validation by `config_id` when available (with safe fold reduction if fewer groups exist).
-
-Random K-fold is explicitly labelled as a fallback because repeated configurations can appear across its validation folds.
-
-## Reproducible Target-Aware Finding
-
-For target `metrics_p99_itl`, the same 19 default features, seed 42, and 150-tree forest were evaluated with five grouped `config_id` folds. Every fold had zero train/validation config overlap.
-
-- Aggregate R2: **0.466 ± 0.196**, range **0.093 to 0.634**.
-- Aggregate MAE: **0.568 ± 0.122**, range **0.355 to 0.707**.
-- Fold validation sizes were 1,492–1,493 rows and 239–240 config groups.
-- Top aggregate held-out permutation predictors were `conc`, `config_framework`, `config_spec_method`, `config_hardware`, `config_precision`, and `isl`.
-
-These cross-validated values replace the old one-holdout R2/MAE claim. The variability across held-out config groups is material and should remain visible in conclusions.
-
-## Findings Summary
-
-PCA tells us what structures the benchmark space. Target-aware modeling tells us what predicts selected outcomes. Together, they show that inference infrastructure value depends on workload shape, concurrency, serving framework, speculative method, and parallelism strategy, not just chip or model choice.
+Ten of eleven observed top drivers appeared in at least four of five runs. `config_prefill_dp_attention` appeared once and was flagged as unstable.
 
 ## Limitations
 
-- Descriptive, not causal.
-- PCA is sensitive to feature encoding and selected analysis unit.
-- RandomForest feature importance is target-specific.
-- Dataset coverage is uneven.
-- Repeated runs can overweight frequently tested configs unless aggregated.
-- Grouped cross-validation is safer than random splits, but still not full causal validation.
-- PCA stability results are sample-sensitive diagnostics, not proof that an interpretation will generalize to a different dataset snapshot.
-- Cloud deployment requires a safe data access plan.
+- The analysis is descriptive, not causal.
+- Several experiment rows are historical bounded runs with different sample sizes or context limits.
+- Not every target received a complete Random Forest, CatBoost, and TabFM comparison under identical folds.
+- The final throughput experiment used 4,096 sampled aggregate rows rather than all 7,462 rows.
+- TabFM was CPU-intensive on the available hardware.
+- Dataset coverage is uneven across configurations and workloads.
+- Grouped validation reduces leakage but does not eliminate every source of dataset shift.
+- Conditional uncertainty achieved strong overall coverage but undercovered the hardest high-throughput subgroup.
+- The uncertainty model is research-only and is not calibrated around the selected full-context point model.
+- PCA is sensitive to feature encoding and the selected analysis unit.
+- Repeated runs can overweight frequently tested configurations unless aggregated.
 
 ## What Not To Commit
 
@@ -353,20 +497,20 @@ Do not commit:
 
 ## Team Workflow
 
-1. Clone the repo.
-2. Download/place the approved CSV data folder locally.
-3. Create a Python virtual environment.
+1. Clone the repository.
+2. Download and place the approved CSV data folder locally.
+3. Create the appropriate Python virtual environment.
 4. Install `requirements-streamlit.txt`.
-5. Run Streamlit.
-6. Use the default median aggregate analysis unit.
-7. Export findings from the app.
-8. Share `findings_summary.md` or screenshots with the team.
+5. Run Streamlit with `PYTHONPATH=.`.
+6. Use the median aggregate analysis unit.
+7. Read completed aggregate research artifacts in the dashboard.
+8. Re-run experiments only when the data, task, or evaluation contract changes.
 
 ## Future Improvements
 
-- Add cloud data mounting.
-- Add cost/token valuation.
-- Add energy metrics if available.
-- Add TabFM/TabPFN/TabICL comparison for predicting missing benchmark outcomes.
-- Add benchmark coverage gap analysis.
-- Add quality/performance tradeoff analysis using `eval_results.json`.
+- Audit whether the data supports configuration ranking and regret evaluation.
+- Build an observed-candidate recommendation layer if workloads contain enough comparable configurations.
+- Add cost-per-token valuation.
+- Add energy metrics when coverage becomes sufficient.
+- Add benchmark coverage-gap analysis.
+- Add quality and performance tradeoff analysis using `eval_results.csv`.
