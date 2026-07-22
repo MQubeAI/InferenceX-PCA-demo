@@ -60,6 +60,26 @@ python3 -m pip install -r requirements-streamlit.txt
 PYTHONPATH=. streamlit run apps/inferencex_pca_demo.py
 ```
 
+## Observed Energy Measurements
+
+The **Model Results** tab includes an observed-only Energy Measurements explorer. It performs a
+complete configuration-and-workload lookup against rows with a real
+`metrics_joules_per_output_token` value. Exact matches show the observed median, range, count,
+dates, throughput, average power, and mathematical energy/cost conversions. When no exact row
+exists, the dashboard shows nearby measured configurations as comparisons—not predictions.
+
+Current measured support is narrow:
+
+- 3,794 usable raw rows, aggregating to 2,135 config/workload/concurrency groups.
+- 251 of 1,197 configurations have measured output-token energy.
+- Only `single_turn`, OSL 1024, and ISL 1024 or 8192 are represented.
+- Measurements run from May 27 through June 26, 2026.
+- The measurement procedure, attribution boundary, and calculation formula are undocumented.
+
+Energy prediction remains blocked pending target documentation, broader workload and time
+coverage, and separately approved grouped validation. The dashboard does not train or load an
+energy model, impute labels, or generate modeled or extrapolated energy values.
+
 ## Reproducible Analysis Run
 
 ```bash

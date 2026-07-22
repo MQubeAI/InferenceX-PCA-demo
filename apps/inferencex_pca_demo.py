@@ -27,6 +27,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from modeling.comparison import evaluate_models, missingness_report
+from modeling.energy_measurements import (
+    CONFIG_FIELDS as ENERGY_CONFIG_FIELDS,
+    ENERGY_TARGET,
+    POWER_METRIC as ENERGY_POWER_METRIC,
+    THROUGHPUT_METRIC as ENERGY_THROUGHPUT_METRIC,
+    WORKLOAD_FIELDS as ENERGY_WORKLOAD_FIELDS,
+    available_control_values,
+    energy_model_availability,
+    energy_support_summary,
+    exact_observed_lookup,
+    mark_dominated_comparisons,
+    nearest_measured_configurations,
+)
 from modeling.research_summary import build_research_summary
 
 
@@ -4197,6 +4210,167 @@ def render_model_results_dashboard(research_summary: dict[str, Any] | None, erro
         st.caption("Missing aggregate artifacts: " + ", ".join(unavailable))
 
 
+def _energy_control(field: str, options: list[Any], disabled: bool = False) -> Any:
+    label = field.replace("config_", "").replace("_", " ").upper() if field in {"isl", "osl"} else field.replace("config_", "").replace("_", " ").title()
+    key = f"energy_measurement_{field}"
+    if pd.api.types.is_numeric_dtype(pd.Series(options)):
+        return st.select_slider(label, options=options, value=options[0], disabled=disabled, key=key)
+    return st.selectbox(label, options=options, disabled=disabled, key=key)
+
+
+def render_energy_support_panel(joined: pd.DataFrame) -> None:
+    support = energy_support_summary(joined)
+    st.markdown("#### Measurement support")
+    cards = st.columns(4)
+    for column, label, value in zip(
+        cards,
+        ("Usable raw rows", "Measured configurations", "Configuration coverage", "Measurement dates"),
+        (
+            f"{support['usable_raw_rows']:,}",
+            f"{support['measured_configurations']:,} / {support['all_configurations']:,}",
+            f"{support['configuration_coverage']:.1%}",
+            f"{support['date_start']} – {support['date_end']}",
+        ),
+    ):
+        with column:
+            render_compact_card(label, value)
+    st.warning(support["measurement_warning"] + " Energy prediction remains disabled.")
+    support_cols = st.columns(2)
+    support_cols[0].markdown("**Observed workloads**")
+    support_cols[0].dataframe(pd.DataFrame(support["observed_workloads"]), width="stretch", hide_index=True)
+    coverage_rows = [
+        {"dimension": field.replace("config_", ""), "measured values": len(values), "values": ", ".join(values)}
+        for field, values in support["coverage"].items()
+    ]
+    support_cols[1].markdown("**Measured configuration coverage**")
+    support_cols[1].dataframe(pd.DataFrame(coverage_rows), width="stretch", hide_index=True)
+
+
+def render_energy_measurements_dashboard(joined: pd.DataFrame) -> None:
+    st.divider()
+    render_section_intro(
+        "Energy Measurements",
+        "Observed benchmark measurements only. Exact matches are aggregated with the median; nearby rows are comparisons, never predictions.",
+    )
+    if ENERGY_TARGET not in joined or joined[ENERGY_TARGET].notna().sum() == 0:
+        st.info("Observed energy measurements are unavailable in the loaded dataset.")
+        return
+    render_energy_support_panel(joined)
+    options = available_control_values(joined)
+    missing_controls = [field for field in ENERGY_WORKLOAD_FIELDS + ENERGY_CONFIG_FIELDS if not options.get(field)]
+    if missing_controls:
+        st.error("Energy controls are unavailable for: " + ", ".join(missing_controls))
+        return
+
+    with st.form("energy_measurements_form"):
+        st.markdown("#### Configure an observed workload")
+        workload_columns = st.columns(4)
+        selection: dict[str, Any] = {}
+        for column, field in zip(workload_columns, ENERGY_WORKLOAD_FIELDS):
+            with column:
+                selection[field] = _energy_control(field, options[field], disabled=len(options[field]) == 1)
+
+        st.markdown("**Hardware and software**")
+        software_fields = ENERGY_CONFIG_FIELDS[:7]
+        for start in range(0, len(software_fields), 4):
+            columns = st.columns(4)
+            for column, field in zip(columns, software_fields[start : start + 4]):
+                with column:
+                    selection[field] = _energy_control(field, options[field])
+
+        topology_fields = (
+            "config_prefill_num_workers", "config_decode_num_workers",
+            "config_num_prefill_gpu", "config_num_decode_gpu",
+        )
+        st.markdown("**Serving topology**")
+        topology_columns = st.columns(4)
+        for column, field in zip(topology_columns, topology_fields):
+            with column:
+                selection[field] = _energy_control(field, options[field])
+
+        advanced_fields = [field for field in ENERGY_CONFIG_FIELDS if field not in software_fields + topology_fields]
+        with st.expander("Advanced parallelism"):
+            for start in range(0, len(advanced_fields), 4):
+                columns = st.columns(4)
+                for column, field in zip(columns, advanced_fields[start : start + 4]):
+                    with column:
+                        selection[field] = _energy_control(field, options[field])
+
+        electricity_price = st.number_input(
+            "Electricity price (USD per kWh)", min_value=0.0, max_value=5.0,
+            value=0.12, step=0.01, format="%.2f",
+            help="Used only for a mathematical cost conversion of an observed energy value.",
+        )
+        submitted = st.form_submit_button("Find observed measurement", type="primary")
+    if submitted:
+        st.session_state["energy_measurement_query"] = {
+            "selection": selection,
+            "electricity_price": float(electricity_price),
+        }
+    query = st.session_state.get("energy_measurement_query")
+    if not query:
+        st.info("Choose a measured-support configuration and select Find observed measurement.")
+        return
+
+    result = exact_observed_lookup(joined, query["selection"], query["electricity_price"])
+    st.markdown(f'<span class="status-badge">{html.escape(result["label"])}</span>', unsafe_allow_html=True)
+    if result["status"] == "observed":
+        primary = st.columns(4)
+        primary[0].metric("Joules per output token", f"{result['joules_per_output_token']:.4f}")
+        primary[1].metric("Observed range", f"{result['minimum']:.4f} – {result['maximum']:.4f}")
+        primary[2].metric("Observations", f"{result['match_count']:,}")
+        primary[3].metric("Tokens per kWh", f"{result['tokens_per_kwh']:,.0f}")
+        derived = st.columns(3)
+        derived[0].metric("kWh / 1M output tokens", f"{result['kwh_per_million_output_tokens']:.4f}")
+        derived[1].metric("Electricity cost / 1M output tokens", f"${result['electricity_cost_per_million_output_tokens']:.4f}")
+        derived[2].metric("Observed date range", f"{result['date_start']} – {result['date_end']}")
+        st.caption("Electricity cost is a mathematical conversion of the observed median, not a separately measured field.")
+        details = pd.DataFrame([{
+            "config_id": ", ".join(result["config_ids"]),
+            "median throughput / GPU": result["throughput_per_gpu_median"],
+            "median average power (W)": result["average_power_w_median"],
+        }])
+        st.dataframe(details, width="stretch", hide_index=True)
+    elif result["status"] == "unsupported":
+        st.error("Unsupported measured selection: " + ", ".join(result["unsupported_fields"]))
+    else:
+        st.info("No exact measured energy result. The rows below are observed comparisons, not predictions.")
+
+    comparisons = nearest_measured_configurations(joined, query["selection"], limit=5)
+    comparisons = mark_dominated_comparisons(comparisons)
+    if comparisons.empty:
+        st.info("No measured comparison rows are available.")
+    else:
+        st.markdown("#### Nearby observed configurations")
+        st.caption("Distance combines categorical mismatches and range-normalized numeric differences. Identical workloads are used whenever available.")
+        display_columns = [
+            column for column in (
+                "config_id", "differing_fields", ENERGY_TARGET, ENERGY_THROUGHPUT_METRIC,
+                ENERGY_POWER_METRIC, "benchmark_type", "isl", "osl", "conc", "distance",
+                "same_workload", "dominated_in_comparison",
+            ) if column in comparisons
+        ]
+        st.dataframe(comparisons[display_columns], width="stretch", hide_index=True)
+        plot = comparisons.dropna(subset=[ENERGY_TARGET, ENERGY_THROUGHPUT_METRIC])
+        if not plot.empty:
+            st.plotly_chart(
+                px.scatter(
+                    plot, x=ENERGY_THROUGHPUT_METRIC, y=ENERGY_TARGET,
+                    color="dominated_in_comparison", hover_name="config_id",
+                    hover_data=["differing_fields", "distance"],
+                    title="Observed energy versus throughput within the comparison set",
+                ),
+                width="stretch",
+            )
+            st.caption("Dominance is evaluated only within these same-workload comparison rows; this is not a global Pareto frontier.")
+
+    model_state = energy_model_availability()
+    with st.expander("Future estimator integration"):
+        st.write(model_state.reason)
+        st.code("EnergyModelProvider.predict(selection)", language="python")
+        st.caption("No model artifact is loaded and no modeled, extrapolated, or imputed energy value is produced.")
+
+
 def main() -> None:
     render_dashboard_shell()
     st.markdown('<h1 class="dashboard-title">InferenceX Benchmark Research</h1>', unsafe_allow_html=True)
@@ -4255,6 +4429,7 @@ def main() -> None:
         render_pca_dashboard(analysis_frame, analysis_metadata, int(max_rows), int(seed))
     with tabs[3]:
         render_model_results_dashboard(research_summary, research_error)
+        render_energy_measurements_dashboard(joined)
 
 
 if __name__ == "__main__":

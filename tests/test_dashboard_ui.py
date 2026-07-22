@@ -52,6 +52,17 @@ class DashboardUiTests(unittest.TestCase):
         ):
             self.assertNotIn(operation, main_source)
 
+    def test_energy_measurements_preserve_tabs_and_are_observed_only(self) -> None:
+        main_source = inspect.getsource(app.main)
+        energy_source = inspect.getsource(app.render_energy_measurements_dashboard)
+        self.assertEqual(len(app.MAIN_TAB_LABELS), 4)
+        self.assertIn("render_energy_measurements_dashboard(joined)", main_source)
+        self.assertIn("Find observed measurement", energy_source)
+        self.assertIn("Observed benchmark measurements only", energy_source)
+        self.assertIn("not predictions", energy_source)
+        for forbidden in (".fit(", "model.predict(", "provider.predict(", "CatBoost", "RandomForest", "TabFM"):
+            self.assertNotIn(forbidden, energy_source)
+
     def test_csv_first_and_json_fallback_data_loading_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
