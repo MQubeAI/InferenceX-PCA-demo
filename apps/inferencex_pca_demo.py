@@ -41,11 +41,25 @@ from modeling.energy_measurements import (
     nearest_measured_configurations,
 )
 from modeling.research_summary import build_research_summary
+from modeling.pca_target_analysis import (
+    ENERGY_TARGET as PCA_ENERGY_TARGET,
+    OUTPUT_TARGET as PCA_OUTPUT_TARGET,
+    PCA_FEATURES as TARGET_PCA_FEATURES,
+    fit_shared_pca as fit_target_shared_pca,
+    target_overlay as build_target_overlay,
+)
 
 
-DEFAULT_DATA_DIR = "inferencex-pca-data"
-DEFAULT_JSON_DUMP_DIR = "inferencex-dump-2026-06-29"
+ACTIVE_DUMP_VERSION = "db-dump/2026-07-20"
+ACTIVE_DUMP_RELEASE = "InferenceX database snapshot 2026-07-20"
+DEFAULT_DATA_DIR = os.environ.get(
+    "INFERENCEX_DATA_DIR",
+    "/tmp/inferencex-dump-comparison/db-dump-2026-07-20",
+)
+ROLLBACK_DATA_DIR = "inferencex-pca-data"
+DEFAULT_JSON_DUMP_DIR = os.environ.get("INFERENCEX_JSON_DUMP_DIR", "")
 REQUIRED_CSV_FILES = ("benchmark_results.csv", "configs.csv")
+REQUIRED_RAW_CSV_FILES = ("benchmark_results_raw.csv", "configs.csv")
 REQUIRED_JSON_FILES = ("benchmark_results.json", "configs.json")
 ANALYSIS_UNIT_OPTIONS = (
     "Raw benchmark rows",
@@ -119,6 +133,7 @@ DEFAULT_PERMUTATION_REPEATS = 5
 DEFAULT_PCA_STABILITY_RUNS = 5
 DEFAULT_PCA_STABILITY_FRACTION = 0.8
 RESEARCH_ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
+PCA_TARGET_ARTIFACT_PATH = RESEARCH_ARTIFACT_DIR / "pca-db-dump-2026-07-20.json"
 MAIN_TAB_LABELS = ("Overview", "Data Understanding", "PCA", "Model Results")
 REMOVED_TOP_LEVEL_SECTION_LABELS = (
     "Data Preview",
@@ -305,8 +320,9 @@ def has_required_files(directory: Path, files: tuple[str, ...]) -> bool:
 def json_fallback_candidates(data_dir_text: str) -> list[tuple[str, Path]]:
     candidates: list[tuple[str, Path]] = [
         ("selected data directory", resolve_data_dir(data_dir_text)),
-        ("default JSON dump", resolve_data_dir(DEFAULT_JSON_DUMP_DIR)),
     ]
+    if DEFAULT_JSON_DUMP_DIR:
+        candidates.append(("INFERENCEX_JSON_DUMP_DIR", resolve_data_dir(DEFAULT_JSON_DUMP_DIR)))
     for dump_dir in sorted(Path.cwd().glob("inferencex-dump-*")):
         if dump_dir.is_dir():
             candidates.append((f"local dump: {dump_dir.name}", dump_dir))
@@ -340,6 +356,18 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
                 "size_mb": path.stat().st_size / (1024 * 1024) if path.exists() else np.nan,
             }
         )
+    for file_name in REQUIRED_RAW_CSV_FILES:
+        path = csv_dir / file_name
+        rows.append(
+            {
+                "mode": "Raw CSV",
+                "candidate": "selected data directory",
+                "file": file_name,
+                "found": path.exists(),
+                "path": str(path),
+                "size_mb": path.stat().st_size / (1024 * 1024) if path.exists() else np.nan,
+            }
+        )
 
     json_candidates = json_fallback_candidates(data_dir_text)
     for label, directory in json_candidates:
@@ -357,6 +385,7 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
             )
     status = pd.DataFrame(rows)
     csv_ready = bool(status[status["mode"] == "CSV"]["found"].all())
+    raw_csv_ready = bool(status[status["mode"] == "Raw CSV"]["found"].all())
     json_ready_dir: Path | None = None
     json_ready_label = ""
     for label, directory in json_candidates:
@@ -365,21 +394,51 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
             json_ready_label = label
             break
     json_ready = json_ready_dir is not None
-    active_mode = "CSV" if csv_ready else "JSON fallback" if json_ready else "missing"
+    active_mode = (
+        "CSV"
+        if csv_ready
+        else "Raw CSV"
+        if raw_csv_ready
+        else "JSON fallback"
+        if json_ready
+        else "missing"
+    )
     active_dir = (
         csv_dir
-        if active_mode == "CSV"
+        if active_mode in {"CSV", "Raw CSV"}
         else json_ready_dir
         if active_mode == "JSON fallback" and json_ready_dir
         else csv_dir
     )
     return status, {
         "csv_ready": csv_ready,
+        "raw_csv_ready": raw_csv_ready,
         "json_ready": json_ready,
         "active_mode": active_mode,
         "active_dir": active_dir,
-        "active_candidate": "selected data directory" if active_mode == "CSV" else json_ready_label,
+        "active_candidate": "selected data directory" if active_mode in {"CSV", "Raw CSV"} else json_ready_label,
     }
+
+
+def flatten_metrics_column(frame: pd.DataFrame) -> pd.DataFrame:
+    """Expand the official dump's JSON metrics column without changing row identity."""
+    if "metrics" not in frame.columns:
+        return frame
+
+    def parse_metrics(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return value
+        if pd.isna(value) or value == "":
+            return {}
+        try:
+            parsed = json.loads(str(value))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+
+    metrics = pd.json_normalize(frame["metrics"].map(parse_metrics)).add_prefix("metrics_")
+    metrics.index = frame.index
+    return pd.concat([frame.drop(columns=["metrics"]), metrics], axis=1)
 
 
 @st.cache_data(show_spinner="Loading benchmark/config data")
@@ -393,6 +452,15 @@ def load_joined_data(
     if active_mode == "CSV":
         data_dir = source_info["active_dir"]
         benchmarks = pd.read_csv(data_dir / "benchmark_results.csv", low_memory=False)
+        configs = prefix_config_columns(pd.read_csv(data_dir / "configs.csv", low_memory=False))
+        joined = join_benchmarks_configs(benchmarks, configs)
+        return benchmarks, configs, joined, source_info
+
+    if active_mode == "Raw CSV":
+        data_dir = source_info["active_dir"]
+        benchmarks = flatten_metrics_column(
+            pd.read_csv(data_dir / "benchmark_results_raw.csv", low_memory=False)
+        )
         configs = prefix_config_columns(pd.read_csv(data_dir / "configs.csv", low_memory=False))
         joined = join_benchmarks_configs(benchmarks, configs)
         return benchmarks, configs, joined, source_info
@@ -698,7 +766,13 @@ def file_snapshot(path: Path, sample_bytes: int = 1_048_576) -> dict[str, Any]:
 
 def build_dataset_manifest(source_info: dict[str, Any]) -> dict[str, Any]:
     active_dir = Path(source_info["active_dir"])
-    required_files = REQUIRED_CSV_FILES if source_info["active_mode"] == "CSV" else REQUIRED_JSON_FILES
+    required_files = (
+        REQUIRED_CSV_FILES
+        if source_info["active_mode"] == "CSV"
+        else REQUIRED_RAW_CSV_FILES
+        if source_info["active_mode"] == "Raw CSV"
+        else REQUIRED_JSON_FILES
+    )
     files = [file_snapshot(active_dir / file_name) for file_name in required_files]
     payload = {
         "active_mode": source_info["active_mode"],
@@ -3373,7 +3447,7 @@ def render_findings(
     st.subheader("Deployment Readiness")
     st.markdown(
         """
-        - Do not commit `inferencex-dump-2026-06-29` or any giant JSON dump to GitHub.
+        - Do not commit `inferencex-dump-*` or any giant database/JSON dump to GitHub.
         - Keep local exports, virtualenvs, Python caches, and Streamlit secrets out of git.
         - Keep `requirements-streamlit.txt` as the sidecar dependency list.
         - Local deployment is straightforward when the dump folder is available on disk.
@@ -3928,6 +4002,16 @@ def research_summary_or_none() -> tuple[dict[str, Any] | None, str]:
         return None, str(exc)
 
 
+@st.cache_data(show_spinner=False)
+def load_pca_target_artifact(path_text: str = str(PCA_TARGET_ARTIFACT_PATH)) -> dict[str, Any]:
+    artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
+    if artifact.get("dump", {}).get("version") != ACTIVE_DUMP_VERSION:
+        raise ValueError("PCA artifact dump version does not match the active July snapshot.")
+    if artifact.get("shared_basis", {}).get("feature_order") != list(TARGET_PCA_FEATURES):
+        raise ValueError("PCA artifact feature order does not match the frozen shared basis.")
+    return artifact
+
+
 def render_overview(
     benchmarks: pd.DataFrame,
     analysis_metadata: dict[str, Any],
@@ -4095,70 +4179,202 @@ def render_pca_dashboard(
     max_rows: int,
     seed: int,
 ) -> None:
-    render_section_intro("PCA", "PCA summarizes configuration and workload variation; outcome metrics are overlays, not inputs, and PCA does not prove performance impact.")
-    default_numeric, default_categorical = default_pca_features(joined)
-    metric_cols = metric_like_numeric_columns(joined)
-    with st.expander("PCA settings"):
-        selected_numeric = st.multiselect("Numeric features", numeric_columns(joined), default=default_numeric, key="pca_numeric_features")
-        selected_categorical = st.multiselect("Categorical features", categorical_columns(joined), default=default_categorical, key="pca_categorical_features")
-        color_options = unique_preserve_order([""] + metric_cols + config_categorical_columns(joined))
-        color_by = st.selectbox("Projection overlay", color_options, index=1 if len(color_options) > 1 else 0, key="pca_color_by")
-        target_metric = st.selectbox("Metric for correlation", metric_cols, key="pca_target_correlation_metric") if metric_cols else ""
-        stability_runs = st.slider("Stability runs", 2, 10, DEFAULT_PCA_STABILITY_RUNS, key="pca_stability_runs")
-    selected_numeric, selected_categorical, _ = normalize_feature_groups(selected_numeric, selected_categorical)
-    feature_columns = [column for column in selected_numeric + selected_categorical if not is_metric_column(column)]
-    if not feature_columns:
-        st.info("No configuration or workload features are available for PCA.")
+    render_section_intro(
+        "PCA",
+        "One shared July basis summarizes configuration and workload variation. Outcome metrics are descriptive overlays only and never enter PCA preprocessing.",
+    )
+    try:
+        artifact = load_pca_target_artifact()
+    except Exception as exc:
+        st.error(f"The versioned July PCA artifact is unavailable: {exc}")
+        st.code(
+            "PYTHONPATH=. .venv-streamlit/bin/python scripts/build_july_pca_artifact.py",
+            language="bash",
+        )
         return
-    controls = pca_controls_from_state(joined, max_rows, seed)
-    controls.update({"target_metric": target_metric, "stability_runs": stability_runs})
-    signature = analysis_signature(analysis_metadata, "pca", controls)
-    pca_analysis = current_artifact("pca_analysis", signature)
-    if pca_analysis is None:
-        if not st.button("Run PCA analysis", type="primary"):
-            st.info("Run PCA analysis to inspect the selected configuration and workload fields.")
-            return
-        with st.spinner("Fitting PCA and deterministic stability samples"):
-            pca_analysis, error = fit_pca_analysis(joined, feature_columns, max_rows, seed, target_metric)
-            if pca_analysis is not None:
-                stability, stability_error = pca_stability_summary(joined, feature_columns, max_rows, seed, stability_runs)
-                error = error or stability_error
-                if not error:
-                    pca_analysis["stability"] = stability
-        if pca_analysis is None or error:
-            st.error(error)
-            return
-        pca_analysis.update({"analysis_signature": signature, "controls": controls})
-        st.session_state["pca_analysis"] = pca_analysis
+    active_fingerprint = analysis_metadata.get("dataset_manifest", {}).get("fingerprint")
+    artifact_fingerprint = artifact.get("dump", {}).get("manifest", {}).get("fingerprint")
+    if active_fingerprint != artifact_fingerprint:
+        st.error(
+            "The loaded data does not match the versioned July PCA artifact. "
+            "No saved basis or target overlay was applied."
+        )
+        return
 
-    explained = pca_analysis["explained_variance"]
-    source_contributions = pca_analysis["source_contributions"]
-    stability = pca_analysis["stability"]
-    st.subheader("Explained variance")
-    st.plotly_chart(px.bar(explained, x="component", y="explained_variance_ratio", text="explained_variance_ratio").update_traces(texttemplate="%{text:.1%}", textposition="outside"), width="stretch")
-    stable_cols = st.columns(2)
-    stable_cols[0].metric("Stability result", "Stable" if not stability["warnings"] else "Review diagnostics")
-    stable_cols[1].metric("Deterministic samples", str(stability["runs"]))
-    st.subheader("Most stable source-feature drivers")
-    st.dataframe(stability["top_driver_frequency"].head(10), width="stretch", hide_index=True)
-    st.subheader("Configuration projection")
-    plot_frame = pca_analysis["pc_scores"][["PC1", "PC2"]].copy()
-    if color_by and color_by in joined.columns:
-        plot_frame[color_by] = joined.reindex(plot_frame.index)[color_by]
-    st.plotly_chart(px.scatter(plot_frame, x="PC1", y="PC2", color=color_by if color_by in plot_frame else None, opacity=0.72, render_mode="webgl"), width="stretch")
-    with st.expander("Source-feature contribution details"):
-        st.dataframe(source_contributions.head(30), width="stretch", hide_index=True)
-    with st.expander("Raw loading matrix and encoded features"):
-        st.dataframe(pca_analysis["encoded_contributions"].head(50), width="stretch", hide_index=True)
-    with st.expander("Technical diagnostics"):
-        st.dataframe(stability["explained_variance"], width="stretch", hide_index=True)
-        st.dataframe(stability["component_similarity"], width="stretch", hide_index=True)
-        if target_metric:
-            st.dataframe(pca_analysis["pc_target_correlations"], width="stretch", hide_index=True)
+    basis = artifact["shared_basis"]
+    explained = pd.DataFrame(basis["explained_variance"]).head(10)
+    summary_cols = st.columns(4)
+    summary_cols[0].metric("Shared-basis rows", f"{basis['cohort_rows']:,}")
+    summary_cols[1].metric("PCA source features", f"{len(basis['feature_order'])}")
+    summary_cols[2].metric("PC1–PC5 variance", f"{basis['july_first_five_cumulative']:.2%}")
+    summary_cols[3].metric("Components for 90%", str(basis["component_thresholds"]["90%"]))
+    st.caption(
+        "Shared cohort: median config/workload/concurrency rows with benchmark_type = single_turn. "
+        f"The {basis['excluded_rows']:,} agentic-trace aggregates are excluded because they do not share ISL/OSL semantics."
+    )
+    st.plotly_chart(
+        px.bar(
+            explained,
+            x="component",
+            y="explained_variance_ratio",
+            text="explained_variance_ratio",
+            title="July shared-basis explained variance",
+        ).update_traces(texttemplate="%{text:.1%}", textposition="outside"),
+        width="stretch",
+    )
+    with st.expander("Shared-basis methodology and July/June stability"):
+        st.write("Feature order: " + ", ".join(basis["feature_order"]))
+        st.caption("No metrics, latency, throughput, power, or energy fields are PCA inputs.")
+        st.dataframe(pd.DataFrame(basis["basis_comparison"]["components"]), width="stretch", hide_index=True)
+        st.write(
+            "Five-dimensional principal angles (degrees): "
+            + ", ".join(f"{value:.2f}" for value in basis["basis_comparison"]["principal_angles_degrees"])
+        )
+
+    signature = analysis_signature(
+        analysis_metadata,
+        "july_target_pca",
+        {"features": list(TARGET_PCA_FEATURES), "seed": seed, "dump": ACTIVE_DUMP_VERSION},
+    )
+    projection = current_artifact("july_target_pca_projection", signature)
+    if projection is None and st.button("Build interactive target projections", type="primary"):
+        with st.spinner("Projecting the two observed target cohorts into the shared July basis"):
+            fitted = fit_target_shared_pca(joined, seed=seed)
+            projection = {
+                "analysis_signature": signature,
+                PCA_OUTPUT_TARGET: build_target_overlay(fitted, PCA_OUTPUT_TARGET),
+                PCA_ENERGY_TARGET: build_target_overlay(fitted, PCA_ENERGY_TARGET),
+            }
+            st.session_state["july_target_pca_projection"] = projection
+    if projection is None:
+        st.info(
+            "The aggregate artifact is loaded. Build interactive projections to render row-level scatter views; no supervised model is loaded or run."
+        )
+
+    def render_target_mode(target: str, projection_data: dict[str, Any] | None) -> None:
+        metadata = artifact["targets"][target]
+        is_energy = target == PCA_ENERGY_TARGET
+        title = "Energy PCA" if is_energy else "Output Performance PCA"
+        st.markdown(f"#### {title}")
+        st.caption(
+            f"{metadata['display_name']} · {metadata['transformation']} · {metadata['unit']} · "
+            f"{metadata['direction']}. The target is a color/association overlay, not a PCA input."
+        )
+        cards = st.columns(4)
+        cards[0].metric("Usable aggregate rows", f"{metadata['usable_rows']:,}")
+        cards[1].metric("Configurations", f"{metadata['unique_configurations']:,}")
+        cards[2].metric("Target transform", "Identity" if not is_energy else "Observed raw")
+        cards[3].metric("Direction", metadata["direction"].capitalize())
+        if is_energy:
+            st.warning(
+                f"Measured-only support: {metadata['raw_measured_rows']:,} raw rows, "
+                f"{metadata['usable_rows']:,} aggregate groups, {metadata['configuration_coverage']:.2%} configuration coverage, "
+                f"{metadata['date_range'][0]} through {metadata['date_range'][1]}. PCA is descriptive and does not predict energy."
+            )
+        else:
+            validation = metadata["historical_validation_context"]
+            st.info(
+                "Target selection context only: raw throughput per GPU was the final 4,096-row, "
+                f"three-fold grouped TabFM target (R² {validation['r2_mean']:.6f} ± {validation['r2_std']:.6f}; "
+                f"MAE {validation['mae']:.6f} tokens/s/GPU). No model was retrained."
+            )
+
+        distribution = pd.DataFrame(
+            [{"statistic": key, "value": value} for key, value in metadata["raw_distribution"].items()]
+        )
+        associations = pd.DataFrame(metadata["associations"])
+        view_cols = st.columns(2)
+        with view_cols[0]:
+            st.markdown("**Target distribution summary**")
+            st.dataframe(distribution, width="stretch", hide_index=True)
+        with view_cols[1]:
+            st.markdown("**PC–target associations**")
+            st.dataframe(associations, width="stretch", hide_index=True)
+
+        if projection_data is not None:
+            plot_frame = projection_data["frame"].copy()
+            scatter_cols = st.columns(2)
+            scatter_cols[0].plotly_chart(
+                px.scatter(
+                    plot_frame,
+                    x="PC1",
+                    y="PC2",
+                    color=target,
+                    opacity=0.68,
+                    render_mode="webgl",
+                    title=f"PC1 vs PC2 · {metadata['display_name']}",
+                ),
+                width="stretch",
+            )
+            scatter_cols[1].plotly_chart(
+                px.scatter(
+                    plot_frame,
+                    x="PC1",
+                    y="PC3",
+                    color=target,
+                    opacity=0.68,
+                    render_mode="webgl",
+                    title=f"PC1 vs PC3 · {metadata['display_name']}",
+                ),
+                width="stretch",
+            )
+            if is_energy and "date" in plot_frame:
+                dated = plot_frame.copy()
+                dated["measurement_month"] = pd.to_datetime(
+                    dated["date"], errors="coerce"
+                ).dt.to_period("M").astype(str)
+                st.plotly_chart(
+                    px.scatter(
+                        dated,
+                        x="PC1",
+                        y="PC2",
+                        color="measurement_month",
+                        opacity=0.65,
+                        render_mode="webgl",
+                        title="Observed-energy cohort by measurement month",
+                    ),
+                    width="stretch",
+                )
+
+        bins = pd.DataFrame(metadata["component_bins"])
+        st.markdown("**Target values by component quantile**")
+        st.dataframe(bins, width="stretch", hide_index=True)
+        strongest = associations.iloc[associations[["pearson", "spearman"]].abs().max(axis=1).argmax()]["component"]
+        source_loadings = pd.DataFrame(basis["source_loadings_first_five"])
+        st.markdown(f"**Top configuration/workload loadings for {strongest}**")
+        st.dataframe(
+            source_loadings.loc[source_loadings["component"].eq(strongest)].head(10),
+            width="stretch",
+            hide_index=True,
+        )
+        if is_energy:
+            with st.expander("Measured support, subgroup summaries, and time checks"):
+                support_rows = [
+                    {"dimension": key, "observed values": ", ".join(map(str, values))}
+                    for key, values in {**metadata["workload_support"], **metadata["configuration_support"]}.items()
+                ]
+                st.dataframe(pd.DataFrame(support_rows), width="stretch", hide_index=True)
+                st.dataframe(pd.DataFrame(metadata["temporal_summary"]), width="stretch", hide_index=True)
+                for warning in metadata["sparse_group_warnings"]:
+                    st.caption("Sparse support: " + warning)
+                for dimension, rows in metadata["subgroup_summaries"].items():
+                    st.markdown(f"**{dimension}**")
+                    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                st.caption("Subgroup values are shown only as observed summaries; sparse groups are flagged and no generalization is claimed.")
+
+    output_tab, energy_tab = st.tabs(("Output Performance PCA", "Energy PCA"))
+    with output_tab:
+        render_target_mode(PCA_OUTPUT_TARGET, projection.get(PCA_OUTPUT_TARGET) if projection else None)
+    with energy_tab:
+        render_target_mode(PCA_ENERGY_TARGET, projection.get(PCA_ENERGY_TARGET) if projection else None)
 
 
 def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:
     render_section_intro("Model Results", "Completed aggregate research artifacts only. No model is fit, imported, or run from this dashboard.")
+    st.caption(
+        "The supervised results are preserved historical experiments on the June snapshot. "
+        "They are target-selection context only and are not applied to July rows."
+    )
     if research_summary is None:
         st.info(f"Research artifacts are unavailable{': ' + error if error else '.'}")
         return
@@ -4390,7 +4606,7 @@ def main() -> None:
             max_rows = st.number_input("Maximum rows", min_value=500, max_value=100_000, value=20_000, step=500)
             seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
             data_dir = st.text_input("Data directory", value=data_dir, key="data_dir_control")
-            st.caption("CSV is preferred; JSON is retained as a local fallback.")
+            st.caption("The official raw CSV export, flattened CSV, and JSON fallback are supported.")
             fallback_status = "available" if source_probe["json_ready"] else "not found"
             st.caption(f"Source check: {source_probe['active_mode']}. JSON fallback: {fallback_status}.")
 
@@ -4413,11 +4629,16 @@ def main() -> None:
     try:
         benchmarks, _configs, joined, source_info = load_joined_data(data_dir, dataset_manifest["fingerprint"])
         analysis_frame, analysis_metadata = build_analysis_frame(joined, analysis_unit)
+        pca_frame, pca_metadata = build_analysis_frame(
+            joined, "Median aggregate per config/workload/concurrency"
+        )
     except Exception as exc:
         st.error(f"Could not load benchmark data: {exc}")
         return
     analysis_metadata["dataset_fingerprint"] = dataset_manifest["fingerprint"]
     analysis_metadata["dataset_manifest"] = dataset_manifest
+    pca_metadata["dataset_fingerprint"] = dataset_manifest["fingerprint"]
+    pca_metadata["dataset_manifest"] = dataset_manifest
 
     with tabs[0]:
         render_overview(benchmarks, analysis_metadata, source_info, research_summary)
@@ -4426,7 +4647,7 @@ def main() -> None:
     with tabs[1]:
         render_data_understanding_dashboard(joined, analysis_frame, analysis_metadata, int(max_rows), int(seed))
     with tabs[2]:
-        render_pca_dashboard(analysis_frame, analysis_metadata, int(max_rows), int(seed))
+        render_pca_dashboard(pca_frame, pca_metadata, int(max_rows), int(seed))
     with tabs[3]:
         render_model_results_dashboard(research_summary, research_error)
         render_energy_measurements_dashboard(joined)

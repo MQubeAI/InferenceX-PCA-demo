@@ -1,8 +1,8 @@
 """Observed-only energy lookup and comparison utilities.
 
 No function in this module fits or loads a predictive model. A future model may
-implement ``EnergyModelProvider`` only after the target definition is documented
-and broader grouped validation is approved.
+implement ``EnergyModelProvider`` only after measured support broadens and grouped
+plus temporal validation is separately approved.
 """
 
 from __future__ import annotations
@@ -51,7 +51,8 @@ class EnergyModelProvider(Protocol):
 class EnergyModelAvailability:
     enabled: bool = False
     reason: str = (
-        "Energy prediction is blocked pending target documentation and broader measured support."
+        "Energy prediction remains blocked by narrow workload, category, and time support; "
+        "the dump also does not pin a metric-code version to each benchmark row."
     )
 
 
@@ -291,5 +292,9 @@ def energy_support_summary(frame: pd.DataFrame) -> dict[str, Any]:
         "date_start": dates.min().date().isoformat() if dates.notna().any() else None,
         "date_end": dates.max().date().isoformat() if dates.notna().any() else None,
         "coverage": coverage,
-        "measurement_warning": "The energy measurement procedure and system boundary are undocumented.",
+        "measurement_warning": (
+            "The official formula is average per-GPU power × GPU count × benchmark duration "
+            "÷ actual output tokens. Measured support remains narrow, and rows do not pin the "
+            "metric-code version used at collection time."
+        ),
     }

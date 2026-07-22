@@ -19,12 +19,17 @@ Inference performance depends on more than model and hardware. Serving framework
 
 ## Data Source
 
-Official data folder: [Google Drive](https://drive.google.com/drive/u/2/folders/1RQYKaliWtJym1kbGH9A4SwfzqSh1RBvR)
+Active snapshot: **`db-dump/2026-07-20`**, published in the official
+[SemiAnalysisAI/InferenceX-app release](https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20).
+The official InferenceX About page identifies these weekly GitHub releases as the full-database
+snapshot source. The older `inferencex-pca-data/` June export remains a rollback source.
 
-Required files:
+Required files (official raw export):
 
-- `benchmark_results.csv`
+- `benchmark_results_raw.csv`
 - `configs.csv`
+
+The legacy flattened export uses `benchmark_results.csv` with the same `configs.csv`.
 
 Optional or supported later:
 
@@ -43,13 +48,23 @@ The skipped files can be extremely large and are unnecessary for this workflow.
 
 ## Local Data Setup
 
-Place the approved CSV export at the repository root and name the folder:
+Download and verify the official July 20 dump outside the repository, restore only the required
+tables, and provide `benchmark_results_raw.csv` plus `configs.csv`. Activate it with:
 
-```text
-inferencex-pca-data/
+```bash
+export INFERENCEX_DATA_DIR=/absolute/path/to/db-dump-2026-07-20
 ```
 
-The application prefers CSV. It can fall back to compatible JSON or JSONL dumps for local development.
+For the verified local audit, the default is
+`/tmp/inferencex-dump-comparison/db-dump-2026-07-20/`. The loader expands the official
+`metrics` JSON column deterministically. It also supports the older flattened
+`benchmark_results.csv` format and compatible JSON/JSONL dumps. No dump is committed.
+
+Rollback to the preserved June export with:
+
+```bash
+export INFERENCEX_DATA_DIR=inferencex-pca-data
+```
 
 ## Local App Setup
 
@@ -68,25 +83,39 @@ complete configuration-and-workload lookup against rows with a real
 dates, throughput, average power, and mathematical energy/cost conversions. When no exact row
 exists, the dashboard shows nearby measured configurations as comparisons—not predictions.
 
-Current measured support is narrow:
+July measured support remains narrow:
 
-- 3,794 usable raw rows, aggregating to 2,135 config/workload/concurrency groups.
-- 251 of 1,197 configurations have measured output-token energy.
+- 5,175 usable raw rows, aggregating to 2,766 config/workload/concurrency groups.
+- 305 of 1,368 configurations have measured output-token energy (22.30%).
 - Only `single_turn`, OSL 1024, and ISL 1024 or 8192 are represented.
-- Measurements run from May 27 through June 26, 2026.
-- The measurement procedure, attribution boundary, and calculation formula are undocumented.
+- Measurements run from May 27 through July 18, 2026.
+- The official formula is average per-GPU power × GPU count × benchmark duration ÷ actual output
+  tokens. Individual dump rows do not pin the metric-code version used at collection time.
 
-Energy prediction remains blocked pending target documentation, broader workload and time
-coverage, and separately approved grouped validation. The dashboard does not train or load an
-energy model, impute labels, or generate modeled or extrapolated energy values.
+Energy prediction remains blocked by narrow workload/category/time coverage and the lack of a
+row-level metric-code version. The dashboard does not train or load an energy model, impute labels,
+or generate modeled or extrapolated energy values.
 
-## Reproducible Analysis Run
+## Reproducible Analysis Runs
+
+The legacy June command below also fits the historical Random Forest baseline; it is retained for
+provenance and is not part of the July refresh:
 
 ```bash
 python3 scripts/reproducible_analysis.py \
   --data-dir inferencex-pca-data \
   --output artifacts/reproducible-results.json \
   --max-rows 20000 --seed 42 --stability-runs 5
+```
+
+The July target-overlay PCA artifact is regenerated independently and does not train any
+supervised model:
+
+```bash
+PYTHONPATH=. .venv-streamlit/bin/python scripts/build_july_pca_artifact.py \
+  --july-data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --june-data-dir inferencex-pca-data \
+  --output artifacts/pca-db-dump-2026-07-20.json
 ```
 
 ## Completed Model Research
@@ -438,10 +467,9 @@ README.md
 
 | Analysis unit | Verified row count |
 |---|---:|
-| Raw benchmark rows | 79,830 |
-| Latest row per config/workload/concurrency | 7,462 |
-| Median aggregate per config/workload/concurrency | 7,462 |
-| One row per config | 1,197 |
+| Raw benchmark rows | 81,851 |
+| Median aggregate per config/workload/concurrency | 8,239 |
+| One row per benchmarked config | 1,368 |
 
 The default analysis unit is **Median aggregate per config/workload/concurrency**.
 
@@ -461,36 +489,40 @@ PCA is unsupervised. It identifies structural variance, not causal value.
 - Outcome metrics are not PCA inputs.
 - Metrics may be used as color overlays or supervised targets.
 - Encoded loading contributions are regrouped to their original source features.
+- The main July basis uses the 8,063 `single_turn` aggregate rows. The 176 `agentic_traces`
+  aggregates are excluded because their null ISL/OSL fields do not share the same workload
+  semantics as the two target cohorts.
+- A single shared basis supports direct comparison between the two overlays.
+- **Output Performance PCA** overlays raw `metrics_tput_per_gpu` (tokens/second/GPU, identity
+  transform, higher is better).
+- **Energy PCA** overlays observed `metrics_joules_per_output_token` only (lower is better).
+- Neither target, nor any latency, throughput, power, or energy metric, enters PCA preprocessing.
 
-## Reproducible PCA Findings
+## July 20 PCA Findings
 
-Snapshot date: **2026-07-17**.
+Snapshot release: **`db-dump/2026-07-20`**.
 
-- Dataset fingerprint: `1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09`.
-- Default analysis unit: 7,462 median aggregate rows from 79,830 joined benchmark rows.
+- Default analysis unit: 8,239 median aggregate rows from 81,851 joined benchmark rows.
 - PCA feature set: 19 configuration and workload source features.
-- PC1 through PC5 explain 28.25%, 13.51%, 8.44%, 7.72%, and 6.87% of variance.
-- Cumulative explained variance for PC1 through PC5: **64.78%**.
-- Top retained-component contribution groups: `config_disagg`, `config_is_multinode`, `config_decode_tp`, `config_prefill_ep`, and `config_prefill_tp`.
+- PC1 through PC5 explain 28.11%, 13.47%, 8.14%, 7.71%, and 6.93% of variance.
+- Cumulative explained variance for PC1 through PC5: **64.37%**, versus 64.78% for the June basis.
+- The first-five loading cosine similarities versus June range from 0.987 to 0.999; five-dimensional
+  principal angles range from 0.81° to 4.23°.
+- Throughput is most strongly aligned with PC5 among the first five (Pearson −0.345; Spearman
+  −0.408). Observed energy is most strongly rank-aligned with PC3 (Pearson 0.288; Spearman 0.600).
+  These are descriptive associations, not predictions or causal effects.
 
-PCA stability used five deterministic 80% samples. Minimum sign-aligned loading similarities were:
-
-| Component | Minimum similarity |
-|---|---:|
-| PC1 | `0.9999` |
-| PC2 | `0.9995` |
-| PC3 | `0.9929` |
-| PC4 | `0.9900` |
-| PC5 | `0.9912` |
-
-Ten of eleven observed top drivers appeared in at least four of five runs. `config_prefill_dp_attention` appeared once and was flagged as unstable.
+The versioned artifact stores preprocessing state, encoded and source loadings, explained variance,
+component-bin summaries, target associations, cohort filters, and dump provenance. It does not
+contain supervised predictions.
 
 ## Limitations
 
 - The analysis is descriptive, not causal.
 - Several experiment rows are historical bounded runs with different sample sizes or context limits.
 - Not every target received a complete Random Forest, CatBoost, and TabFM comparison under identical folds.
-- The final throughput experiment used 4,096 sampled aggregate rows rather than all 7,462 rows.
+- The historical final throughput experiment used 4,096 sampled June aggregate rows rather than
+  all 7,462 June rows; it was not retrained on July data.
 - TabFM was CPU-intensive on the available hardware.
 - Dataset coverage is uneven across configurations and workloads.
 - Grouped validation reduces leakage but does not eliminate every source of dataset shift.
@@ -531,6 +563,7 @@ Do not commit:
 - Audit whether the data supports configuration ranking and regret evaluation.
 - Build an observed-candidate recommendation layer if workloads contain enough comparable configurations.
 - Add cost-per-token valuation.
-- Add energy metrics when coverage becomes sufficient.
+- Revisit energy modeling only after workload, category, and temporal support broadens enough for
+  grouped and temporal validation.
 - Add benchmark coverage-gap analysis.
 - Add quality and performance tradeoff analysis using `eval_results.csv`.

@@ -63,6 +63,20 @@ class DashboardUiTests(unittest.TestCase):
         for forbidden in (".fit(", "model.predict(", "provider.predict(", "CatBoost", "RandomForest", "TabFM"):
             self.assertNotIn(forbidden, energy_source)
 
+    def test_july_pca_sections_preserve_four_tab_shell(self) -> None:
+        source = inspect.getsource(app.render_pca_dashboard)
+        self.assertEqual(len(app.MAIN_TAB_LABELS), 4)
+        self.assertIn("Output Performance PCA", source)
+        self.assertIn("Energy PCA", source)
+        self.assertIn("target is a color/association overlay, not a PCA input", source)
+        self.assertIn("Build interactive target projections", source)
+        self.assertNotIn("grouped_rf_evaluation", source)
+
+    def test_model_results_are_marked_historical_on_july_data(self) -> None:
+        source = inspect.getsource(app.render_model_results_dashboard)
+        self.assertIn("historical experiments on the June snapshot", source)
+        self.assertIn("not applied to July rows", source)
+
     def test_csv_first_and_json_fallback_data_loading_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
