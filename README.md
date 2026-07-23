@@ -108,7 +108,7 @@ python3 scripts/reproducible_analysis.py \
   --max-rows 20000 --seed 42 --stability-runs 5
 ```
 
-The July target-overlay PCA artifact is regenerated independently and does not train any
+The cumulative July 20 snapshot target-overlay PCA artifact is regenerated independently and does not train any
 supervised model:
 
 ```bash
@@ -489,31 +489,46 @@ PCA is unsupervised. It identifies structural variance, not causal value.
 - Outcome metrics are not PCA inputs.
 - Metrics may be used as color overlays or supervised targets.
 - Encoded loading contributions are regrouped to their original source features.
-- The main July basis uses the 8,063 `single_turn` aggregate rows. The 176 `agentic_traces`
-  aggregates are excluded because their null ISL/OSL fields do not share the same workload
-  semantics as the two target cohorts.
-- A single shared basis supports direct comparison between the two overlays.
-- **Output Performance PCA** overlays raw `metrics_tput_per_gpu` (tokens/second/GPU, identity
-  transform, higher is better).
-- **Energy PCA** overlays observed `metrics_joules_per_output_token` only (lower is better).
-- Neither target, nor any latency, throughput, power, or energy metric, enters PCA preprocessing.
+- The July 20 dump is cumulative. The updated full-dataset basis uses all 8,063 eligible
+  `single_turn` aggregate groups in that snapshot. All 7,462 groups from the prior snapshot are
+  retained, alongside 601 new eligible groups. The contributing source observations span
+  2025-09-29 through 2026-07-18 and include 79,975 pre-July rows plus 1,660 July rows. It is not fit
+  only on July-dated observations.
+- The 176 `agentic_traces` aggregates are excluded because their null ISL/OSL fields do not share
+  the same workload semantics as the three target overlays.
+- A single shared basis supports direct comparison between the three overlays.
+- **Median TPOT** is the primary latency-focused PCA overlay. It uses raw
+  `metrics_median_tpot` in seconds/output token (identity transform, lower is better). An optional
+  `log1p` color scale is display-only and never changes the stored raw target.
+- **Throughput per GPU** separately overlays raw `metrics_tput_per_gpu`
+  (tokens/second/GPU, identity transform, higher is better) because it was the final selected
+  supervised target.
+- **Joules per output token** overlays observed `metrics_joules_per_output_token` only (lower is
+  better).
+- None of the three targets, nor any other latency, throughput, power, or energy metric, enters PCA
+  preprocessing.
 
 ## July 20 PCA Findings
 
 Snapshot release: **`db-dump/2026-07-20`**.
 
 - Default analysis unit: 8,239 median aggregate rows from 81,851 joined benchmark rows.
+- Shared PCA basis: all 8,063 eligible aggregate groups in the cumulative snapshot. Source
+  observations span 2025-09-29 through 2026-07-18; aggregate representative dates span through
+  2026-07-17. No July-only date filter is applied.
 - PCA feature set: 19 configuration and workload source features.
 - PC1 through PC5 explain 28.11%, 13.47%, 8.14%, 7.71%, and 6.93% of variance.
 - Cumulative explained variance for PC1 through PC5: **64.37%**, versus 64.78% for the June basis.
 - The first-five loading cosine similarities versus June range from 0.987 to 0.999; five-dimensional
   principal angles range from 0.81° to 4.23°.
-- Throughput is most strongly aligned with PC5 among the first five (Pearson −0.345; Spearman
+- Raw median TPOT is most strongly rank-aligned with PC5 among the first five (Pearson −0.120;
+  Spearman −0.210). Throughput is also most strongly aligned with PC5 (Pearson −0.345; Spearman
   −0.408). Observed energy is most strongly rank-aligned with PC3 (Pearson 0.288; Spearman 0.600).
   These are descriptive associations, not predictions or causal effects.
 
 The versioned artifact stores preprocessing state, encoded and source loadings, explained variance,
-component-bin summaries, target associations, cohort filters, and dump provenance. It does not
+component-bin summaries for all three overlays, target associations, full-snapshot scope metadata,
+cohort filters, and dump provenance. It does not
 contain supervised predictions.
 
 ## Limitations

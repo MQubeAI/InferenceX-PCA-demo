@@ -10,6 +10,7 @@ import numpy as np
 from apps import inferencex_pca_demo as app
 from modeling.pca_target_analysis import (
     ENERGY_TARGET,
+    LATENCY_TARGET,
     OUTPUT_TARGET,
     PCA_FEATURES,
     compare_bases,
@@ -65,6 +66,53 @@ class PcaTargetArtifactTests(unittest.TestCase):
         encoded = self.artifact["shared_basis"]["preprocessing"]["encoded_feature_names"]
         components = self.artifact["shared_basis"]["preprocessing"]["pca_components"]
         self.assertTrue(all(len(component) == len(encoded) for component in components))
+
+    def test_basis_is_full_cumulative_snapshot_not_july_only(self) -> None:
+        basis = self.artifact["shared_basis"]
+        self.assertEqual(self.artifact["schema_version"], "pca-target-overlays-v2")
+        self.assertTrue(basis["cumulative_snapshot"])
+        self.assertEqual(
+            basis["basis_sha256"],
+            "03ac94b1463c26567d0bfa55448b610faaa24735469a06eeac5cbb50ee943898",
+        )
+        self.assertEqual(basis["full_eligible_row_count"], 8_063)
+        self.assertEqual(
+            basis["aggregate_representative_date_range"], ["2025-09-29", "2026-07-17"]
+        )
+        self.assertEqual(basis["eligible_source_raw_rows"], 81_635)
+        self.assertEqual(
+            basis["eligible_source_raw_date_range"], ["2025-09-29", "2026-07-18"]
+        )
+        self.assertEqual(basis["eligible_source_raw_rows_before_2026_07_01"], 79_975)
+        self.assertEqual(basis["eligible_source_raw_rows_on_or_after_2026_07_01"], 1_660)
+        self.assertEqual(basis["previous_snapshot_eligible_groups_retained"], 7_462)
+        self.assertEqual(basis["new_eligible_groups_vs_previous_snapshot"], 601)
+        self.assertEqual(
+            basis["target_overlays"],
+            [LATENCY_TARGET, OUTPUT_TARGET, ENERGY_TARGET],
+        )
+        for target in basis["target_overlays"]:
+            self.assertEqual(
+                self.artifact["targets"][target]["shared_basis_sha256"],
+                basis["basis_sha256"],
+            )
+
+    def test_median_tpot_is_raw_primary_latency_overlay(self) -> None:
+        target = self.artifact["targets"][LATENCY_TARGET]
+        self.assertEqual(target["raw_target"], "metrics_median_tpot")
+        self.assertEqual(target["transformation"], "identity")
+        self.assertEqual(target["inverse_transformation"], "identity")
+        self.assertEqual(target["unit"], "seconds/output token")
+        self.assertEqual(target["direction"], "lower is better")
+        self.assertEqual(target["analysis_role"], "primary latency-focused descriptive PCA overlay")
+        self.assertEqual(target["usable_rows"], 8_063)
+        self.assertEqual(target["unique_configurations"], 1_354)
+        self.assertEqual(target["nonpositive_values"], 0)
+        self.assertEqual(target["date_range"], ["2025-09-29", "2026-07-17"])
+        self.assertEqual(target["optional_visualization_transformation"], "log1p")
+        self.assertNotEqual(
+            target["raw_distribution"]["50%"], target["log1p_distribution"]["50%"]
+        )
 
     def test_exact_selected_target_is_raw_identity_throughput(self) -> None:
         target = self.artifact["targets"][OUTPUT_TARGET]
@@ -124,6 +172,26 @@ class PcaRuntimeTests(unittest.TestCase):
         overlay = target_overlay(self.result, ENERGY_TARGET)
         self.assertEqual(overlay["usable_rows"], 2_766)
         self.assertFalse(overlay["frame"][ENERGY_TARGET].isna().any())
+
+    def test_missing_median_tpot_is_excluded_without_changing_raw_values(self) -> None:
+        changed = copy.deepcopy(self.result)
+        original = float(changed.cohort.loc[1, LATENCY_TARGET])
+        changed.cohort.loc[0, LATENCY_TARGET] = np.nan
+        overlay = target_overlay(changed, LATENCY_TARGET)
+        self.assertEqual(overlay["usable_rows"], 8_062)
+        self.assertEqual(float(overlay["frame"].loc[1, LATENCY_TARGET]), original)
+        self.assertFalse(overlay["frame"][LATENCY_TARGET].isna().any())
+
+    def test_all_three_overlays_share_identical_scores_and_feature_order(self) -> None:
+        latency = target_overlay(self.result, LATENCY_TARGET)["frame"]
+        throughput = target_overlay(self.result, OUTPUT_TARGET)["frame"]
+        energy = target_overlay(self.result, ENERGY_TARGET)["frame"]
+        np.testing.assert_allclose(latency[["PC1", "PC2", "PC3"]], throughput[["PC1", "PC2", "PC3"]])
+        np.testing.assert_allclose(
+            energy[["PC1", "PC2", "PC3"]],
+            self.result.scores.loc[energy.index, ["PC1", "PC2", "PC3"]],
+        )
+        self.assertEqual(self.result.source_features, list(PCA_FEATURES))
 
     def test_sign_aligned_basis_comparison_handles_sign_flip(self) -> None:
         flipped = copy.deepcopy(self.result)

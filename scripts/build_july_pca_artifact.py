@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Build the versioned July PCA artifact without fitting supervised models."""
+"""Build PCA from the full eligible dataset in the cumulative July 20 snapshot."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 from datetime import UTC, datetime
@@ -19,6 +20,9 @@ from modeling.pca_target_analysis import (
     ENERGY_TARGET,
     ENERGY_TARGET_LABEL,
     ENERGY_TARGET_UNIT,
+    LATENCY_TARGET,
+    LATENCY_TARGET_LABEL,
+    LATENCY_TARGET_UNIT,
     OUTPUT_TARGET,
     OUTPUT_TARGET_LABEL,
     OUTPUT_TARGET_UNIT,
@@ -129,6 +133,7 @@ def build_artifact(july_dir: str, june_dir: str) -> dict[str, Any]:
 
     july_pca = fit_shared_pca(july_aggregate)
     june_pca = fit_shared_pca(june_aggregate)
+    latency = target_overlay(july_pca, LATENCY_TARGET)
     output = target_overlay(july_pca, OUTPUT_TARGET)
     energy = target_overlay(july_pca, ENERGY_TARGET)
     explained = explained_variance_table(july_pca)
@@ -141,9 +146,28 @@ def build_artifact(july_dir: str, june_dir: str) -> dict[str, Any]:
         _energy=pd.to_numeric(energy_raw[ENERGY_TARGET], errors="coerce"),
     ).groupby("month", dropna=False)["_energy"].agg(["count", "median", "mean"]).reset_index()
     log_energy = np.log1p(pd.to_numeric(energy["frame"][ENERGY_TARGET], errors="coerce"))
+    log_latency = np.log1p(pd.to_numeric(latency["frame"][LATENCY_TARGET], errors="coerce"))
+    basis_dates = pd.to_datetime(july_pca.cohort.get("date"), errors="coerce")
+    eligible_raw = july_raw.loc[july_raw["benchmark_type"].eq("single_turn")].copy()
+    eligible_raw_dates = pd.to_datetime(eligible_raw.get("date"), errors="coerce")
+    grouping_keys = ["config_id", "benchmark_type", "isl", "osl", "conc"]
+    previous_eligible_keys = set(
+        map(
+            tuple,
+            june_aggregate.loc[june_aggregate["benchmark_type"].eq("single_turn"), grouping_keys]
+            .itertuples(index=False, name=None),
+        )
+    )
+    updated_eligible_keys = set(
+        map(tuple, july_pca.cohort[grouping_keys].itertuples(index=False, name=None))
+    )
+    pca_state = preprocessing_state(july_pca)
+    basis_sha256 = hashlib.sha256(
+        json.dumps(json_value(pca_state), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
     return {
-        "schema_version": "pca-target-overlays-v1",
+        "schema_version": "pca-target-overlays-v2",
         "created_at_utc": datetime.now(UTC).isoformat(),
         "git_commit": git_commit(),
         "dump": {
@@ -158,23 +182,76 @@ def build_artifact(july_dir: str, june_dir: str) -> dict[str, Any]:
         "counts": actual_counts,
         "analysis_unit": "median by config_id, benchmark_type, isl, osl, conc",
         "shared_basis": {
-            "decision": "One shared July basis for direct target-overlay comparability",
+            "decision": "One shared basis from the full eligible dataset in the cumulative July 20 snapshot",
+            "snapshot_scope": "cumulative dump snapshot; historical observations plus newly added July observations",
+            "cumulative_snapshot": True,
             "cohort_filters": SHARED_COHORT_FILTERS,
             "cohort_rows": len(july_pca.cohort),
+            "full_eligible_row_count": len(july_pca.cohort),
             "excluded_rows": len(july_aggregate) - len(july_pca.cohort),
-            "exclusion_reason": "agentic_traces rows do not share the ISL/OSL workload semantics used by both target cohorts",
+            "exclusion_reason": "agentic_traces rows do not share the ISL/OSL workload semantics used by the three target overlays",
+            "aggregate_representative_date_range": [
+                basis_dates.min().date().isoformat(),
+                basis_dates.max().date().isoformat(),
+            ],
+            "aggregate_rows_with_representative_date_before_2026_07_01": int(basis_dates.lt("2026-07-01").sum()),
+            "aggregate_rows_with_representative_date_on_or_after_2026_07_01": int(basis_dates.ge("2026-07-01").sum()),
+            "eligible_source_raw_rows": len(eligible_raw),
+            "eligible_source_raw_date_range": [
+                eligible_raw_dates.min().date().isoformat(),
+                eligible_raw_dates.max().date().isoformat(),
+            ],
+            "eligible_source_raw_rows_before_2026_07_01": int(eligible_raw_dates.lt("2026-07-01").sum()),
+            "eligible_source_raw_rows_on_or_after_2026_07_01": int(eligible_raw_dates.ge("2026-07-01").sum()),
+            "previous_snapshot_eligible_groups_retained": len(previous_eligible_keys & updated_eligible_keys),
+            "new_eligible_groups_vs_previous_snapshot": len(updated_eligible_keys - previous_eligible_keys),
             "feature_order": list(PCA_FEATURES),
             "target_metrics_in_inputs": [],
-            "preprocessing": preprocessing_state(july_pca),
+            "target_overlays": [LATENCY_TARGET, OUTPUT_TARGET, ENERGY_TARGET],
+            "basis_sha256": basis_sha256,
+            "preprocessing": pca_state,
             "explained_variance": json_value(explained),
             "component_thresholds": component_thresholds(july_pca),
             "encoded_loadings_first_five": json_value(loading_table(july_pca)),
             "source_loadings_first_five": json_value(source_loading_table(july_pca)),
             "june_first_five_cumulative": float(old_explained.iloc[4]["cumulative_explained_variance"]),
-            "july_first_five_cumulative": float(explained.iloc[4]["cumulative_explained_variance"]),
+            "updated_snapshot_first_five_cumulative": float(explained.iloc[4]["cumulative_explained_variance"]),
             "basis_comparison": json_value(comparison),
         },
         "targets": {
+            LATENCY_TARGET: {
+                "display_name": LATENCY_TARGET_LABEL,
+                "raw_target": LATENCY_TARGET,
+                "transformation": "identity",
+                "inverse_transformation": "identity",
+                "optional_visualization_transformation": "log1p",
+                "unit": LATENCY_TARGET_UNIT,
+                "direction": "lower is better",
+                "analysis_role": "primary latency-focused descriptive PCA overlay",
+                "shared_basis_sha256": basis_sha256,
+                "cohort_filters": SHARED_COHORT_FILTERS,
+                "aggregation_unit": "median by config_id, benchmark_type, isl, osl, conc",
+                "missing_value_behavior": "rows with missing target are excluded; target values are never imputed",
+                "usable_rows": latency["usable_rows"],
+                "unique_configurations": latency["unique_configurations"],
+                "date_range": [
+                    pd.to_datetime(latency["frame"]["date"], errors="coerce").min().date().isoformat(),
+                    pd.to_datetime(latency["frame"]["date"], errors="coerce").max().date().isoformat(),
+                ],
+                "nonpositive_values": int(pd.to_numeric(latency["frame"][LATENCY_TARGET], errors="coerce").le(0).sum()),
+                "workload_support": {
+                    key: observed_values(latency["frame"], key)
+                    for key in ("benchmark_type", "isl", "osl", "conc")
+                },
+                "raw_distribution": latency["distribution"],
+                "log1p_distribution": {
+                    key: float(value)
+                    for key, value in log_latency.describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99]).to_dict().items()
+                },
+                "associations": json_value(latency["associations"]),
+                "component_bins": json_value(latency["component_bins"]),
+                "interpretation_guard": "Descriptive association only; PCA does not predict latency.",
+            },
             OUTPUT_TARGET: {
                 "display_name": OUTPUT_TARGET_LABEL,
                 "raw_target": OUTPUT_TARGET,
@@ -182,6 +259,7 @@ def build_artifact(july_dir: str, june_dir: str) -> dict[str, Any]:
                 "inverse_transformation": "identity",
                 "unit": OUTPUT_TARGET_UNIT,
                 "direction": "higher is better",
+                "shared_basis_sha256": basis_sha256,
                 "cohort_filters": SHARED_COHORT_FILTERS,
                 "aggregation_unit": "median by config_id, benchmark_type, isl, osl, conc",
                 "usable_rows": output["usable_rows"],
@@ -213,6 +291,7 @@ def build_artifact(july_dir: str, june_dir: str) -> dict[str, Any]:
                 "inverse_transformation": "identity",
                 "unit": ENERGY_TARGET_UNIT,
                 "direction": "lower is better",
+                "shared_basis_sha256": basis_sha256,
                 "cohort_filters": {**SHARED_COHORT_FILTERS, "target": "observed positive values only"},
                 "aggregation_unit": "median by config_id, benchmark_type, isl, osl, conc",
                 "usable_rows": energy["usable_rows"],

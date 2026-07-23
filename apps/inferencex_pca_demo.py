@@ -43,6 +43,7 @@ from modeling.energy_measurements import (
 from modeling.research_summary import build_research_summary
 from modeling.pca_target_analysis import (
     ENERGY_TARGET as PCA_ENERGY_TARGET,
+    LATENCY_TARGET as PCA_LATENCY_TARGET,
     OUTPUT_TARGET as PCA_OUTPUT_TARGET,
     PCA_FEATURES as TARGET_PCA_FEATURES,
     fit_shared_pca as fit_target_shared_pca,
@@ -4181,12 +4182,18 @@ def render_pca_dashboard(
 ) -> None:
     render_section_intro(
         "PCA",
-        "One shared July basis summarizes configuration and workload variation. Outcome metrics are descriptive overlays only and never enter PCA preprocessing.",
+        "Updated full-dataset PCA using the cumulative July 20 snapshot.",
+    )
+    st.info(
+        "The PCA basis is fit once on configuration and workload variables from the full eligible "
+        "dataset in the cumulative July 20 snapshot. Median TPOT, throughput per GPU, and joules "
+        "per output token are not PCA inputs. They are separate outcome overlays used to interpret "
+        "how the same configuration space relates to latency, throughput, and observed energy."
     )
     try:
         artifact = load_pca_target_artifact()
     except Exception as exc:
-        st.error(f"The versioned July PCA artifact is unavailable: {exc}")
+        st.error(f"The cumulative-snapshot PCA artifact is unavailable: {exc}")
         st.code(
             "PYTHONPATH=. .venv-streamlit/bin/python scripts/build_july_pca_artifact.py",
             language="bash",
@@ -4196,7 +4203,7 @@ def render_pca_dashboard(
     artifact_fingerprint = artifact.get("dump", {}).get("manifest", {}).get("fingerprint")
     if active_fingerprint != artifact_fingerprint:
         st.error(
-            "The loaded data does not match the versioned July PCA artifact. "
+            "The loaded data does not match the cumulative-snapshot PCA artifact. "
             "No saved basis or target overlay was applied."
         )
         return
@@ -4204,12 +4211,14 @@ def render_pca_dashboard(
     basis = artifact["shared_basis"]
     explained = pd.DataFrame(basis["explained_variance"]).head(10)
     summary_cols = st.columns(4)
-    summary_cols[0].metric("Shared-basis rows", f"{basis['cohort_rows']:,}")
+    summary_cols[0].metric("Full eligible rows", f"{basis['full_eligible_row_count']:,}")
     summary_cols[1].metric("PCA source features", f"{len(basis['feature_order'])}")
-    summary_cols[2].metric("PC1–PC5 variance", f"{basis['july_first_five_cumulative']:.2%}")
+    summary_cols[2].metric("PC1–PC5 variance", f"{basis['updated_snapshot_first_five_cumulative']:.2%}")
     summary_cols[3].metric("Components for 90%", str(basis["component_thresholds"]["90%"]))
     st.caption(
-        "Shared cohort: median config/workload/concurrency rows with benchmark_type = single_turn. "
+        f"Eligible source observations span {basis['eligible_source_raw_date_range'][0]} through "
+        f"{basis['eligible_source_raw_date_range'][1]}. All {basis['previous_snapshot_eligible_groups_retained']:,} "
+        f"previous eligible groups are retained alongside {basis['new_eligible_groups_vs_previous_snapshot']:,} new groups. "
         f"The {basis['excluded_rows']:,} agentic-trace aggregates are excluded because they do not share ISL/OSL semantics."
     )
     st.plotly_chart(
@@ -4218,11 +4227,11 @@ def render_pca_dashboard(
             x="component",
             y="explained_variance_ratio",
             text="explained_variance_ratio",
-            title="July shared-basis explained variance",
+            title="Updated full-dataset explained variance",
         ).update_traces(texttemplate="%{text:.1%}", textposition="outside"),
         width="stretch",
     )
-    with st.expander("Shared-basis methodology and July/June stability"):
+    with st.expander("Shared-basis methodology and updated-snapshot/June stability"):
         st.write("Feature order: " + ", ".join(basis["feature_order"]))
         st.caption("No metrics, latency, throughput, power, or energy fields are PCA inputs.")
         st.dataframe(pd.DataFrame(basis["basis_comparison"]["components"]), width="stretch", hide_index=True)
@@ -4233,19 +4242,20 @@ def render_pca_dashboard(
 
     signature = analysis_signature(
         analysis_metadata,
-        "july_target_pca",
+        "cumulative_snapshot_target_pca",
         {"features": list(TARGET_PCA_FEATURES), "seed": seed, "dump": ACTIVE_DUMP_VERSION},
     )
-    projection = current_artifact("july_target_pca_projection", signature)
+    projection = current_artifact("cumulative_target_pca_projection", signature)
     if projection is None and st.button("Build interactive target projections", type="primary"):
-        with st.spinner("Projecting the two observed target cohorts into the shared July basis"):
+        with st.spinner("Projecting all three outcomes into the shared full-dataset basis"):
             fitted = fit_target_shared_pca(joined, seed=seed)
             projection = {
                 "analysis_signature": signature,
+                PCA_LATENCY_TARGET: build_target_overlay(fitted, PCA_LATENCY_TARGET),
                 PCA_OUTPUT_TARGET: build_target_overlay(fitted, PCA_OUTPUT_TARGET),
                 PCA_ENERGY_TARGET: build_target_overlay(fitted, PCA_ENERGY_TARGET),
             }
-            st.session_state["july_target_pca_projection"] = projection
+            st.session_state["cumulative_target_pca_projection"] = projection
     if projection is None:
         st.info(
             "The aggregate artifact is loaded. Build interactive projections to render row-level scatter views; no supervised model is loaded or run."
@@ -4254,8 +4264,23 @@ def render_pca_dashboard(
     def render_target_mode(target: str, projection_data: dict[str, Any] | None) -> None:
         metadata = artifact["targets"][target]
         is_energy = target == PCA_ENERGY_TARGET
-        title = "Energy PCA" if is_energy else "Output Performance PCA"
+        is_latency = target == PCA_LATENCY_TARGET
+        title = (
+            "Median TPOT"
+            if is_latency
+            else "Joules per output token"
+            if is_energy
+            else "Throughput per GPU"
+        )
+        subtitle = (
+            "Latency-focused descriptive overlay on the shared configuration PCA."
+            if is_latency
+            else "Observed-energy descriptive overlay on the measured subset."
+            if is_energy
+            else "Final supervised target shown as a descriptive overlay on the shared PCA."
+        )
         st.markdown(f"#### {title}")
+        st.caption(subtitle)
         st.caption(
             f"{metadata['display_name']} · {metadata['transformation']} · {metadata['unit']} · "
             f"{metadata['direction']}. The target is a color/association overlay, not a PCA input."
@@ -4263,13 +4288,27 @@ def render_pca_dashboard(
         cards = st.columns(4)
         cards[0].metric("Usable aggregate rows", f"{metadata['usable_rows']:,}")
         cards[1].metric("Configurations", f"{metadata['unique_configurations']:,}")
-        cards[2].metric("Target transform", "Identity" if not is_energy else "Observed raw")
+        cards[2].metric("Target transform", "Raw / identity" if not is_energy else "Observed raw")
         cards[3].metric("Direction", metadata["direction"].capitalize())
         if is_energy:
             st.warning(
                 f"Measured-only support: {metadata['raw_measured_rows']:,} raw rows, "
                 f"{metadata['usable_rows']:,} aggregate groups, {metadata['configuration_coverage']:.2%} configuration coverage, "
                 f"{metadata['date_range'][0]} through {metadata['date_range'][1]}. PCA is descriptive and does not predict energy."
+            )
+        elif is_latency:
+            st.info(
+                f"Primary latency outcome studied in this PCA: raw median time per output token. "
+                f"The valid target spans {metadata['date_range'][0]} through {metadata['date_range'][1]}; "
+                "it is not the final selected supervised target and PCA does not predict latency."
+            )
+            st.caption(
+                "Workload support: "
+                + "; ".join(
+                    f"{field}={', '.join(map(str, values))}"
+                    for field, values in metadata["workload_support"].items()
+                    if field != "conc"
+                )
             )
         else:
             validation = metadata["historical_validation_context"]
@@ -4293,16 +4332,29 @@ def render_pca_dashboard(
 
         if projection_data is not None:
             plot_frame = projection_data["frame"].copy()
+            color_column = target
+            color_title = metadata["display_name"]
+            if is_latency:
+                use_log_color = st.checkbox(
+                    "Use optional log1p color scale (display only)",
+                    value=False,
+                    key="median_tpot_log_color",
+                    help="The stored target and all summary statistics remain raw seconds/output token.",
+                )
+                if use_log_color:
+                    color_column = "_median_tpot_log1p_display"
+                    plot_frame[color_column] = np.log1p(plot_frame[target])
+                    color_title = "log1p median TPOT (display only)"
             scatter_cols = st.columns(2)
             scatter_cols[0].plotly_chart(
                 px.scatter(
                     plot_frame,
                     x="PC1",
                     y="PC2",
-                    color=target,
+                    color=color_column,
                     opacity=0.68,
                     render_mode="webgl",
-                    title=f"PC1 vs PC2 · {metadata['display_name']}",
+                    title=f"PC1 vs PC2 · {color_title}",
                 ),
                 width="stretch",
             )
@@ -4311,10 +4363,10 @@ def render_pca_dashboard(
                     plot_frame,
                     x="PC1",
                     y="PC3",
-                    color=target,
+                    color=color_column,
                     opacity=0.68,
                     render_mode="webgl",
-                    title=f"PC1 vs PC3 · {metadata['display_name']}",
+                    title=f"PC1 vs PC3 · {color_title}",
                 ),
                 width="stretch",
             )
@@ -4347,6 +4399,27 @@ def render_pca_dashboard(
             width="stretch",
             hide_index=True,
         )
+        encoded_loadings = pd.DataFrame(basis["encoded_loadings_first_five"])
+        component_loadings = encoded_loadings.loc[encoded_loadings["component"].eq(strongest)]
+        loading_cols = st.columns(2)
+        with loading_cols[0]:
+            st.markdown("**Top positive loadings**")
+            st.dataframe(
+                component_loadings.sort_values("loading", ascending=False).head(8)[
+                    ["encoded_feature", "source_feature", "loading"]
+                ],
+                width="stretch",
+                hide_index=True,
+            )
+        with loading_cols[1]:
+            st.markdown("**Top negative loadings**")
+            st.dataframe(
+                component_loadings.sort_values("loading", ascending=True).head(8)[
+                    ["encoded_feature", "source_feature", "loading"]
+                ],
+                width="stretch",
+                hide_index=True,
+            )
         if is_energy:
             with st.expander("Measured support, subgroup summaries, and time checks"):
                 support_rows = [
@@ -4362,7 +4435,11 @@ def render_pca_dashboard(
                     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
                 st.caption("Subgroup values are shown only as observed summaries; sparse groups are flagged and no generalization is claimed.")
 
-    output_tab, energy_tab = st.tabs(("Output Performance PCA", "Energy PCA"))
+    latency_tab, output_tab, energy_tab = st.tabs(
+        ("Median TPOT", "Throughput per GPU", "Joules per output token")
+    )
+    with latency_tab:
+        render_target_mode(PCA_LATENCY_TARGET, projection.get(PCA_LATENCY_TARGET) if projection else None)
     with output_tab:
         render_target_mode(PCA_OUTPUT_TARGET, projection.get(PCA_OUTPUT_TARGET) if projection else None)
     with energy_tab:
@@ -4373,7 +4450,7 @@ def render_model_results_dashboard(research_summary: dict[str, Any] | None, erro
     render_section_intro("Model Results", "Completed aggregate research artifacts only. No model is fit, imported, or run from this dashboard.")
     st.caption(
         "The supervised results are preserved historical experiments on the June snapshot. "
-        "They are target-selection context only and are not applied to July rows."
+        "They are target-selection context only and are not applied to cumulative-snapshot rows."
     )
     if research_summary is None:
         st.info(f"Research artifacts are unavailable{': ' + error if error else '.'}")

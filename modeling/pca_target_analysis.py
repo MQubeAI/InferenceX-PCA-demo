@@ -21,10 +21,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 OUTPUT_TARGET = "metrics_tput_per_gpu"
 ENERGY_TARGET = "metrics_joules_per_output_token"
+LATENCY_TARGET = "metrics_median_tpot"
 OUTPUT_TARGET_LABEL = "Throughput per GPU"
 OUTPUT_TARGET_UNIT = "tokens/second/GPU"
 ENERGY_TARGET_LABEL = "Observed joules per output token"
 ENERGY_TARGET_UNIT = "joules/output token"
+LATENCY_TARGET_LABEL = "Median time per output token (TPOT)"
+LATENCY_TARGET_UNIT = "seconds/output token"
 SHARED_COHORT_FILTERS = {"benchmark_type": "single_turn"}
 NUMERIC_FEATURES = (
     "isl",

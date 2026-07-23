@@ -66,16 +66,23 @@ class DashboardUiTests(unittest.TestCase):
     def test_july_pca_sections_preserve_four_tab_shell(self) -> None:
         source = inspect.getsource(app.render_pca_dashboard)
         self.assertEqual(len(app.MAIN_TAB_LABELS), 4)
-        self.assertIn("Output Performance PCA", source)
-        self.assertIn("Energy PCA", source)
+        self.assertIn("Median TPOT", source)
+        self.assertIn("Throughput per GPU", source)
+        self.assertIn("Joules per output token", source)
+        self.assertIn("Latency-focused descriptive overlay on the shared configuration PCA", source)
+        self.assertIn("Final supervised target shown as a descriptive overlay", source)
+        self.assertIn("Observed-energy descriptive overlay on the measured subset", source)
         self.assertIn("target is a color/association overlay, not a PCA input", source)
         self.assertIn("Build interactive target projections", source)
+        self.assertIn("full eligible", source)
+        self.assertIn("dataset in the cumulative July 20 snapshot", source)
+        self.assertIn("Use optional log1p color scale (display only)", source)
         self.assertNotIn("grouped_rf_evaluation", source)
 
     def test_model_results_are_marked_historical_on_july_data(self) -> None:
         source = inspect.getsource(app.render_model_results_dashboard)
         self.assertIn("historical experiments on the June snapshot", source)
-        self.assertIn("not applied to July rows", source)
+        self.assertIn("not applied to cumulative-snapshot rows", source)
 
     def test_csv_first_and_json_fallback_data_loading_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
