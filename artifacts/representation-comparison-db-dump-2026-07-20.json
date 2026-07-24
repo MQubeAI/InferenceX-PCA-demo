@@ -1,0 +1,335 @@
+{
+  "schema_version": "representation-comparison-v1",
+  "created_at_utc": "2026-07-23T22:51:30.336385+00:00",
+  "source_dump": "db-dump/2026-07-20",
+  "status": "preliminary",
+  "cohort_hash": "5b81e133f327f464f5ceb1545e2f5f87d3f45fe751ee27191519b86d42026d50",
+  "row_key_hash": "6626d68addbbc491549cd65707213838025716d30e8e103e92abbcefd153ac4a",
+  "compatible_cohort": true,
+  "cohort_rows": 8063,
+  "feature_order": [
+    "isl",
+    "osl",
+    "conc",
+    "config_prefill_tp",
+    "config_prefill_ep",
+    "config_prefill_dp_attention",
+    "config_prefill_num_workers",
+    "config_decode_tp",
+    "config_decode_ep",
+    "config_decode_dp_attention",
+    "config_decode_num_workers",
+    "config_num_prefill_gpu",
+    "config_hardware",
+    "config_framework",
+    "config_model",
+    "config_precision",
+    "config_spec_method",
+    "config_disagg",
+    "config_is_multinode"
+  ],
+  "method_summary": [
+    {
+      "method": "PCA",
+      "linear or nonlinear": "linear",
+      "latent dimension": 5,
+      "trainable parameters": 0,
+      "training time seconds": null,
+      "validation reconstruction MAE": 0.20572032523971404,
+      "validation reconstruction MSE": 0.12169509764713371,
+      "stability score": 0.9933131024880353,
+      "best silhouette score": 0.5005042661890192,
+      "best k": 5,
+      "interpretability level": "high: direct signed loadings",
+      "artifact size bytes": 228522
+    },
+    {
+      "method": "Autoencoder",
+      "linear or nonlinear": "nonlinear",
+      "latent dimension": 15,
+      "trainable parameters": 11842,
+      "training time seconds": 34.07678983302321,
+      "validation reconstruction MAE": 0.07182886824066138,
+      "validation reconstruction MSE": 0.01630564237384023,
+      "stability score": 0.7993176298323993,
+      "best silhouette score": 0.47621187169393403,
+      "best k": 2,
+      "interpretability level": "medium-low: decoder sensitivity and traversals",
+      "artifact size bytes": 9938625
+    },
+    {
+      "method": "Variational Autoencoder",
+      "linear or nonlinear": "nonlinear",
+      "latent dimension": 15,
+      "trainable parameters": 12337,
+      "training time seconds": 22.46697570802644,
+      "validation reconstruction MAE": 0.23048973606166276,
+      "validation reconstruction MSE": 0.19287893223895772,
+      "stability score": 0.5514204012171616,
+      "best silhouette score": 0.7480739994207081,
+      "best k": 8,
+      "interpretability level": "medium-low: decoder sensitivity and traversals",
+      "artifact size bytes": 10149195
+    }
+  ],
+  "matched_dimension_reconstruction": [
+    {
+      "method": "Autoencoder",
+      "latent dimension": 2,
+      "validation reconstruction MAE": 0.15731579073456936,
+      "validation reconstruction MSE": 0.09319773546568988,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "PCA",
+      "latent dimension": 2,
+      "validation reconstruction MAE": 0.24836426963838484,
+      "validation reconstruction MSE": 0.1994924265806637,
+      "evaluation": "validation rows scored in grouped folds using the preserved full-cohort PCA basis; PCA was not refit"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "latent dimension": 2,
+      "validation reconstruction MAE": 0.32643097236301793,
+      "validation reconstruction MSE": 0.34205958254739216,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "Autoencoder",
+      "latent dimension": 5,
+      "validation reconstruction MAE": 0.12028079193372014,
+      "validation reconstruction MSE": 0.04624989551340564,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "PCA",
+      "latent dimension": 5,
+      "validation reconstruction MAE": 0.20572032523971404,
+      "validation reconstruction MSE": 0.12169509764713371,
+      "evaluation": "validation rows scored in grouped folds using the preserved full-cohort PCA basis; PCA was not refit"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "latent dimension": 5,
+      "validation reconstruction MAE": 0.3275135498883072,
+      "validation reconstruction MSE": 0.3420234627939955,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "Autoencoder",
+      "latent dimension": 10,
+      "validation reconstruction MAE": 0.0866604281200223,
+      "validation reconstruction MSE": 0.02306533025278108,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "PCA",
+      "latent dimension": 10,
+      "validation reconstruction MAE": 0.1456759403067224,
+      "validation reconstruction MSE": 0.06367736315004507,
+      "evaluation": "validation rows scored in grouped folds using the preserved full-cohort PCA basis; PCA was not refit"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "latent dimension": 10,
+      "validation reconstruction MAE": 0.2647669906869651,
+      "validation reconstruction MSE": 0.2443956349036435,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "Autoencoder",
+      "latent dimension": 15,
+      "validation reconstruction MAE": 0.07182886824066138,
+      "validation reconstruction MSE": 0.01630564237384023,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    },
+    {
+      "method": "PCA",
+      "latent dimension": 15,
+      "validation reconstruction MAE": 0.10372950606012231,
+      "validation reconstruction MSE": 0.033197326692033576,
+      "evaluation": "validation rows scored in grouped folds using the preserved full-cohort PCA basis; PCA was not refit"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "latent dimension": 15,
+      "validation reconstruction MAE": 0.23048973606166276,
+      "validation reconstruction MSE": 0.19287893223895772,
+      "evaluation": "three grouped config_id folds; one screening seed"
+    }
+  ],
+  "clustering": [
+    {
+      "method": "PCA",
+      "latent dimension": 5,
+      "best silhouette score": 0.5005042661890192,
+      "best k": 5,
+      "reference": "preserved PCA basis"
+    },
+    {
+      "method": "Autoencoder",
+      "latent dimension": 15,
+      "best silhouette score": 0.47621187169393403,
+      "best k": 2,
+      "reference": "representative grouped fold"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "latent dimension": 15,
+      "best silhouette score": 0.7480739994207081,
+      "best k": 8,
+      "reference": "representative grouped fold"
+    }
+  ],
+  "stability": [
+    {
+      "method": "PCA",
+      "stability score": 0.9933131024880353,
+      "protocol": "mean sign-aligned June\u2013July loading cosine"
+    },
+    {
+      "method": "Autoencoder",
+      "stability score": 0.7993176298323993,
+      "protocol": "fold-pair Procrustes, distance, and neighbor agreement"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "stability score": 0.5514204012171616,
+      "protocol": "fold-pair Procrustes, distance, and neighbor agreement"
+    }
+  ],
+  "outcome_overlays": {
+    "metrics_median_tpot": [
+      {
+        "method": "PCA",
+        "strongest dimension": 5,
+        "Pearson": -0.1197271757834093,
+        "Spearman": -0.20964498459679956,
+        "neighbor target consistency": 0.7030596372233887,
+        "grouped ridge probe R2": 0.07325586251808276,
+        "grouped ridge probe MAE": 0.017816570696055866
+      },
+      {
+        "method": "Autoencoder",
+        "strongest dimension": 7,
+        "Pearson": 0.17251863193732248,
+        "Spearman": 0.33691541653260393,
+        "neighbor target consistency": 0.6611468127161617,
+        "grouped ridge probe R2": 0.10787473296771959,
+        "grouped ridge probe MAE": 0.017193060409355046
+      },
+      {
+        "method": "Variational Autoencoder",
+        "strongest dimension": 3,
+        "Pearson": 0.19775402290672078,
+        "Spearman": 0.19500375200341402,
+        "neighbor target consistency": 0.5412855144295337,
+        "grouped ridge probe R2": 0.060519460647874425,
+        "grouped ridge probe MAE": 0.01789268019264133
+      }
+    ],
+    "metrics_tput_per_gpu": [
+      {
+        "method": "PCA",
+        "strongest dimension": 5,
+        "Pearson": -0.3450433287212385,
+        "Spearman": -0.40796903134005325,
+        "neighbor target consistency": 0.8050276287521538,
+        "grouped ridge probe R2": 0.18189837728428318,
+        "grouped ridge probe MAE": 2043.088928858674
+      },
+      {
+        "method": "Autoencoder",
+        "strongest dimension": 11,
+        "Pearson": 0.4008880064433121,
+        "Spearman": 0.36915557949631017,
+        "neighbor target consistency": 0.7666691211116838,
+        "grouped ridge probe R2": 0.2882729425688653,
+        "grouped ridge probe MAE": 2002.4567449683802
+      },
+      {
+        "method": "Variational Autoencoder",
+        "strongest dimension": 7,
+        "Pearson": -0.27972419054075914,
+        "Spearman": -0.27763706207473654,
+        "neighbor target consistency": 0.7175879766543684,
+        "grouped ridge probe R2": 0.11538889620605719,
+        "grouped ridge probe MAE": 2309.082921225145
+      }
+    ],
+    "metrics_joules_per_output_token": [
+      {
+        "method": "PCA",
+        "strongest dimension": 3,
+        "Pearson": 0.288243296563922,
+        "Spearman": 0.600082451420575,
+        "neighbor target consistency": 0.6801726886444192,
+        "grouped ridge probe R2": 0.13744797063573533,
+        "grouped ridge probe MAE": 4.570831853030209
+      },
+      {
+        "method": "Autoencoder",
+        "strongest dimension": 3,
+        "Pearson": 0.1468747717067619,
+        "Spearman": 0.3319242836951323,
+        "neighbor target consistency": 0.6433943137608499,
+        "grouped ridge probe R2": 0.1597918028015511,
+        "grouped ridge probe MAE": 4.590088166321988
+      },
+      {
+        "method": "Variational Autoencoder",
+        "strongest dimension": 7,
+        "Pearson": 0.14108315976430208,
+        "Spearman": 0.2776226580595605,
+        "neighbor target consistency": 0.5721655809517525,
+        "grouped ridge probe R2": 0.002502017514485274,
+        "grouped ridge probe MAE": 5.227813416173507
+      }
+    ]
+  },
+  "interpretability": [
+    {
+      "method": "PCA",
+      "evidence": "signed encoded and source-feature loadings; component quantiles",
+      "guard": "descriptive, not causal"
+    },
+    {
+      "method": "Autoencoder",
+      "evidence": "decoder sensitivity, latent extremes, source-feature reconstruction error",
+      "guard": "axes require alignment and have no direct causal meaning"
+    },
+    {
+      "method": "Variational Autoencoder",
+      "evidence": "decoder sensitivity, KL/active dimensions, latent extremes",
+      "guard": "collapse diagnostics must pass before interpretation"
+    }
+  ],
+  "computational_cost": [
+    {
+      "method": "PCA",
+      "training time seconds": null,
+      "parameters": 0,
+      "artifact size bytes": 228522
+    },
+    {
+      "method": "Autoencoder",
+      "training time seconds": 34.07678983302321,
+      "parameters": 11842,
+      "artifact size bytes": 9938625
+    },
+    {
+      "method": "Variational Autoencoder",
+      "training time seconds": 22.46697570802644,
+      "parameters": 12337,
+      "artifact size bytes": 10149195
+    }
+  ],
+  "conclusions": {
+    "where_pca_performs_best": "PCA currently provides the clearest direct feature attribution and the strongest established June\u2013July basis-stability evidence.",
+    "where_autoencoder_adds_value": "The autoencoder may add value where its matched-dimension reconstruction or neighborhood metrics improve; Stage 2 provides screening evidence only.",
+    "where_vae_adds_value": "The VAE offers a regularized latent distribution and traversal diagnostics only if active-dimension and decoder-sensitivity checks rule out collapse.",
+    "whether_nonlinear_complexity_is_justified": "Unresolved. One screening seed is insufficient to justify nonlinear complexity.",
+    "unresolved_questions": "Multi-seed stability, final architecture choice, and resampled cluster stability remain for Stage 3.",
+    "limitations": "PCA preserves the established full-cohort basis, while neural validation uses held-out configuration groups. Categorical one-hot outputs are reconstructed with joint MSE and are not guaranteed to be valid exclusive categories."
+  }
+}

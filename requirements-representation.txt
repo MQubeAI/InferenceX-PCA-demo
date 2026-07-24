@@ -1,0 +1,2 @@
+-r requirements-streamlit.txt
+torch>=2.8,<3

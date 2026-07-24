@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+from streamlit.testing.v1 import AppTest
 
 from apps import inferencex_pca_demo as app
 
@@ -14,7 +15,12 @@ class DashboardUiTests(unittest.TestCase):
     def test_navigation_has_exactly_four_presentable_tabs(self) -> None:
         self.assertEqual(
             app.MAIN_TAB_LABELS,
-            ("Overview", "Data Understanding", "PCA", "Model Results"),
+            (
+                "Overview",
+                "Data Understanding",
+                "Representation Analysis",
+                "Model Results",
+            ),
         )
         main_source = inspect.getsource(app.main)
         self.assertIn("st.tabs(MAIN_TAB_LABELS)", main_source)
@@ -78,6 +84,53 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("dataset in the cumulative July 20 snapshot", source)
         self.assertIn("Use optional log1p color scale (display only)", source)
         self.assertNotIn("grouped_rf_evaluation", source)
+
+    def test_representation_analysis_has_five_subpages_and_pca_is_not_duplicated(self) -> None:
+        self.assertEqual(
+            app.REPRESENTATION_SUBPAGE_LABELS,
+            (
+                "Principal Component Analysis",
+                "Autoencoder",
+                "Variational Autoencoder",
+                "Results and Comparison",
+                "Research Validation",
+            ),
+        )
+        source = inspect.getsource(app.render_representation_analysis_dashboard)
+        main_source = inspect.getsource(app.main)
+        self.assertIn("st.tabs(REPRESENTATION_SUBPAGE_LABELS)", source)
+        self.assertIn("render_pca_dashboard", source)
+        self.assertIn("render_representation_analysis_dashboard", main_source)
+        self.assertIn("render_research_validation_dashboard", source)
+        self.assertNotIn("render_pca_dashboard(", main_source)
+
+    def test_research_validation_is_artifact_only_and_reports_method_limits(self) -> None:
+        source = inspect.getsource(app.render_research_validation_dashboard)
+        self.assertIn("Train-only preprocessing sensitivity", source)
+        self.assertIn("Equal-weight reconstruction over 19 source features", source)
+        self.assertIn("Three independent grouped partition assignments", source)
+        self.assertIn("cross-method agreement", source)
+        self.assertIn("Ablations are exploratory", source)
+        self.assertNotIn(".fit(", source)
+        self.assertNotIn("import torch", inspect.getsource(app))
+
+    def test_neural_pages_use_artifacts_and_expose_useful_empty_and_error_states(self) -> None:
+        source = inspect.getsource(app.render_neural_representation_dashboard)
+        self.assertIn("Training is intentionally", source)
+        self.assertIn("artifact is incompatible or unreadable", source)
+        self.assertNotIn(".fit(", source)
+        self.assertNotIn("import torch", inspect.getsource(app))
+
+    def test_streamlit_apptest_renders_representation_pages_without_errors(self) -> None:
+        tested = AppTest.from_file(
+            "apps/inferencex_pca_demo.py",
+            default_timeout=90,
+        ).run()
+        self.assertEqual(len(tested.exception), 0)
+        self.assertEqual(len(tested.error), 0)
+        labels = [tab.label for tab in tested.tabs]
+        for label in (*app.MAIN_TAB_LABELS, *app.REPRESENTATION_SUBPAGE_LABELS):
+            self.assertIn(label, labels)
 
     def test_model_results_are_marked_historical_on_july_data(self) -> None:
         source = inspect.getsource(app.render_model_results_dashboard)

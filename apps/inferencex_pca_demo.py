@@ -49,6 +49,11 @@ from modeling.pca_target_analysis import (
     fit_shared_pca as fit_target_shared_pca,
     target_overlay as build_target_overlay,
 )
+from modeling.representation_analysis import (
+    FINAL_COMPARISON_SCHEMA_VERSION,
+    SOURCE_DUMP_VERSION as REPRESENTATION_SOURCE_DUMP_VERSION,
+    load_final_representation_artifact,
+)
 
 
 ACTIVE_DUMP_VERSION = "db-dump/2026-07-20"
@@ -135,7 +140,36 @@ DEFAULT_PCA_STABILITY_RUNS = 5
 DEFAULT_PCA_STABILITY_FRACTION = 0.8
 RESEARCH_ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
 PCA_TARGET_ARTIFACT_PATH = RESEARCH_ARTIFACT_DIR / "pca-db-dump-2026-07-20.json"
-MAIN_TAB_LABELS = ("Overview", "Data Understanding", "PCA", "Model Results")
+AE_REPRESENTATION_ARTIFACT_PATH = (
+    RESEARCH_ARTIFACT_DIR / "representation-ae-final-db-dump-2026-07-20.json"
+)
+VAE_REPRESENTATION_ARTIFACT_PATH = (
+    RESEARCH_ARTIFACT_DIR / "representation-vae-final-db-dump-2026-07-20.json"
+)
+REPRESENTATION_COMPARISON_ARTIFACT_PATH = (
+    RESEARCH_ARTIFACT_DIR / "representation-comparison-final-db-dump-2026-07-20.json"
+)
+VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH = (
+    RESEARCH_ARTIFACT_DIR
+    / "representation-vae-beta-diagnostic-db-dump-2026-07-20.json"
+)
+REPRESENTATION_VALIDATION_ARTIFACT_PATH = (
+    RESEARCH_ARTIFACT_DIR
+    / "representation-validation-stage4-db-dump-2026-07-20.json"
+)
+MAIN_TAB_LABELS = (
+    "Overview",
+    "Data Understanding",
+    "Representation Analysis",
+    "Model Results",
+)
+REPRESENTATION_SUBPAGE_LABELS = (
+    "Principal Component Analysis",
+    "Autoencoder",
+    "Variational Autoencoder",
+    "Results and Comparison",
+    "Research Validation",
+)
 REMOVED_TOP_LEVEL_SECTION_LABELS = (
     "Data Preview",
     "Target-Aware Feature Value",
@@ -4013,6 +4047,78 @@ def load_pca_target_artifact(path_text: str = str(PCA_TARGET_ARTIFACT_PATH)) -> 
     return artifact
 
 
+@st.cache_data(show_spinner=False)
+def load_neural_representation_artifact(
+    path_text: str,
+    method: str,
+) -> tuple[dict[str, Any], pd.DataFrame]:
+    """Load and validate aggregate neural results without importing PyTorch."""
+
+    artifact, companion_path = load_final_representation_artifact(
+        path_text, expected_method=method
+    )
+    return artifact, pd.read_parquet(companion_path)
+
+
+@st.cache_data(show_spinner=False)
+def load_representation_comparison_artifact(
+    path_text: str = str(REPRESENTATION_COMPARISON_ARTIFACT_PATH),
+) -> dict[str, Any]:
+    artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
+    if artifact.get("schema_version") != FINAL_COMPARISON_SCHEMA_VERSION:
+        raise ValueError("Comparison artifact schema version is incompatible.")
+    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+        raise ValueError("Comparison artifact source dump is incompatible.")
+    if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
+        raise ValueError("Comparison artifact feature order is incompatible.")
+    if artifact.get("compatible_cohort") is not True:
+        raise ValueError("Comparison artifact reports incompatible method cohorts.")
+    if artifact.get("random_seeds") != [42, 123, 2026]:
+        raise ValueError("Comparison artifact does not contain the fixed final seeds.")
+    return artifact
+
+
+@st.cache_data(show_spinner=False)
+def load_vae_beta_diagnostic_artifact(
+    path_text: str = str(VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH),
+) -> dict[str, Any]:
+    artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
+    if artifact.get("schema_version") != "representation-vae-beta-diagnostic-v1":
+        raise ValueError("VAE beta diagnostic schema version is incompatible.")
+    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+        raise ValueError("VAE beta diagnostic source dump is incompatible.")
+    if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
+        raise ValueError("VAE beta diagnostic feature order is incompatible.")
+    if artifact.get("target_metrics_in_inputs"):
+        raise ValueError("VAE beta diagnostic reports outcome leakage.")
+    return artifact
+
+
+@st.cache_data(show_spinner=False)
+def load_representation_validation_artifact(
+    path_text: str = str(REPRESENTATION_VALIDATION_ARTIFACT_PATH),
+) -> dict[str, Any]:
+    """Load the Stage 4 paper-validation artifact without importing PyTorch."""
+
+    artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
+    if artifact.get("schema_version") != "representation-validation-stage4-v1":
+        raise ValueError("Research Validation artifact schema version is incompatible.")
+    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+        raise ValueError("Research Validation artifact source dump is incompatible.")
+    if artifact.get("cohort_rows") != 8_063:
+        raise ValueError("Research Validation artifact cohort is incompatible.")
+    if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
+        raise ValueError("Research Validation artifact feature order is incompatible.")
+    if artifact.get("target_metrics_in_inputs"):
+        raise ValueError("Research Validation artifact reports outcome leakage.")
+    if (
+        artifact.get("pca_artifact_sha256_before")
+        != artifact.get("pca_artifact_sha256_after")
+    ):
+        raise ValueError("Research Validation artifact reports a changed PCA artifact.")
+    return artifact
+
+
 def render_overview(
     benchmarks: pd.DataFrame,
     analysis_metadata: dict[str, Any],
@@ -4062,7 +4168,11 @@ def render_overview(
     with decision_cols[1]:
         render_compact_card("Latency", "Research paused", "Tail specialization did not improve median TPOT")
     with decision_cols[2]:
-        render_compact_card("Generative modeling", "Not pursued", "VAE and CRVAE were not justified by the results")
+        render_compact_card(
+            "Target-conditioned modeling",
+            "Not pursued",
+            "Historical supervised VAE/CRVAE work remains separate from representation analysis",
+        )
     st.markdown(
         '<div class="dashboard-takeaway"><strong>Key takeaway</strong><br>'
         'Throughput prediction is the strongest validated result. Uncertainty remains research-grade, while latency modeling is paused.</div>',
@@ -4181,8 +4291,11 @@ def render_pca_dashboard(
     seed: int,
 ) -> None:
     render_section_intro(
-        "PCA",
+        "Principal Component Analysis",
         "Updated full-dataset PCA using the cumulative July 20 snapshot.",
+    )
+    st.success(
+        "PCA is a linear representation built only from configuration and workload variables."
     )
     st.info(
         "The PCA basis is fit once on configuration and workload variables from the full eligible "
@@ -4392,15 +4505,29 @@ def render_pca_dashboard(
         st.markdown("**Target values by component quantile**")
         st.dataframe(bins, width="stretch", hide_index=True)
         strongest = associations.iloc[associations[["pearson", "spearman"]].abs().max(axis=1).argmax()]["component"]
+        available_components = [f"PC{index}" for index in range(1, 6)]
+        selected_component = st.selectbox(
+            "Inspect component loadings",
+            options=available_components,
+            index=available_components.index(strongest),
+            key=f"pca_loading_component_{target}",
+            help=(
+                "Defaults to the component with the strongest absolute Pearson or Spearman "
+                "association for this descriptive outcome overlay. All first five components "
+                "remain available."
+            ),
+        )
         source_loadings = pd.DataFrame(basis["source_loadings_first_five"])
-        st.markdown(f"**Top configuration/workload loadings for {strongest}**")
+        st.markdown(f"**Top configuration/workload loadings for {selected_component}**")
         st.dataframe(
-            source_loadings.loc[source_loadings["component"].eq(strongest)].head(10),
+            source_loadings.loc[source_loadings["component"].eq(selected_component)].head(10),
             width="stretch",
             hide_index=True,
         )
         encoded_loadings = pd.DataFrame(basis["encoded_loadings_first_five"])
-        component_loadings = encoded_loadings.loc[encoded_loadings["component"].eq(strongest)]
+        component_loadings = encoded_loadings.loc[
+            encoded_loadings["component"].eq(selected_component)
+        ]
         loading_cols = st.columns(2)
         with loading_cols[0]:
             st.markdown("**Top positive loadings**")
@@ -4444,6 +4571,858 @@ def render_pca_dashboard(
         render_target_mode(PCA_OUTPUT_TARGET, projection.get(PCA_OUTPUT_TARGET) if projection else None)
     with energy_tab:
         render_target_mode(PCA_ENERGY_TARGET, projection.get(PCA_ENERGY_TARGET) if projection else None)
+
+
+def render_neural_representation_dashboard(
+    *,
+    method: str,
+    artifact_path: Path,
+    title: str,
+) -> None:
+    """Render completed aggregate artifacts only; never import or fit a neural model."""
+
+    render_section_intro(
+        title,
+        "Final bounded Stage 3 multi-seed results loaded from completed artifacts.",
+    )
+    try:
+        artifact, embedding = load_neural_representation_artifact(str(artifact_path), method)
+    except FileNotFoundError:
+        st.info(
+            f"No completed {title} artifact is available yet. Training is intentionally "
+            "disabled in Streamlit."
+        )
+        command = (
+            "scripts/train_autoencoder_representation_final.py"
+            if method == "autoencoder"
+            else "scripts/train_vae_representation_final.py"
+        )
+        st.code(
+            f"PYTHONPATH=. .venv-tabfm/bin/python {command}",
+            language="bash",
+        )
+        return
+    except Exception as exc:
+        st.error(
+            f"The {title} artifact is incompatible or unreadable: {exc}. "
+            "No representation results were rendered."
+        )
+        return
+
+    summary = artifact["summary"]
+    architecture = artifact["architecture"]
+    metrics = st.columns(5)
+    metrics[0].metric("Cohort rows", f"{artifact['cohort_rows']:,}")
+    metrics[1].metric("Latent dimension", architecture["latent_dimension"])
+    metrics[2].metric("Parameters", f"{summary['parameter_count']:,}")
+    metrics[3].metric(
+        "Validation MAE",
+        f"{summary['validation_mae']['mean']:.4f} ± "
+        f"{summary['validation_mae']['standard_deviation']:.4f}",
+    )
+    metrics[4].metric(
+        "Validation MSE",
+        f"{summary['validation_mse']['mean']:.4f} ± "
+        f"{summary['validation_mse']['standard_deviation']:.4f}",
+    )
+    st.caption(
+        f"Architecture: {architecture['input_dimension']} → "
+        + " → ".join(map(str, architecture["hidden_dimensions"]))
+        + f" → {architecture['latent_dimension']} → "
+        + " → ".join(map(str, architecture["decoder"]))
+        + f" → {architecture['input_dimension']}. Seeds: 42, 123, 2026; three grouped "
+        "config_id folds per seed. Outcomes were excluded from fitting and selection."
+    )
+    if method == "autoencoder":
+        st.info(
+            "The autoencoder is nonlinear and deterministic. Its latent coordinates can "
+            "change orientation across seeds, so stability is evaluated after alignment."
+        )
+
+    fold_rows = pd.DataFrame(
+        [
+            {
+                "seed": row["seed"],
+                "fold": row["fold"],
+                "validation MAE": row["mae"],
+                "validation MSE": row["mse"],
+                "epochs trained": row["epochs_trained"],
+                "best epoch": row["best_epoch"],
+                "early stopped": row["early_stopping_occurred"],
+                "train-validation gap": row["train_validation_gap"],
+                "runtime seconds": row["runtime_seconds"],
+            }
+            for row in artifact["runs"]
+        ]
+    )
+    selected_seed = st.selectbox(
+        "Convergence seed",
+        options=artifact["random_seeds"],
+        key=f"{method}_convergence_seed",
+    )
+    history = pd.concat(
+        [
+            pd.DataFrame(row["history"]).assign(fold=f"fold {row['fold']}")
+            for row in artifact["runs"]
+            if row["seed"] == selected_seed
+        ],
+        ignore_index=True,
+    )
+    overview_cols = st.columns(2)
+    with overview_cols[0]:
+        st.markdown("**Grouped-fold reconstruction**")
+        st.dataframe(fold_rows, width="stretch", hide_index=True)
+    with overview_cols[1]:
+        st.plotly_chart(
+            px.line(
+                history,
+                x="epoch",
+                y=["train_reconstruction", "validation_reconstruction"],
+                facet_col="fold",
+                title=f"Train and validation reconstruction loss · seed {selected_seed}",
+            ),
+            width="stretch",
+        )
+
+    if method == "variational_autoencoder":
+        try:
+            beta_diagnostic = load_vae_beta_diagnostic_artifact()
+        except Exception as exc:
+            st.error(f"The required VAE beta diagnostic is unavailable: {exc}")
+            return
+        diagnostic_rows = [
+            {
+                "beta": row["beta"],
+                "validation MSE": row["validation_mse"]["mean"],
+                "validation MAE": row["validation_mae"]["mean"],
+                "KL loss": row["validation_kl"]["mean"],
+                "total objective": row["validation_total_objective"]["mean"],
+                "minimum active dimensions": row["minimum_active_latent_dimensions"],
+                "stability": row["embedding_stability"]["mean_score"],
+                "best silhouette": row["clustering"]["best_silhouette"],
+                "collapse in any fold": row["posterior_collapse_any_fold"],
+            }
+            for row in beta_diagnostic["results"]
+        ]
+        st.markdown("**Bounded beta diagnostic**")
+        st.dataframe(pd.DataFrame(diagnostic_rows), width="stretch", hide_index=True)
+        st.caption(
+            f"Selected beta: {beta_diagnostic['selected_beta']}. "
+            f"{beta_diagnostic['selection_rationale']} Outcome probes were secondary and "
+            "did not select beta."
+        )
+        diagnostics = pd.DataFrame(summary["diagnostics_by_seed_fold"])
+        active_values = diagnostics["active_latent_dimensions"].astype(int)
+        collapse_cols = st.columns(4)
+        collapse_cols[0].metric(
+            "Active dimensions",
+            f"{active_values.min()}–{active_values.max()} / {architecture['latent_dimension']}",
+        )
+        collapse_cols[1].metric(
+            "Selected beta",
+            f"{artifact['hyperparameters']['beta']:.1f}",
+        )
+        collapse_cols[2].metric(
+            "Cross-seed stability",
+            f"{summary['cross_seed_stability']['mean_score']:.3f}",
+        )
+        collapse_cols[3].metric(
+            "Complete collapse",
+            "Not detected",
+        )
+        st.warning(
+            "Partial posterior collapse remains: only 5–7 of 15 dimensions are active. "
+            "Clustering metrics must be interpreted beside this activity and stability context."
+        )
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "dimension": np.arange(1, architecture["latent_dimension"] + 1),
+                    "decoder sensitivity mean": summary["decoder_sensitivity"][
+                        "mean_by_dimension"
+                    ],
+                    "decoder sensitivity std": summary["decoder_sensitivity"][
+                        "standard_deviation_by_dimension"
+                    ],
+                }
+            ),
+            width="stretch",
+            hide_index=True,
+        )
+
+    embedding_seed = st.selectbox(
+        "Latent-space seed",
+        options=artifact["random_seeds"],
+        key=f"{method}_embedding_seed",
+    )
+    embedding = embedding.loc[embedding["seed"].eq(embedding_seed)].copy()
+    latent_columns = [column for column in embedding if column.startswith("z")]
+    embedding["cluster"] = embedding["cluster"].astype(str)
+    color_options = {
+        "Cluster": "cluster",
+        "Median TPOT": PCA_LATENCY_TARGET,
+        "Throughput per GPU": PCA_OUTPUT_TARGET,
+        "Observed energy": PCA_ENERGY_TARGET,
+    }
+    selected_color = st.selectbox(
+        "Latent-space overlay",
+        options=list(color_options),
+        key=f"{method}_latent_overlay",
+    )
+    first_axis = latent_columns[0]
+    second_axis = latent_columns[1] if len(latent_columns) > 1 else latent_columns[0]
+    st.plotly_chart(
+        px.scatter(
+            embedding,
+            x=first_axis,
+            y=second_axis,
+            color=color_options[selected_color],
+            hover_data=["config_id", "isl", "osl", "conc"],
+            opacity=0.67,
+            render_mode="webgl",
+            title=f"{title} latent space · {selected_color}",
+        ),
+        width="stretch",
+    )
+
+    clustering = pd.DataFrame(
+        [
+            {
+                "k": row["k"],
+                "silhouette mean": row["silhouette"]["mean"],
+                "silhouette std": row["silhouette"]["standard_deviation"],
+                "Davies-Bouldin mean": row["davies_bouldin"]["mean"],
+                "Calinski-Harabasz mean": row["calinski_harabasz"]["mean"],
+                "size balance mean": row["size_balance"]["mean"],
+            }
+            for row in summary["clustering"]["metrics_by_k"]
+        ]
+    )
+    clustering_cols = st.columns(2)
+    with clustering_cols[0]:
+        st.markdown("**Shared k-means evaluation**")
+        st.dataframe(clustering, width="stretch", hide_index=True)
+    with clustering_cols[1]:
+        stability = summary["cross_seed_stability"]
+        st.markdown("**Fold representation stability**")
+        st.metric(
+            "Aligned stability score",
+            "n/a" if stability["mean_score"] is None else f"{stability['mean_score']:.3f}",
+        )
+        st.dataframe(pd.DataFrame(stability["pairs"]), width="stretch", hide_index=True)
+        st.metric(
+            "Cluster stability (mean ARI)",
+            f"{summary['clustering']['cluster_stability_mean_ari']:.3f}",
+        )
+
+    selected_target = st.selectbox(
+        "Outcome evaluation",
+        options=list(summary["outcome_overlays"]),
+        format_func=lambda value: {
+            PCA_LATENCY_TARGET: "Median TPOT",
+            PCA_OUTPUT_TARGET: "Throughput per GPU",
+            PCA_ENERGY_TARGET: "Observed energy",
+        }[value],
+        key=f"{method}_outcome_evaluation",
+    )
+    outcome = summary["outcome_overlays"][selected_target]
+    outcome_cols = st.columns(2)
+    with outcome_cols[0]:
+        st.markdown("**Grouped ridge fold and seed results**")
+        st.dataframe(
+            pd.DataFrame(outcome["fold_seed_results"]),
+            width="stretch",
+            hide_index=True,
+        )
+    with outcome_cols[1]:
+        st.markdown("**Post-hoc outcome summary**")
+        st.caption(
+            f"Grouped ridge evaluation probe: R² {outcome['r2']['mean']:.3f} ± "
+            f"{outcome['r2']['standard_deviation']:.3f}; MAE "
+            f"{outcome['mae']['mean']:.3f} ± "
+            f"{outcome['mae']['standard_deviation']:.3f}. The probe never alters "
+            "representation fitting."
+        )
+        st.dataframe(
+            pd.DataFrame(outcome["strongest_dimensions_by_seed"]),
+            width="stretch",
+            hide_index=True,
+        )
+
+    with st.expander("Interpretability and reconstruction details"):
+        st.markdown("**Reconstruction error by source feature**")
+        st.dataframe(
+            pd.DataFrame(summary["reconstruction_by_source_feature"]),
+            width="stretch",
+            hide_index=True,
+        )
+        traversal_dimension = st.selectbox(
+            "Latent traversal dimension",
+            options=list(range(1, architecture["latent_dimension"] + 1)),
+            key=f"{method}_traversal_dimension",
+        )
+        traversals = pd.DataFrame(summary["latent_traversals"])
+        st.markdown("**Feature change across a -1 to +1 latent traversal**")
+        st.dataframe(
+            traversals.loc[traversals["dimension"].eq(traversal_dimension)].head(12),
+            width="stretch",
+            hide_index=True,
+        )
+        st.markdown("**Representative configurations from low and high latent regions**")
+        st.dataframe(
+            pd.DataFrame(summary["representative_configurations"]),
+            width="stretch",
+            hide_index=True,
+        )
+        st.caption(
+            "Decoder sensitivity and representative regions are descriptive. Neural latent "
+            "dimensions are not assigned causal meanings."
+        )
+
+
+def render_representation_comparison_dashboard() -> None:
+    render_section_intro(
+        "Results and Comparison",
+        "Matched-protocol evidence across linear and nonlinear representations.",
+    )
+    try:
+        artifact = load_representation_comparison_artifact()
+    except FileNotFoundError:
+        st.info(
+            "Preliminary results: the comparison artifact is not available. It is generated "
+            "outside Streamlit after compatible PCA, autoencoder, and VAE artifacts exist."
+        )
+        return
+    except Exception as exc:
+        st.error(
+            f"The representation comparison artifact is incompatible: {exc}. "
+            "No cross-method comparison was rendered."
+        )
+        return
+
+    methods = artifact["methods"]
+    method_summary = [
+        {
+            "representation": name,
+            "dimension": method["latent_dimension"],
+            "type": method["linear_or_nonlinear"],
+            "MSE mean": method["validation_mse"]["mean"],
+            "MSE std": method["validation_mse"]["standard_deviation"],
+            "MAE mean": method["validation_mae"]["mean"],
+            "MAE std": method["validation_mae"]["standard_deviation"],
+            "stability": method["stability"]["score"],
+            "best k": method["clustering"]["selected_k"],
+            "silhouette mean": method["clustering"]["selected_metrics"]["silhouette"]["mean"],
+            "parameters": method["parameter_count"],
+            "runtime seconds": method["runtime_seconds"],
+            "artifact bytes": method["artifact_size_bytes"],
+        }
+        for name, method in methods.items()
+    ]
+    st.success(
+        "Final bounded experiment: matched 15-dimensional representations, three fixed "
+        "neural seeds, and identical grouped folds. No universal winner is declared."
+    )
+    st.markdown("**Matched 15-dimensional method summary**")
+    st.dataframe(pd.DataFrame(method_summary), width="stretch", hide_index=True)
+    comparison_tabs = st.tabs(
+        (
+            "Matched reconstruction",
+            "Clustering",
+            "Stability",
+            "Outcome overlays",
+            "Interpretability and cost",
+        )
+    )
+    with comparison_tabs[0]:
+        reconstruction = [
+            {
+                "representation": name,
+                "dimension": method["latent_dimension"],
+                "MSE mean": method["validation_mse"]["mean"],
+                "MSE std": method["validation_mse"]["standard_deviation"],
+                "MAE mean": method["validation_mae"]["mean"],
+                "MAE std": method["validation_mae"]["standard_deviation"],
+            }
+            for name, method in methods.items()
+        ]
+        st.dataframe(pd.DataFrame(reconstruction), width="stretch", hide_index=True)
+    with comparison_tabs[1]:
+        clustering = [
+            {
+                "representation": name,
+                "dimension": method["latent_dimension"],
+                "selected k": method["clustering"]["selected_k"],
+                "silhouette mean": method["clustering"]["selected_metrics"]["silhouette"]["mean"],
+                "silhouette std": method["clustering"]["selected_metrics"]["silhouette"]["standard_deviation"],
+                "Davies-Bouldin": method["clustering"]["selected_metrics"]["davies_bouldin"]["mean"],
+                "Calinski-Harabasz": method["clustering"]["selected_metrics"]["calinski_harabasz"]["mean"],
+                "size balance": method["clustering"]["selected_metrics"]["size_balance"]["mean"],
+                "cluster ARI": method["clustering"]["cluster_stability_mean_ari"],
+            }
+            for name, method in methods.items()
+        ]
+        st.dataframe(pd.DataFrame(clustering), width="stretch", hide_index=True)
+        pca5 = artifact["pca5_compact_clustering_reference"]
+        st.caption(
+            "Compact reference only — PCA-5 is not part of the matched 15-dimensional "
+            "reconstruction comparison."
+        )
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "representation": "PCA-5 compact reference",
+                        "selected k": pca5["selected_k"],
+                        "silhouette mean": pca5["selected_metrics"]["silhouette"]["mean"],
+                        "Davies-Bouldin": pca5["selected_metrics"]["davies_bouldin"]["mean"],
+                        "Calinski-Harabasz": pca5["selected_metrics"]["calinski_harabasz"]["mean"],
+                        "size balance": pca5["selected_metrics"]["size_balance"]["mean"],
+                    }
+                ]
+            ),
+            width="stretch",
+            hide_index=True,
+        )
+        st.warning(
+            "VAE clustering is interpreted beside its 5–7 active dimensions and lower "
+            "cross-seed stability; silhouette is not standalone evidence."
+        )
+    with comparison_tabs[2]:
+        stability = [
+            {
+                "representation": name,
+                "stability score": method["stability"]["score"],
+                "cluster ARI": method["stability"]["cluster_stability_mean_ari"],
+                "protocol": method["stability"]["protocol"],
+            }
+            for name, method in methods.items()
+        ]
+        st.dataframe(pd.DataFrame(stability), width="stretch", hide_index=True)
+    with comparison_tabs[3]:
+        outcome_name = st.selectbox(
+            "Outcome overlay",
+            options=list(methods["PCA-15"]["outcome_overlays"]),
+            key="comparison_outcome",
+        )
+        outcomes = [
+            {
+                "representation": name,
+                "R² mean": method["outcome_overlays"][outcome_name]["r2"]["mean"],
+                "R² std": method["outcome_overlays"][outcome_name]["r2"]["standard_deviation"],
+                "MAE mean": method["outcome_overlays"][outcome_name]["mae"]["mean"],
+                "MAE std": method["outcome_overlays"][outcome_name]["mae"]["standard_deviation"],
+            }
+            for name, method in methods.items()
+        ]
+        st.dataframe(pd.DataFrame(outcomes), width="stretch", hide_index=True)
+        st.caption("All ridge probes are post-hoc evaluation only.")
+    with comparison_tabs[4]:
+        interpretability = [
+            {
+                "representation": name,
+                "interpretability": method["interpretability"],
+                "parameters": method["parameter_count"],
+                "runtime seconds": method["runtime_seconds"],
+                "transformation seconds": method["transformation_seconds"],
+                "artifact bytes": method["artifact_size_bytes"],
+            }
+            for name, method in methods.items()
+        ]
+        st.dataframe(pd.DataFrame(interpretability), width="stretch", hide_index=True)
+
+    st.markdown("#### Evidence-specific conclusion matrix")
+    st.dataframe(pd.DataFrame(artifact["conclusion_matrix"]), width="stretch", hide_index=True)
+    interpretation = artifact["publication_interpretation"]
+    st.markdown("**Evidence from this experiment**")
+    st.write(interpretation["evidence"])
+    st.markdown("**Interpretation**")
+    st.write(interpretation["interpretation"])
+    st.markdown("**Unresolved questions**")
+    st.write(interpretation["unresolved_questions"])
+
+
+def render_research_validation_dashboard() -> None:
+    """Render Stage 4 as a methods-validation section rather than a leaderboard."""
+
+    render_section_intro(
+        "Research Validation",
+        (
+            "Sensitivity analyses for preprocessing leakage, grouped partition choice, "
+            "source-feature balance, interpretability, and cross-method agreement."
+        ),
+    )
+    try:
+        artifact = load_representation_validation_artifact()
+    except FileNotFoundError:
+        st.info(
+            "Research Validation is not available yet. Generate the versioned Stage 4 "
+            "artifact outside Streamlit with scripts/run_representation_validation_stage4.py."
+        )
+        return
+    except Exception as exc:
+        st.error(
+            f"The Research Validation artifact is incompatible: {exc}. "
+            "No validation conclusions were rendered."
+        )
+        return
+
+    st.success(
+        "The canonical 8,063-row cohort, 19-feature schema, grouped config_id protocol, "
+        "and outcome-exclusion safeguards were preserved. The PCA artifact remained "
+        "byte-identical."
+    )
+    evidence_tabs = st.tabs(
+        (
+            "Leakage and reconstruction",
+            "Partition robustness",
+            "Feature consistency",
+            "Cluster agreement",
+            "Ablations and limitations",
+        )
+    )
+    with evidence_tabs[0]:
+        st.markdown("#### Train-only preprocessing sensitivity")
+        leakage_rows = []
+        for row in artifact["strict_preprocessing"]["current_fold_comparison"]:
+            leakage_rows.append(
+                {
+                    "method": row["method"],
+                    "Stage 3 MSE": row["stage3_full_cohort_preprocessing_mse"],
+                    "train-only MSE": row["strict_train_only_preprocessing_mse"],
+                    "absolute change": row["absolute_change"],
+                    "relative change": row["relative_change"],
+                }
+            )
+        st.dataframe(pd.DataFrame(leakage_rows), width="stretch", hide_index=True)
+        st.caption(
+            "Imputers, scaling, and categorical mappings are fit on training rows only. "
+            "Validation-only categories are encoded as unknown. The shifts do not reverse "
+            "the reconstruction ordering. Stage 3 and strict values use the same seed-42 "
+            "fold runs to isolate preprocessing."
+        )
+
+        st.markdown("#### Equal-weight reconstruction over 19 source features")
+        source_rows = []
+        type_rows = []
+        source = artifact["source_feature_reconstruction"]["strict_current"]
+        for method, summary in source.items():
+            source_rows.append(
+                {
+                    "method": method,
+                    "balanced source MAE": summary["balanced_source_mae"]["mean"],
+                    "MAE std": summary["balanced_source_mae"]["standard_deviation"],
+                    "balanced source MSE": summary["balanced_source_mse"]["mean"],
+                    "MSE std": summary["balanced_source_mse"]["standard_deviation"],
+                }
+            )
+            for feature_type in ("numeric", "boolean", "categorical"):
+                rows = [
+                    row
+                    for row in summary["features"]
+                    if row["feature_type"] == feature_type
+                ]
+                if rows:
+                    type_rows.append(
+                        {
+                            "method": method,
+                            "feature type": feature_type,
+                            "features": len(rows),
+                            "mean balanced MSE": float(
+                                np.mean([row["balanced_mse"]["mean"] for row in rows])
+                            ),
+                            "mean exact accuracy": (
+                                float(
+                                    np.mean(
+                                        [
+                                            row["exact_accuracy"]["mean"]
+                                            for row in rows
+                                            if row["exact_accuracy"] is not None
+                                        ]
+                                    )
+                                )
+                                if any(row["exact_accuracy"] is not None for row in rows)
+                                else None
+                            ),
+                            "mean top-2 accuracy": (
+                                float(
+                                    np.mean(
+                                        [
+                                            row["top2_accuracy"]["mean"]
+                                            for row in rows
+                                            if row["top2_accuracy"] is not None
+                                        ]
+                                    )
+                                )
+                                if any(row["top2_accuracy"] is not None for row in rows)
+                                else None
+                            ),
+                        }
+                    )
+        st.dataframe(pd.DataFrame(source_rows), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(type_rows), width="stretch", hide_index=True)
+        with st.expander("Per-source-feature metrics and reconstruction ranks"):
+            method = st.selectbox(
+                "Representation",
+                options=list(source),
+                key="validation_source_method",
+            )
+            feature_rows = []
+            for row in source[method]["features"]:
+                feature_rows.append(
+                    {
+                        "source feature": row["source_feature"],
+                        "type": row["feature_type"],
+                        "MAE": row["mae"]["mean"],
+                        "MSE": row["mse"]["mean"],
+                        "balanced MAE": row["balanced_mae"]["mean"],
+                        "balanced MSE": row["balanced_mse"]["mean"],
+                        "exact accuracy": (
+                            row["exact_accuracy"]["mean"]
+                            if row["exact_accuracy"] is not None
+                            else None
+                        ),
+                        "top-2 accuracy": (
+                            row["top2_accuracy"]["mean"]
+                            if row["top2_accuracy"] is not None
+                            else None
+                        ),
+                        "rank": row["reconstruction_rank"],
+                    }
+                )
+            st.dataframe(pd.DataFrame(feature_rows), width="stretch", hide_index=True)
+
+    with evidence_tabs[1]:
+        st.markdown("#### Three independent grouped partition assignments")
+        robustness_rows = []
+        for method, summary in artifact["partition_robustness"].items():
+            variation = summary["variation"]
+            robustness_rows.append(
+                {
+                    "method": method,
+                    "encoded MSE mean": summary["encoded_mse"]["mean"],
+                    "combined-run std": summary["encoded_mse"]["standard_deviation"],
+                    "between-partition std": variation["between_partition_mse"][
+                        "standard_deviation"
+                    ],
+                    "between-seed std": (
+                        variation["between_seed_mse"]["standard_deviation"]
+                        if variation["between_seed_mse"]
+                        else None
+                    ),
+                    "source-balanced MSE": summary["source_balanced"][
+                        "balanced_source_mse"
+                    ]["mean"],
+                    "geometry stability": summary.get("geometry", {}).get(
+                        "combined_mean_stability"
+                    ),
+                }
+            )
+        st.dataframe(pd.DataFrame(robustness_rows), width="stretch", hide_index=True)
+        st.caption(
+            "Each independent assignment has three config_id-grouped folds. Neural "
+            "results use seeds 42, 123, and 2026; no configuration crosses a fold."
+        )
+
+        st.markdown("#### One bounded robustness intervention per neural method")
+        variants = artifact["robustness_experiments"]
+        variant_rows = []
+        for method, baseline_key, candidate_key in (
+            ("AE", "baseline", "denoising_5_percent"),
+            ("VAE", "baseline", "kl_warmup_50_epochs"),
+        ):
+            section = (
+                variants["autoencoder"]
+                if method == "AE"
+                else variants["variational_autoencoder"]
+            )
+            for label, key in (("baseline", baseline_key), ("candidate", candidate_key)):
+                summary = section[key]
+                variant_rows.append(
+                    {
+                        "method": method,
+                        "variant": label,
+                        "MSE mean": summary["encoded_mse"]["mean"],
+                        "MSE std": summary["encoded_mse"]["standard_deviation"],
+                        "MAE mean": summary["encoded_mae"]["mean"],
+                        "active dimensions": (
+                            ", ".join(
+                                str(run["active_latent_dimensions"])
+                                for run in summary["runs"]
+                            )
+                            if method == "VAE"
+                            else "n/a"
+                        ),
+                        "stability": (
+                            section["baseline_stability"]["mean_score"]
+                            if label == "baseline"
+                            else section[
+                                "denoising_stability"
+                                if method == "AE"
+                                else "warmup_stability"
+                            ]["mean_score"]
+                        ),
+                    }
+                )
+        st.dataframe(pd.DataFrame(variant_rows), width="stretch", hide_index=True)
+        st.caption(
+            "Five-percent denoising did not improve AE generalization. KL warm-up improved "
+            "VAE reconstruction, active-dimension consistency, and aligned stability."
+        )
+
+    with evidence_tabs[2]:
+        st.markdown("#### Repeated feature importance")
+        consistency = artifact["feature_consistency"]
+        pca_top = pd.DataFrame(consistency["PCA"]["top5_frequency"]).head(10)
+        neural_rows = []
+        for method in ("AE", "VAE"):
+            for row in consistency[method]["features"]:
+                neural_rows.append(
+                    {
+                        "method": method,
+                        "source feature": row["source_feature"],
+                        "importance mean": row["importance"]["mean"],
+                        "importance std": row["importance"]["standard_deviation"],
+                        "top-5 run frequency": row["top5_run_frequency"],
+                    }
+                )
+        st.markdown("**PCA bootstrap top-five loading frequency**")
+        st.dataframe(pca_top, width="stretch", hide_index=True)
+        st.markdown("**Neural decoder-sensitivity consistency**")
+        st.dataframe(
+            pd.DataFrame(neural_rows)
+            .sort_values(["method", "top-5 run frequency"], ascending=[True, False])
+            .groupby("method", as_index=False)
+            .head(8),
+            width="stretch",
+            hide_index=True,
+        )
+        st.caption(
+            f"Mean pairwise feature-rank correlation: AE "
+            f"{consistency['AE']['mean_rank_correlation']:.3f}; VAE "
+            f"{consistency['VAE']['mean_rank_correlation']:.3f}. Decoder sensitivity is "
+            "descriptive and does not assign causal meaning."
+        )
+
+    with evidence_tabs[3]:
+        agreement_rows = []
+        for row in artifact["cross_method_cluster_agreement"]["summary"]:
+            agreement_rows.append(
+                {
+                    "methods": f"{row['left']} ↔ {row['right']}",
+                    "ARI mean": row["adjusted_rand_index"]["mean"],
+                    "ARI std": row["adjusted_rand_index"]["standard_deviation"],
+                    "NMI mean": row["normalized_mutual_information"]["mean"],
+                    "row overlap": row["row_cluster_overlap"]["mean"],
+                    "configuration ARI": row[
+                        "configuration_adjusted_rand_index"
+                    ]["mean"],
+                    "configuration overlap": row["configuration_overlap"]["mean"],
+                }
+            )
+        st.dataframe(pd.DataFrame(agreement_rows), width="stretch", hide_index=True)
+        st.caption(
+            "Clusters use a shared k-means procedure. Agreement is assessed across rows and "
+            "configuration-level majority assignments; visual separation is not used as evidence."
+        )
+
+    with evidence_tabs[4]:
+        st.markdown("#### Bounded feature-family ablations")
+        ablation_rows = []
+        for ablation in artifact["ablations"]["bounded_feature_families"]:
+            for method, summary in ablation["methods"].items():
+                ablation_rows.append(
+                    {
+                        "feature family": ablation["label"],
+                        "method": method,
+                        "source features": ablation["source_feature_count"],
+                        "best k": summary["clustering"]["best_k"],
+                        "silhouette": summary["clustering"]["best_silhouette"],
+                        "TPOT ridge R²": summary["grouped_ridge_probes"][
+                            PCA_LATENCY_TARGET
+                        ]["r2"],
+                        "throughput ridge R²": summary["grouped_ridge_probes"][
+                            PCA_OUTPUT_TARGET
+                        ]["r2"],
+                        "energy ridge R²": summary["grouped_ridge_probes"][
+                            PCA_ENERGY_TARGET
+                        ]["r2"],
+                    }
+                )
+        st.dataframe(pd.DataFrame(ablation_rows), width="stretch", hide_index=True)
+        st.warning(
+            "Ablations are exploratory: PCA uses all three folds, while each neural ablation "
+            "uses seed 42 and fixed fold 0 to respect the compute bound. Reconstruction error "
+            "is not compared across feature families because their encoded dimensions differ."
+        )
+        st.markdown("#### Methodological limitations")
+        st.write(
+            "The evidence comes from one benchmark program and one cumulative snapshot; "
+            "neural feature importance remains local and decoder-based; the VAE retains only "
+            "a subset of its nominal dimensions; and the feature-family ablations do not carry "
+            "full neural uncertainty. The June export can support retrospective temporal "
+            "validation, but the next untouched official snapshot is needed for prospective "
+            "external validation."
+        )
+
+
+def render_representation_analysis_dashboard(
+    joined: pd.DataFrame,
+    analysis_metadata: dict[str, Any],
+    max_rows: int,
+    seed: int,
+) -> None:
+    render_section_intro(
+        "Representation Analysis",
+        (
+            "This section compares linear and nonlinear methods for learning a compact "
+            "representation of inference configuration space. PCA, the autoencoder, and "
+            "the variational autoencoder use the same eligible observations and the same "
+            "configuration and workload inputs. Performance and energy metrics are excluded "
+            "from representation training and used only for evaluation."
+        ),
+    )
+    with st.expander("Shared methodology", expanded=True):
+        methodology = pd.DataFrame(
+            [
+                {"item": "Cohort", "value": "8,063 single_turn aggregate groups"},
+                {"item": "Source date range", "value": "2025-09-29 through 2026-07-18"},
+                {"item": "Configurations", "value": "1,354"},
+                {"item": "Input features", "value": "19 configuration and workload variables"},
+                {"item": "Excluded workloads", "value": "176 agentic_traces aggregate groups"},
+                {"item": "Grouped validation", "value": "3 folds; config_id never crosses a fold"},
+                {
+                    "item": "Target overlays",
+                    "value": "Median TPOT, throughput per GPU, observed energy",
+                },
+                {
+                    "item": "Artifact versions",
+                    "value": "PCA target overlays v2; final representation analysis v2",
+                },
+            ]
+        )
+        st.dataframe(methodology, width="stretch", hide_index=True)
+        st.caption("Feature order: " + ", ".join(TARGET_PCA_FEATURES))
+
+    subpages = st.tabs(REPRESENTATION_SUBPAGE_LABELS)
+    with subpages[0]:
+        render_pca_dashboard(joined, analysis_metadata, max_rows, seed)
+    with subpages[1]:
+        render_neural_representation_dashboard(
+            method="autoencoder",
+            artifact_path=AE_REPRESENTATION_ARTIFACT_PATH,
+            title="Autoencoder",
+        )
+    with subpages[2]:
+        render_neural_representation_dashboard(
+            method="variational_autoencoder",
+            artifact_path=VAE_REPRESENTATION_ARTIFACT_PATH,
+            title="Variational Autoencoder",
+        )
+    with subpages[3]:
+        render_representation_comparison_dashboard()
+    with subpages[4]:
+        render_research_validation_dashboard()
 
 
 def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:
@@ -4697,7 +5676,7 @@ def main() -> None:
         with tabs[1]:
             st.info("Data Understanding is available after benchmark data loads.")
         with tabs[2]:
-            st.info("PCA is available after benchmark data loads.")
+            st.info("Representation Analysis is available after benchmark data loads.")
         with tabs[3]:
             render_model_results_dashboard(research_summary, research_error)
         return
@@ -4724,7 +5703,9 @@ def main() -> None:
     with tabs[1]:
         render_data_understanding_dashboard(joined, analysis_frame, analysis_metadata, int(max_rows), int(seed))
     with tabs[2]:
-        render_pca_dashboard(pca_frame, pca_metadata, int(max_rows), int(seed))
+        render_representation_analysis_dashboard(
+            pca_frame, pca_metadata, int(max_rows), int(seed)
+        )
     with tabs[3]:
         render_model_results_dashboard(research_summary, research_error)
         render_energy_measurements_dashboard(joined)

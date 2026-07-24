@@ -1,4 +1,4 @@
-# InferenceX PCA Demo
+# InferenceX Representation Analysis Demo
 
 This repository contains a Streamlit research dashboard and reproducible modeling pipeline for understanding which inference configuration features structure benchmark performance and which features predict selected outcomes.
 
@@ -7,11 +7,14 @@ This repository contains a Streamlit research dashboard and reproducible modelin
 - Loads local InferenceX benchmark and configuration CSV data, with JSON fallback for local development.
 - Joins `benchmark_results.config_id = configs.id`.
 - Builds a data-understanding layer for missingness, cardinality, distributions, workload coverage, and data quality.
-- Runs PCA on configuration and workload features only.
-- Uses outcome metrics as overlays or supervised targets, not PCA inputs.
+- Compares PCA, a deterministic autoencoder, and a variational autoencoder on the same
+  configuration/workload representation cohort.
+- Uses outcome metrics as post-fit overlays or supervised evaluation targets, never as
+  representation-training inputs.
 - Evaluates Random Forest, CatBoost, and TabFM with deterministic grouped validation by `config_id`.
 - Diagnoses residual behavior and compares conformal uncertainty methods.
-- Reads aggregate research artifacts in Streamlit without fitting TabFM during normal startup.
+- Reads completed representation and model artifacts in Streamlit without importing PyTorch or
+  fitting any model during normal startup.
 
 ## Why This Matters
 
@@ -75,6 +78,20 @@ python3 -m pip install -r requirements-streamlit.txt
 PYTHONPATH=. streamlit run apps/inferencex_pca_demo.py
 ```
 
+The four top-level pages are **Overview**, **Data Understanding**, **Representation Analysis**, and
+**Model Results**. Representation Analysis contains **Principal Component Analysis**,
+**Autoencoder**, **Variational Autoencoder**, **Results and Comparison**, and
+**Research Validation** subpages.
+
+Neural training is never performed in Streamlit. Install the separate research dependencies into
+a Python 3.11 environment before running the scripts:
+
+```bash
+python3.11 -m venv .venv-representation
+source .venv-representation/bin/activate
+python -m pip install -r requirements-representation.txt
+```
+
 ## Observed Energy Measurements
 
 The **Model Results** tab includes an observed-only Energy Measurements explorer. It performs a
@@ -117,6 +134,75 @@ PYTHONPATH=. .venv-streamlit/bin/python scripts/build_july_pca_artifact.py \
   --june-data-dir inferencex-pca-data \
   --output artifacts/pca-db-dump-2026-07-20.json
 ```
+
+The preserved Stage 2 bounded neural screens are generated separately:
+
+```bash
+PYTHONPATH=. .venv-representation/bin/python scripts/train_autoencoder_representation.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --output artifacts/representation-ae-db-dump-2026-07-20.json \
+  --weights artifacts/representation-ae-db-dump-2026-07-20.pt
+
+PYTHONPATH=. .venv-representation/bin/python scripts/train_vae_representation.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --output artifacts/representation-vae-db-dump-2026-07-20.json \
+  --weights artifacts/representation-vae-db-dump-2026-07-20.pt
+
+PYTHONPATH=. .venv-streamlit/bin/python scripts/build_representation_comparison_artifact.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --output artifacts/representation-comparison-db-dump-2026-07-20.json
+```
+
+The bounded Stage 3 final experiment uses the fixed 15-dimensional architecture and seeds 42,
+123, and 2026:
+
+```bash
+PYTHONPATH=. .venv-representation/bin/python scripts/train_autoencoder_representation_final.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --maximum-epochs 250
+
+PYTHONPATH=. .venv-representation/bin/python scripts/diagnose_vae_representation_beta.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+
+PYTHONPATH=. .venv-representation/bin/python scripts/train_vae_representation_final.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+
+PYTHONPATH=. .venv-streamlit/bin/python scripts/build_representation_comparison_final.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+```
+
+Stage 4 is a fixed methodological validation, not another model search. It fits every imputer,
+scaler, categorical mapping, and representation on grouped-fold training rows only; repeats the
+evaluation across three independent grouped partition assignments; and adds source-balanced
+reconstruction, bounded robustness interventions, cross-method cluster agreement, and two
+feature-family ablations:
+
+```bash
+PYTHONPATH=. .venv-representation/bin/python \
+  scripts/run_representation_validation_stage4.py \
+  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+```
+
+The command writes
+`artifacts/representation-validation-stage4-db-dump-2026-07-20.json`. It does not replace any
+Stage 3 artifact. The optional `--augment-warmup-diagnostics` mode recreates only the three fixed
+VAE warm-up folds when per-dimension diagnostic arrays need to be refreshed; it is not a search.
+
+The preserved PCA artifact is `artifacts/pca-db-dump-2026-07-20.json`. Neural JSON artifacts store
+cohort and row-key hashes, exact feature order, preprocessing and split metadata, training
+histories, validation/evaluation results, and software versions. Final v2 artifacts move row-level
+embeddings and row keys to Zstandard-compressed Parquet companions and use versioned `.pt` bundles
+for all seed/fold weights. The dashboard rejects artifacts with incompatible schemas, snapshot
+versions, cohorts, feature order, companion checksum, row order, or seeds. See
+`reports/representation_analysis_protocol.md` for the fixed pre-interpretation protocol.
+The completed one-seed screening results and the explicit stop decision before Stage 3 are in
+`reports/representation_analysis_stage2.md`. Final multi-seed evidence is in
+`reports/representation_analysis_stage3.md`. Leakage, partition, source-feature, interpretability,
+cluster-agreement, and ablation evidence is in `reports/representation_analysis_stage4.md`.
+
+For reproducibility, use the active July dump, fixed seeds 42/123/2026, the recorded three
+`config_id` folds, and the commands above. Neural training is never performed in Streamlit. Do not
+add database dumps to Git.
 
 ## Completed Model Research
 
