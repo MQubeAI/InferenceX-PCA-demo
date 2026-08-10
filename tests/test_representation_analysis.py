@@ -5,6 +5,7 @@ import inspect
 import json
 import statistics
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -146,7 +147,7 @@ class RepresentationArtifactTests(unittest.TestCase):
     def test_streamlit_import_does_not_import_neural_framework(self) -> None:
         completed = subprocess.run(
             [
-                str(Path(".venv-streamlit/bin/python")),
+                sys.executable,
                 "-c",
                 "import sys; import apps.inferencex_pca_demo; "
                 "raise SystemExit(1 if 'torch' in sys.modules else 0)",

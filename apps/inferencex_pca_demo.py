@@ -3176,9 +3176,11 @@ def run_tabfm_comparison_subprocess(
     seed: int,
     context_cap: int,
     analysis_unit: str,
+    *,
+    interpreter: str | Path | None = None,
 ) -> tuple[dict[str, Any] | None, str]:
     """Keep TabFM imports and checkpoint loading out of the Streamlit process."""
-    interpreter = Path(".venv-tabfm/bin/python")
+    interpreter = Path(interpreter) if interpreter is not None else Path(".venv-tabfm/bin/python")
     script = Path("scripts/model_comparison.py")
     if not interpreter.exists():
         return None, "TabFM environment is unavailable at .venv-tabfm/bin/python."

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -96,10 +97,13 @@ class ModelComparisonTests(unittest.TestCase):
             return subprocess.CompletedProcess(command, 0, "ok", "")
 
         with patch.object(app.subprocess, "run", side_effect=fake_run) as run:
-            result, error = app.run_tabfm_comparison_subprocess("inferencex-pca-data", "metrics_p99_itl", 1, 100, 42, 16, "Raw benchmark rows")
+            result, error = app.run_tabfm_comparison_subprocess(
+                "inferencex-pca-data", "metrics_p99_itl", 1, 100, 42, 16,
+                "Raw benchmark rows", interpreter=sys.executable,
+            )
         self.assertEqual(error, "")
         self.assertTrue(result["available"])
-        self.assertIn(".venv-tabfm/bin/python", run.call_args.args[0][0])
+        self.assertEqual(run.call_args.args[0][0], sys.executable)
         metadata = {"dataset_fingerprint": "a", "analysis_unit": "unit", "analysis_row_count": 3}
         self.assertNotEqual(app.analysis_signature(metadata, "model-comparison", {"folds": 1}), app.analysis_signature(metadata, "model-comparison", {"folds": 2}))
 
