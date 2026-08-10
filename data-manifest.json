@@ -13,7 +13,7 @@
   "files": {
     "benchmark_results_raw.csv": {
       "size_bytes": 78570522,
-      "sha256": null,
+      "sha256": "668dcbf10dfe07bda3949a5eada4c4a9f308024ce929fe71a504c952d4b08350",
       "expected": {
         "rows": 81851,
         "required_columns": ["config_id", "metrics"]
@@ -21,21 +21,21 @@
     },
     "configs.csv": {
       "size_bytes": 118252,
-      "sha256": null,
+      "sha256": "827fad4296c602ce010259b2ab7540420b8900ff869fb2578097293f328e29c4",
       "expected": {
-        "rows": 1368,
+        "rows": 1935,
         "required_columns": ["id"]
       }
     }
   },
   "bundle": {
     "filename": "inferencex-dashboard-data-2026-07-20.zip",
-    "download_url": null,
-    "sha256": null,
+    "download_url": "https://github.com/MQubeAI/InferenceX-PCA-demo/releases/download/dashboard-data/2026-07-20/inferencex-dashboard-data-2026-07-20.zip",
+    "sha256": "6a59f9d69f554b45e30054c71e623082e6884d26554ef87f601322327a3b254f",
     "archive_format": "zip",
     "archive_root": "",
-    "publication_status": "pending",
-    "publication_note": "A rights-cleared dashboard-only CSV bundle must be published before normal bootstrap can download this checkpoint. Do not substitute the upstream PostgreSQL dump."
+    "publication_status": "published",
+    "publication_note": "Published as the dashboard-data/2026-07-20 GitHub release asset. Do not substitute the upstream PostgreSQL dump."
   },
   "upstream_recovery": {
     "normal_dashboard_use": "not required",

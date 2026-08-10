@@ -61,16 +61,14 @@ SHA-256 fields. The bootstrap command is idempotent:
 python3.11 scripts/bootstrap_dashboard_data.py
 ```
 
-At this repository revision, the upstream project publishes only the original PostgreSQL dump
-parts, not a dashboard-only CSV release asset. The manifest deliberately leaves the dashboard
-bundle URL and the three unavailable full hashes unset rather than fabricate them. Until a
-rights-cleared `inferencex-dashboard-data-2026-07-20.zip` is published and its archive/file hashes
-are committed, bootstrap fails with an explicit publication-required error. See
-`docs/future-automated-snapshot-refresh.md` for the deferred refresh work; it is not implemented
-by this dashboard.
+The dashboard-only CSV bundle is published as
+[`dashboard-data/2026-07-20`](https://github.com/MQubeAI/InferenceX-PCA-demo/releases/tag/dashboard-data/2026-07-20).
+The manifest pins its download URL, archive SHA-256, and the full SHA-256 values of both CSVs;
+bootstrap fails closed if any verification step differs. The original PostgreSQL dump remains
+provenance/recovery material, not a normal dashboard dependency.
 
-After that release is published, run the network-backed clean-clone acceptance smoke test from a
-fresh checkout (with no `.data/` directory):
+Run the network-backed clean-clone acceptance smoke test from a fresh checkout (with no `.data/`
+directory):
 
 ```bash
 python3.11 scripts/clean_clone_smoke_test.py
@@ -215,7 +213,7 @@ cohort and row-key hashes, exact feature order, preprocessing and split metadata
 histories, validation/evaluation results, and software versions. Final v2 artifacts move row-level
 embeddings and row keys to Zstandard-compressed Parquet companions and use versioned `.pt` bundles
 for all seed/fold weights. The dashboard rejects artifacts with incompatible schemas, snapshot
-versions, cohorts, feature order, companion checksum, row order, or seeds. See
+versions, cohorts, feature order, companion checksum, semantic row identity, or seeds. See
 `reports/representation_analysis_protocol.md` for the fixed pre-interpretation protocol.
 The completed one-seed screening results and the explicit stop decision before Stage 3 are in
 `reports/representation_analysis_stage2.md`. Final multi-seed evidence is in
