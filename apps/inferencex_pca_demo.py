@@ -64,6 +64,9 @@ from modeling.pca_target_analysis import (
 from modeling.representation_analysis import (
     FINAL_COMPARISON_SCHEMA_VERSION,
     SOURCE_DUMP_VERSION as REPRESENTATION_SOURCE_DUMP_VERSION,
+    CanonicalRepresentationData,
+    align_companion_to_active_cohort,
+    canonical_representation_data,
     load_final_representation_artifact,
 )
 
@@ -4299,6 +4302,7 @@ def render_pca_dashboard(
     analysis_metadata: dict[str, Any],
     max_rows: int,
     seed: int,
+    semantic_report: dict[str, Any] | None = None,
 ) -> None:
     render_section_intro(
         "Principal Component Analysis",
@@ -4328,6 +4332,12 @@ def render_pca_dashboard(
         st.error(
             f"{ARTIFACT_INCOMPATIBLE}: the loaded data is not a verified match for the cumulative-snapshot PCA artifact. "
             "No saved basis or target overlay was applied."
+        )
+        return
+    if semantic_report is None:
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the saved PCA basis requires a validated semantic "
+            "representation cohort. No saved basis or target overlay was applied."
         )
         return
 
@@ -4589,6 +4599,7 @@ def render_neural_representation_dashboard(
     artifact_path: Path,
     title: str,
     active_dataset: dict[str, Any],
+    active_representation_data: CanonicalRepresentationData,
 ) -> None:
     """Render completed aggregate artifacts only; never import or fit a neural model."""
 
@@ -4627,6 +4638,19 @@ def render_neural_representation_dashboard(
             "No representation results were rendered."
         )
         return
+    try:
+        embedding, _semantic_report = align_companion_to_active_cohort(
+            embedding,
+            active_representation_data,
+            expected_pca_input_hash=artifact.get("semantic_identity", {}).get("pca_input_hash"),
+        )
+    except Exception as exc:
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the {title} companion does not match the active "
+            f"cohort by row identity: {exc}. No representation results were rendered."
+        )
+        return
 
     summary = artifact["summary"]
     architecture = artifact["architecture"]
@@ -4651,6 +4675,10 @@ def render_neural_representation_dashboard(
         + " → ".join(map(str, architecture["decoder"]))
         + f" → {architecture['input_dimension']}. Seeds: 42, 123, 2026; three grouped "
         "config_id folds per seed. Outcomes were excluded from fitting and selection."
+    )
+    st.caption(
+        "Semantic cohort validation passed: embeddings and outcome overlays were aligned "
+        "to the active data by row_id, not by dataframe position."
     )
     if method == "autoencoder":
         st.info(
@@ -5439,27 +5467,52 @@ def render_representation_analysis_dashboard(
         st.dataframe(methodology, width="stretch", hide_index=True)
         st.caption("Feature order: " + ", ".join(TARGET_PCA_FEATURES))
 
+    active_dataset = analysis_metadata.get("dataset_manifest", {})
+    try:
+        active_representation_data = canonical_representation_data(joined)
+        reference_artifact, reference_embedding = load_neural_representation_artifact(
+            str(AE_REPRESENTATION_ARTIFACT_PATH), "autoencoder"
+        )
+        if not artifact_matches_active_dataset(active_dataset, reference_artifact):
+            raise ValueError("the reference autoencoder artifact does not match the verified checkpoint")
+        _aligned_reference, semantic_report = align_companion_to_active_cohort(
+            reference_embedding,
+            active_representation_data,
+            expected_pca_input_hash=reference_artifact.get("semantic_identity", {}).get(
+                "pca_input_hash"
+            ),
+        )
+    except Exception as exc:
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the active cohort could not be matched to the "
+            f"committed July artifacts by row identity: {exc}."
+        )
+        return
+
     subpages = st.tabs(REPRESENTATION_SUBPAGE_LABELS)
     with subpages[0]:
-        render_pca_dashboard(joined, analysis_metadata, max_rows, seed)
+        render_pca_dashboard(joined, analysis_metadata, max_rows, seed, semantic_report)
     with subpages[1]:
         render_neural_representation_dashboard(
             method="autoencoder",
             artifact_path=AE_REPRESENTATION_ARTIFACT_PATH,
             title="Autoencoder",
-            active_dataset=analysis_metadata.get("dataset_manifest", {}),
+            active_dataset=active_dataset,
+            active_representation_data=active_representation_data,
         )
     with subpages[2]:
         render_neural_representation_dashboard(
             method="variational_autoencoder",
             artifact_path=VAE_REPRESENTATION_ARTIFACT_PATH,
             title="Variational Autoencoder",
-            active_dataset=analysis_metadata.get("dataset_manifest", {}),
+            active_dataset=active_dataset,
+            active_representation_data=active_representation_data,
         )
     with subpages[3]:
-        render_representation_comparison_dashboard(analysis_metadata.get("dataset_manifest", {}))
+        render_representation_comparison_dashboard(active_dataset)
     with subpages[4]:
-        render_research_validation_dashboard(analysis_metadata.get("dataset_manifest", {}))
+        render_research_validation_dashboard(active_dataset)
 
 
 def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:

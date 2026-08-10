@@ -44,6 +44,7 @@ from modeling.pca_target_analysis import (
     NUMERIC_FEATURES,
     OUTPUT_TARGET,
     PCA_FEATURES,
+    SHARED_COHORT_FILTERS,
     make_preprocessor,
     normalize_pca_inputs,
     shared_basis_cohort,
@@ -64,6 +65,7 @@ ROW_KEY_COLUMNS = ("config_id", "benchmark_type", "isl", "osl", "conc")
 OUTCOME_TARGETS = (LATENCY_TARGET, OUTPUT_TARGET, ENERGY_TARGET)
 LATENT_DIMENSIONS = (2, 5, 10, 15)
 RANDOM_SEEDS = (42, 123, 2026)
+SEMANTIC_IDENTITY_SCHEMA_VERSION = "representation-semantic-identity-v1"
 BOOLEAN_FEATURES = (
     "config_prefill_dp_attention",
     "config_decode_dp_attention",
@@ -83,6 +85,9 @@ class CanonicalRepresentationData:
     row_ids: list[str]
     cohort_hash: str
     row_key_hash: str
+    legacy_ordered_cohort_hash: str
+    legacy_ordered_row_key_hash: str
+    semantic_identity: dict[str, str]
 
 
 @dataclass
@@ -123,6 +128,254 @@ def _sequence_hash(values: Iterable[str]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _identity_hash(payload: dict[str, Any]) -> str:
+    """Hash a canonical semantic-identity payload."""
+
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _canonicalize_cohort_order(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Order a cohort by its stable row identity, never by source row position.
+
+    A SHA-256 row ID is derived from the documented workload key before sorting.  It
+    is an explicitly stable ordering key: CSV, PostgreSQL heap, and filesystem
+    ordering cannot affect it.  The historical July artifacts intentionally keep
+    their original order and are matched through row IDs, not this sort order.
+    """
+
+    ordered = frame.copy()
+    ordered["_representation_row_id"] = representation_row_ids(ordered)
+    ordered = ordered.sort_values("_representation_row_id", kind="mergesort").reset_index(
+        drop=True
+    )
+    row_ids = ordered.pop("_representation_row_id").astype(str).tolist()
+    return ordered, row_ids
+
+
+def semantic_cohort_identity(data: CanonicalRepresentationData) -> dict[str, str]:
+    """Return order-independent identities for a canonical cohort.
+
+    ``pca_input_hash`` covers every configuration/workload feature keyed by
+    ``row_id``. ``target_hash`` covers all descriptive outcomes keyed by the same
+    identity.  Future artifacts store these values; historical artifacts are
+    validated against their checked companion rows instead.
+    """
+
+    keyed = data.cohort.copy()
+    keyed.insert(0, "row_id", data.row_ids)
+    keyed = keyed.sort_values("row_id", kind="mergesort")
+    input_rows = [
+        {
+            "row_id": row.row_id,
+            "features": [_stable_scalar(getattr(row, feature)) for feature in PCA_FEATURES],
+        }
+        for row in keyed[["row_id", *PCA_FEATURES]].itertuples(index=False)
+    ]
+    target_rows = [
+        {
+            "row_id": row.row_id,
+            "targets": [_stable_scalar(getattr(row, target)) for target in OUTCOME_TARGETS],
+        }
+        for row in keyed[["row_id", *OUTCOME_TARGETS]].itertuples(index=False)
+    ]
+    row_id_set = sorted(data.row_ids)
+    return {
+        "schema_version": SEMANTIC_IDENTITY_SCHEMA_VERSION,
+        "row_id_set_hash": _sequence_hash(row_id_set),
+        "pca_input_hash": _identity_hash({"rows": input_rows, "features": list(PCA_FEATURES)}),
+        "target_hash": _identity_hash({"rows": target_rows, "targets": list(OUTCOME_TARGETS)}),
+    }
+
+
+def _config_feature_consistency(cohort: pd.DataFrame) -> tuple[bool, list[str]]:
+    """Require every config-derived PCA feature to be fixed for a config ID."""
+
+    config_features = [feature for feature in PCA_FEATURES if feature.startswith("config_")]
+    inconsistent: list[str] = []
+    for feature in config_features:
+        values = cohort[[GROUP_COLUMN, feature]].copy()
+        values["_stable"] = values[feature].map(_stable_scalar)
+        if values.groupby(GROUP_COLUMN, dropna=False)["_stable"].nunique().gt(1).any():
+            inconsistent.append(feature)
+    return not inconsistent, inconsistent
+
+
+def _exact_or_machine_tolerance(
+    left: pd.Series,
+    right: pd.Series,
+) -> tuple[bool, float, float]:
+    """Compare floating targets exactly first, then at round-trip precision only."""
+
+    left_values = pd.to_numeric(left, errors="coerce").to_numpy(dtype=float)
+    right_values = pd.to_numeric(right, errors="coerce").to_numpy(dtype=float)
+    missing_matches = np.array_equal(np.isnan(left_values), np.isnan(right_values))
+    if not missing_matches:
+        return False, float("inf"), float("inf")
+    present = ~np.isnan(left_values)
+    if not present.any():
+        return True, 0.0, 0.0
+    deltas = np.abs(left_values[present] - right_values[present])
+    maximum = float(deltas.max(initial=0.0))
+    if maximum == 0.0:
+        return True, 0.0, 0.0
+    scale = max(
+        1.0,
+        float(np.abs(left_values[present]).max(initial=0.0)),
+        float(np.abs(right_values[present]).max(initial=0.0)),
+    )
+    tolerance = float(16 * np.finfo(float).eps * scale)
+    return bool(np.all(deltas <= tolerance)), maximum, tolerance
+
+
+def align_companion_to_active_cohort(
+    companion: pd.DataFrame,
+    data: CanonicalRepresentationData,
+    *,
+    expected_pca_input_hash: str | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Prove semantic compatibility and align saved embeddings by ``row_id``.
+
+    The companion's own ordered hash is checked when it is loaded.  This function
+    deliberately treats row sequence as non-semantic: every seed must contain the
+    exact active row-ID set once, workload values must agree by row ID, and every
+    stored outcome must match the active cohort by row ID.  It returns an embedding
+    frame explicitly reindexed to the active deterministic order.
+    """
+
+    # Historical companions omit benchmark_type because every represented row is
+    # single_turn.  Its value remains protected by row_id, whose hash includes
+    # every ROW_KEY_COLUMNS field.
+    required = {"seed", "row_id", "config_id", "isl", "osl", "conc", *OUTCOME_TARGETS}
+    missing = sorted(required - set(companion.columns))
+    if missing:
+        raise ValueError("Embedding companion is missing: " + ", ".join(missing))
+
+    identity = data.semantic_identity
+    if expected_pca_input_hash and identity["pca_input_hash"] != expected_pca_input_hash:
+        raise ValueError("Active PCA source features differ from the artifact cohort.")
+
+    config_features_consistent, inconsistent_features = _config_feature_consistency(data.cohort)
+    if not config_features_consistent:
+        raise ValueError(
+            "Configuration-derived PCA features are not unique by config_id: "
+            + ", ".join(inconsistent_features)
+        )
+
+    active = data.cohort[list(ROW_KEY_COLUMNS) + list(OUTCOME_TARGETS)].copy()
+    active.insert(0, "row_id", data.row_ids)
+    if active["row_id"].duplicated().any():
+        raise ValueError("Active cohort has duplicate row IDs.")
+    active_ids = set(data.row_ids)
+    seeds = sorted(companion["seed"].drop_duplicates().tolist())
+    if not seeds:
+        raise ValueError("Embedding companion has no seeds.")
+
+    aligned_frames: list[pd.DataFrame] = []
+    seed_reports: dict[str, Any] = {}
+    reference: pd.DataFrame | None = None
+    for seed in seeds:
+        seed_frame = companion.loc[companion["seed"].eq(seed)].copy()
+        duplicate_count = int(seed_frame.duplicated("row_id").sum())
+        if duplicate_count:
+            raise ValueError(f"Embedding companion has duplicate row IDs for seed {seed}.")
+        seed_ids = set(seed_frame["row_id"].astype(str))
+        missing_ids = sorted(active_ids - seed_ids)
+        extra_ids = sorted(seed_ids - active_ids)
+        if missing_ids or extra_ids:
+            raise ValueError(
+                f"Embedding companion row-ID set mismatch for seed {seed}: "
+                f"missing={len(missing_ids)}, extra={len(extra_ids)}."
+            )
+        indexed = seed_frame.assign(row_id=seed_frame["row_id"].astype(str)).set_index("row_id")
+        aligned = indexed.loc[data.row_ids].reset_index()
+        aligned_frames.append(aligned)
+        seed_reports[str(seed)] = {
+            "rows": len(aligned),
+            "missing_row_ids": len(missing_ids),
+            "extra_row_ids": len(extra_ids),
+            "duplicate_row_ids": duplicate_count,
+        }
+        if reference is None:
+            reference = aligned
+
+    assert reference is not None
+    workload_mismatches: dict[str, int] = {}
+    target_comparisons: dict[str, list[tuple[bool, bool, float, float]]] = {
+        target: [] for target in OUTCOME_TARGETS
+    }
+    for seed, aligned in zip(seeds, aligned_frames, strict=True):
+        comparison = active.merge(
+            aligned,
+            on="row_id",
+            how="inner",
+            validate="one_to_one",
+            suffixes=("_active", "_companion"),
+        )
+        for column in (
+            column for column in ROW_KEY_COLUMNS if f"{column}_companion" in comparison
+        ):
+            active_values = comparison[f"{column}_active"].map(_stable_scalar)
+            companion_values = comparison[f"{column}_companion"].map(_stable_scalar)
+            mismatches = int(active_values.ne(companion_values).sum())
+            if mismatches:
+                workload_mismatches[column] = workload_mismatches.get(column, 0) + mismatches
+        for target in OUTCOME_TARGETS:
+            active_column = comparison[f"{target}_active"]
+            companion_column = comparison[f"{target}_companion"]
+            missingness_matches = bool(active_column.isna().equals(companion_column.isna()))
+            equivalent, maximum_difference, tolerance = _exact_or_machine_tolerance(
+                active_column, companion_column
+            )
+            target_comparisons[target].append(
+                (missingness_matches, equivalent, maximum_difference, tolerance)
+            )
+            if not missingness_matches or not equivalent:
+                raise ValueError(
+                    f"Embedding companion target mismatch for {target}, seed {seed}: "
+                    f"max_difference={maximum_difference}, tolerance={tolerance}."
+                )
+    if workload_mismatches:
+        raise ValueError(f"Embedding companion workload identity mismatch: {workload_mismatches}")
+
+    target_report: dict[str, Any] = {}
+    for target in OUTCOME_TARGETS:
+        comparisons = target_comparisons[target]
+        missingness_matches = all(row[0] for row in comparisons)
+        equivalent = all(row[1] for row in comparisons)
+        maximum_difference = max(row[2] for row in comparisons)
+        tolerance = max(row[3] for row in comparisons)
+        target_report[target] = {
+            "missingness_matches": missingness_matches,
+            "exact_match": maximum_difference == 0.0,
+            "maximum_absolute_difference": maximum_difference,
+            "tolerance_used": tolerance,
+        }
+
+    report = {
+        "semantic_identity": identity,
+        "row_key_set": {
+            "active_rows": len(active_ids),
+            "companion_rows_per_seed": len(reference),
+            "identity_columns": list(ROW_KEY_COLUMNS),
+            "benchmark_type_verified_through_row_id": "benchmark_type" not in companion.columns,
+            "missing_row_ids": 0,
+            "extra_row_ids": 0,
+            "duplicate_active_row_ids": 0,
+            "duplicate_companion_row_ids": 0,
+            "seeds": seed_reports,
+        },
+        "pca_input_features": {
+            "features": list(PCA_FEATURES),
+            "config_features_unique_by_config_id": config_features_consistent,
+            "inconsistent_features": inconsistent_features,
+        },
+        "targets": target_report,
+    }
+    return pd.concat(aligned_frames, ignore_index=True), report
+
+
 def canonical_representation_data(
     aggregate: pd.DataFrame,
     *,
@@ -131,16 +384,33 @@ def canonical_representation_data(
     """Reproduce the frozen PCA cohort and its established preprocessing matrix."""
 
     validate_pca_feature_schema(PCA_FEATURES)
+    # Preserve the pre-fix source sequence solely for the July audit report.
+    # It is never used as a semantic identity or a runtime alignment key.
+    legacy_source = aggregate.copy()
+    for column, expected in SHARED_COHORT_FILTERS.items():
+        if column not in legacy_source:
+            raise ValueError(f"Missing shared-cohort field: {column}")
+        legacy_source = legacy_source.loc[legacy_source[column].eq(expected)]
+    legacy_source = normalize_pca_inputs(legacy_source.reset_index(drop=True))
     cohort = normalize_pca_inputs(shared_basis_cohort(aggregate))
     if GROUP_COLUMN not in cohort:
         raise ValueError("config_id is required for grouped representation validation.")
-    row_ids = representation_row_ids(cohort)
+    legacy_row_ids = representation_row_ids(legacy_source)
+    legacy_ordered_row_key_hash = _sequence_hash(legacy_row_ids)
+    cohort, row_ids = _canonicalize_cohort_order(cohort)
     preprocessor = make_preprocessor()
     matrix = np.asarray(
         preprocessor.fit_transform(cohort[list(PCA_FEATURES)]),
         dtype=np.float32,
     )
     encoded_feature_names = list(preprocessor.get_feature_names_out())
+    legacy_ordered_cohort_hash = _identity_hash(
+        {
+            "row_ids": legacy_row_ids,
+            "feature_order": list(PCA_FEATURES),
+            "encoded_feature_names": encoded_feature_names,
+        }
+    )
     if enforce_snapshot_counts:
         if len(cohort) != EXPECTED_COHORT_ROWS:
             raise ValueError(
@@ -153,22 +423,26 @@ def canonical_representation_data(
                 f"expected {EXPECTED_CONFIGURATIONS:,}, got {configurations:,}."
             )
     cohort_payload = {
-        "row_ids": row_ids,
+        "schema_version": SEMANTIC_IDENTITY_SCHEMA_VERSION,
+        "row_ids": sorted(row_ids),
         "feature_order": list(PCA_FEATURES),
         "encoded_feature_names": encoded_feature_names,
     }
-    cohort_hash = hashlib.sha256(
-        json.dumps(cohort_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    return CanonicalRepresentationData(
+    cohort_hash = _identity_hash(cohort_payload)
+    data = CanonicalRepresentationData(
         cohort=cohort,
         matrix=matrix,
         preprocessor=preprocessor,
         encoded_feature_names=encoded_feature_names,
         row_ids=row_ids,
         cohort_hash=cohort_hash,
-        row_key_hash=_sequence_hash(row_ids),
+        row_key_hash=_sequence_hash(sorted(row_ids)),
+        legacy_ordered_cohort_hash=legacy_ordered_cohort_hash,
+        legacy_ordered_row_key_hash=legacy_ordered_row_key_hash,
+        semantic_identity={},
     )
+    data.semantic_identity = semantic_cohort_identity(data)
+    return data
 
 
 def validate_representation_feature_subset(features: Iterable[str]) -> list[str]:
@@ -827,6 +1101,7 @@ def artifact_common_metadata(
         "cohort_hash": data.cohort_hash,
         "row_key_hash": data.row_key_hash,
         "basis_row_identifiers": data.row_ids,
+        "semantic_identity": data.semantic_identity,
         "cohort_rows": len(data.cohort),
         "configurations": int(data.cohort[GROUP_COLUMN].nunique()),
         "feature_order": list(PCA_FEATURES),

@@ -112,7 +112,7 @@ class PortableIdentityTests(unittest.TestCase):
             self.assertNotEqual(identity["verification"]["status"], VERIFIED_CHECKPOINT)
             self.assertFalse(artifact_matches_active_dataset(identity, artifact))
 
-    def test_current_manifest_without_published_hashes_fails_closed(self) -> None:
+    def test_current_manifest_rejects_unverified_raw_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             checkpoint = Path(temporary)
             write_raw_checkpoint(checkpoint)
@@ -180,9 +180,21 @@ class BootstrapTests(unittest.TestCase):
                 bootstrap_dataset(manifest_path=manifest_path, data_dir=destination)
             self.assertFalse(destination.exists())
 
-    def test_unpublished_bundle_is_explicit(self) -> None:
-        with self.assertRaises(DatasetPublicationRequiredError):
-            bootstrap_dataset(offline=False)
+    def test_manifest_without_bundle_is_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            write_raw_checkpoint(source)
+            manifest = fixture_manifest(source)
+            manifest_path = root / "unpublished-manifest.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            with self.assertRaises(DatasetPublicationRequiredError):
+                bootstrap_dataset(
+                    manifest_path=manifest_path,
+                    data_dir=root / "uninstalled",
+                    offline=False,
+                )
 
 
 if __name__ == "__main__":

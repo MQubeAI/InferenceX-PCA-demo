@@ -29,6 +29,7 @@ ENERGY_TARGET_UNIT = "joules/output token"
 LATENCY_TARGET_LABEL = "Median time per output token (TPOT)"
 LATENCY_TARGET_UNIT = "seconds/output token"
 SHARED_COHORT_FILTERS = {"benchmark_type": "single_turn"}
+CANONICAL_COHORT_KEY_COLUMNS = ("config_id", "benchmark_type", "isl", "osl", "conc")
 NUMERIC_FEATURES = (
     "isl",
     "osl",
@@ -86,6 +87,38 @@ def validate_pca_feature_schema(features: list[str] | tuple[str, ...]) -> None:
         raise ValueError("PCA feature order does not match the frozen schema.")
 
 
+def _stable_cohort_scalar(value: Any) -> str:
+    if pd.isna(value):
+        return "<NA>"
+    if isinstance(value, (float, np.floating)) and float(value).is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def canonicalize_shared_cohort_order(frame: pd.DataFrame) -> pd.DataFrame:
+    """Apply the documented cross-machine ordering for future cohort generation.
+
+    The key is the complete aggregate workload identity.  Sorting a string form
+    avoids PostgreSQL heap order, CSV row order, and numeric dtype differences.
+    Existing July artifacts retain their historical sequence and are validated by
+    row identity at runtime rather than regenerated in this new order.
+    """
+
+    missing = [column for column in CANONICAL_COHORT_KEY_COLUMNS if column not in frame]
+    if missing:
+        raise ValueError("Missing canonical cohort keys: " + ", ".join(missing))
+    ordered = frame.copy()
+    ordered["_canonical_cohort_key"] = [
+        "|".join(_stable_cohort_scalar(value) for value in row)
+        for row in ordered[list(CANONICAL_COHORT_KEY_COLUMNS)].itertuples(index=False, name=None)
+    ]
+    return (
+        ordered.sort_values("_canonical_cohort_key", kind="mergesort")
+        .drop(columns="_canonical_cohort_key")
+        .reset_index(drop=True)
+    )
+
+
 def shared_basis_cohort(frame: pd.DataFrame) -> pd.DataFrame:
     missing = [column for column in PCA_FEATURES if column not in frame]
     if missing:
@@ -95,7 +128,7 @@ def shared_basis_cohort(frame: pd.DataFrame) -> pd.DataFrame:
         if column not in cohort:
             raise ValueError(f"Missing shared-cohort field: {column}")
         cohort = cohort.loc[cohort[column].eq(expected)]
-    return cohort.reset_index(drop=True)
+    return canonicalize_shared_cohort_order(cohort)
 
 
 def make_preprocessor() -> ColumnTransformer:
