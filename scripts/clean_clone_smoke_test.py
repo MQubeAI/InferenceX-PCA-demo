@@ -21,13 +21,14 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from apps import inferencex_pca_demo as app  # noqa: E402
+from modeling.artifact_checkpoint import ArtifactIndexError, bootstrap_active_artifacts  # noqa: E402
 from modeling.dataset_checkpoint import (  # noqa: E402
     DatasetBootstrapError,
     VERIFIED_CHECKPOINT,
     artifact_matches_active_dataset,
     bootstrap_dataset,
     default_data_dir,
+    load_data_manifest,
 )
 
 
@@ -54,7 +55,8 @@ def wait_for_health(port: int, process: subprocess.Popen[str], timeout: float = 
 
 
 def main() -> int:
-    checkpoint_dir = default_data_dir(app.ACTIVE_DATA_MANIFEST)
+    manifest = load_data_manifest()
+    checkpoint_dir = default_data_dir(manifest)
     if checkpoint_dir.exists():
         print(
             f"Clean-clone smoke test refused existing checkpoint: {checkpoint_dir}. "
@@ -65,9 +67,12 @@ def main() -> int:
 
     try:
         bootstrap_dataset()
-    except DatasetBootstrapError as exc:
+        bootstrap_active_artifacts(manifest)
+    except (ArtifactIndexError, DatasetBootstrapError) as exc:
         print(f"Clean-clone bootstrap failed: {exc}", file=sys.stderr)
         return 2
+    from apps import inferencex_pca_demo as app  # noqa: E402
+
     _status, source = app.data_source_status(str(checkpoint_dir))
     active = app.build_dataset_manifest(source)
     if active["verification"]["status"] != VERIFIED_CHECKPOINT:

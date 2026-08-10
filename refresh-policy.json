@@ -1,0 +1,20 @@
+{
+  "schema_version": "inferencex-refresh-policy-v1",
+  "promotion_mode": "review_required",
+  "hard_failures": [
+    "invalid upstream checksum",
+    "corrupted archive",
+    "missing required tables or columns",
+    "benchmark/config join integrity failure",
+    "invalid metrics JSON",
+    "checkpoint hash failure",
+    "PCA feature leakage",
+    "grouped config validation leakage",
+    "artifact build failure",
+    "non-finite required evaluation output",
+    "clean-clone failure",
+    "Streamlit failure"
+  ],
+  "performance_policy": "PASS, REVIEW_REQUIRED, and FAIL are reported without unreviewed numerical auto-promotion thresholds.",
+  "promotion": "A reviewed pull request explicitly changes data-manifest.json and data/artifact-index.json. No scheduled workflow may do so."
+}

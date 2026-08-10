@@ -1,0 +1,55 @@
+name: Frozen dashboard baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frozen-dashboard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-active-checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - name: Install the locked dashboard runtime
+        run: python -m pip install --disable-pip-version-check -r requirements-lock.txt
+      - name: Begin with no local checkpoint
+        run: rm -rf .data .artifacts
+      - name: Bootstrap and verify the active July checkpoint
+        run: |
+          python scripts/bootstrap_dashboard_data.py
+          python scripts/bootstrap_dashboard_artifacts.py
+          python - <<'PY'
+          from modeling.dataset_checkpoint import VERIFIED_CHECKPOINT, checkpoint_status, default_data_dir, load_data_manifest
+          manifest = load_data_manifest()
+          state = checkpoint_status(default_data_dir(manifest), active_mode="Raw CSV", manifest=manifest)
+          assert state["status"] == VERIFIED_CHECKPOINT, state
+          print(state)
+          PY
+      - name: Run all unit, semantic, PCA, and representation tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run the preserved July semantic-equivalence audit when July is active
+        run: |
+          active_release=$(python -c 'from modeling.dataset_checkpoint import load_data_manifest; print(load_data_manifest()["source"]["release"])')
+          if [ "$active_release" = "db-dump/2026-07-20" ]; then
+            python scripts/audit_july_artifact_semantics.py --data-dir .data/inferencex-db-dump-2026-07-20
+          else
+            echo "July semantic audit retained as a historical fixture; active snapshot is $active_release."
+          fi
+      - name: Run clean bootstrap, AppTest, artifact acceptance, and Streamlit health
+        run: |
+          rm -rf .data
+          python scripts/clean_clone_smoke_test.py

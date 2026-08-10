@@ -1,0 +1,74 @@
+{
+  "schema_version": "inferencex-snapshot-manifest-v1",
+  "dataset_id": "inferencex-db-dump-2026-07-20",
+  "status": "promoted",
+  "parent_active_checkpoint": null,
+  "source": {
+    "project": "SemiAnalysisAI/InferenceX-app",
+    "release": "db-dump/2026-07-20",
+    "release_url": "https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20",
+    "published_at": "2026-07-20T03:12:00Z",
+    "assets": [
+      {"name": "inferencex-2026-07-20.dump.zst.part00", "size": 1992294400},
+      {"name": "inferencex-2026-07-20.dump.zst.part01", "size": 1882650124},
+      {"name": "SHA256SUMS", "size": 208}
+    ]
+  },
+  "snapshot_date": "2026-07-20",
+  "format": "raw_csv",
+  "dashboard_compatibility_version": "2026-07-20-v1",
+  "local_directory": ".data/inferencex-db-dump-2026-07-20",
+  "files": {
+    "benchmark_results_raw.csv": {
+      "size_bytes": 78570522,
+      "sha256": "668dcbf10dfe07bda3949a5eada4c4a9f308024ce929fe71a504c952d4b08350",
+      "physical_rows": 81851,
+      "expected": {
+        "rows": 81851,
+        "required_columns": ["id", "config_id", "benchmark_type", "isl", "osl", "conc", "metrics"]
+      }
+    },
+    "configs.csv": {
+      "size_bytes": 118252,
+      "sha256": "827fad4296c602ce010259b2ab7540420b8900ff869fb2578097293f328e29c4",
+      "physical_rows": 1935,
+      "expected": {
+        "rows": 1935,
+        "required_columns": ["id", "hardware", "framework", "model", "precision", "spec_method", "disagg", "is_multinode", "prefill_tp", "prefill_ep", "prefill_dp_attention", "prefill_num_workers", "decode_tp", "decode_ep", "decode_dp_attention", "decode_num_workers", "num_prefill_gpu"]
+      }
+    }
+  },
+  "row_counts": {
+    "benchmark_results": 81851,
+    "configs_physical": 1935,
+    "benchmark_referenced_configs": 1368
+  },
+  "required_schema": {
+    "benchmark_results_raw.csv": ["id", "config_id", "benchmark_type", "isl", "osl", "conc", "metrics"],
+    "configs.csv": ["id", "hardware", "framework", "model", "precision", "spec_method", "disagg", "is_multinode", "prefill_tp", "prefill_ep", "prefill_dp_attention", "prefill_num_workers", "decode_tp", "decode_ep", "decode_dp_attention", "decode_num_workers", "num_prefill_gpu"]
+  },
+  "bundle": {
+    "filename": "inferencex-dashboard-data-2026-07-20.zip",
+    "download_url": "https://github.com/MQubeAI/InferenceX-PCA-demo/releases/download/dashboard-data/2026-07-20/inferencex-dashboard-data-2026-07-20.zip",
+    "sha256": "6a59f9d69f554b45e30054c71e623082e6884d26554ef87f601322327a3b254f",
+    "size_bytes": 23250078,
+    "archive_format": "zip",
+    "archive_root": ""
+  },
+  "generation": {
+    "kind": "manual-recovery-baseline",
+    "semantic_equivalence_audit": "passed",
+    "source_commit": "920d7fe91543aa7efba26d09371d9549ba70975d"
+  },
+  "integrity": {
+    "metrics_json_valid": true,
+    "config_ids_unique": true,
+    "benchmark_ids_unique": true,
+    "benchmark_config_join_missing": 0
+  },
+  "coverage": {
+    "aggregate_groups": 8239,
+    "single_turn_pca_cohort": 8063,
+    "eligible_configurations": 1354
+  }
+}

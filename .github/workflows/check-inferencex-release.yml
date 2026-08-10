@@ -1,0 +1,44 @@
+name: Check official InferenceX release
+
+on:
+  schedule:
+    - cron: '23 13 * * 1,3,5'
+  workflow_dispatch:
+    inputs:
+      allow_prerelease:
+        description: Include official prerelease db-dump tags
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: inferencex-release-discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Query only the official release API
+        id: release
+        run: |
+          python scripts/check_inferencex_release.py ${{ inputs.allow_prerelease && '--allow-prerelease' || '' }} --output release.json
+          status=$(python -c 'import json; print(json.load(open("release.json"))["status"])')
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "source_release=$(python -c 'import json; print(json.load(open("release.json")).get("newest_release", ""))')" >> "$GITHUB_OUTPUT"
+      - name: Dispatch resource-gated candidate build only when enabled
+        if: steps.release.outputs.status == 'NEW_RELEASE_AVAILABLE' && vars.INFERENCEX_AUTOMATED_REFRESH_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run refresh-inferencex-candidate.yml --ref main -f source_release='${{ steps.release.outputs.source_release }}'
+      - name: Record no-op or review-needed result
+        run: cat release.json

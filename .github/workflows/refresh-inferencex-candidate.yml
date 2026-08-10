@@ -1,0 +1,151 @@
+name: Build InferenceX candidate checkpoint
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_release:
+        description: Official db-dump/YYYY-MM-DD release tag
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: inferencex-candidate-${{ inputs.source_release }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    # This runner must provide >=60 GiB free disk, zstd, PostgreSQL 17 server
+    # tools, and the approved TabFM environment.  It is not a
+    # developer laptop or normal PR runner.
+    runs-on: [self-hosted, linux, x64, inferencex-refresh]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install locked dashboard dependencies and preflight resources
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-lock.txt
+          command -v zstd
+          pg_restore --version | grep -E '17(\.| )'
+          initdb --version | grep -E '17(\.| )'
+          python - <<'PY'
+          from modeling.snapshot_ingestion import require_free_disk
+          print(require_free_disk('.', 60))
+          PY
+      - name: Bootstrap the immutable active control checkpoint
+        run: python scripts/bootstrap_dashboard_data.py
+      - name: Ingest official snapshot as a non-promoted candidate
+        run: |
+          active_data_dir=$(python - <<'PY'
+          from modeling.dataset_checkpoint import default_data_dir, load_data_manifest
+          print(default_data_dir(load_data_manifest()))
+          PY
+          )
+          python scripts/build_snapshot_candidate.py \
+            --source-release '${{ inputs.source_release }}' \
+            --output-root "$RUNNER_TEMP/inferencex-candidate" \
+            --active-data-dir "$active_data_dir"
+      - name: Run fixed PCA/AE/VAE/comparison/Stage 4 and approved TabFM protocol
+        env:
+          INFERENCEX_TABFM_COMMAND: ${{ vars.INFERENCEX_TABFM_COMMAND }}
+        run: |
+          test -n "$INFERENCEX_TABFM_COMMAND"
+          python scripts/run_snapshot_research.py \
+            --execute \
+            --snapshot-manifest "$RUNNER_TEMP/inferencex-candidate/manifest.json" \
+            --data-dir "$RUNNER_TEMP/inferencex-candidate/checkpoint" \
+            --artifact-dir "$RUNNER_TEMP/inferencex-candidate/research-artifacts" \
+            --tabfm-command "$INFERENCEX_TABFM_COMMAND"
+      - name: Validate fixed research artifacts and candidate-vs-active evidence
+        run: |
+          python scripts/evaluate_snapshot_research.py \
+            --snapshot-manifest "$RUNNER_TEMP/inferencex-candidate/manifest.json" \
+            --artifact-dir "$RUNNER_TEMP/inferencex-candidate/research-artifacts" \
+            --output "$RUNNER_TEMP/inferencex-candidate/research-gates.json"
+      - name: Prepare candidate bundles for the isolated clean-clone gate
+        run: |
+          date=$(python -c "import json; print(json.load(open('$RUNNER_TEMP/inferencex-candidate/manifest.json'))['snapshot_date'])")
+          release_tag="dashboard-data-candidate/$date"
+          data_name="inferencex-dashboard-data-$date.zip"
+          research_name="inferencex-research-artifacts-$date.zip"
+          base="https://github.com/${{ github.repository }}/releases/download/$release_tag"
+          python scripts/finalize_snapshot_candidate.py \
+            --candidate-manifest "$RUNNER_TEMP/inferencex-candidate/manifest.json" \
+            --candidate-data-bundle "$RUNNER_TEMP/inferencex-candidate/$data_name" \
+            --candidate-data-url "$base/$data_name" \
+            --artifact-dir "$RUNNER_TEMP/inferencex-candidate/research-artifacts" \
+            --artifact-url "$base/$research_name" \
+            --output-manifest "$RUNNER_TEMP/inferencex-candidate/versioned-manifest.json" \
+            --output-artifact-entry "$RUNNER_TEMP/inferencex-candidate/artifact-entry.json" \
+            --output-artifact-bundle "$RUNNER_TEMP/inferencex-candidate/$research_name"
+      - name: Require an isolated candidate clean-clone dashboard bootstrap
+        run: |
+          date=$(python -c "import json; print(json.load(open('$RUNNER_TEMP/inferencex-candidate/manifest.json'))['snapshot_date'])")
+          python scripts/smoke_test_candidate_checkpoint.py \
+            --candidate-manifest "$RUNNER_TEMP/inferencex-candidate/versioned-manifest.json" \
+            --candidate-artifact-entry "$RUNNER_TEMP/inferencex-candidate/artifact-entry.json" \
+            --data-bundle "$RUNNER_TEMP/inferencex-candidate/inferencex-dashboard-data-$date.zip" \
+            --artifact-bundle "$RUNNER_TEMP/inferencex-candidate/inferencex-research-artifacts-$date.zip"
+      - name: Require policy gates before publication or candidate PR
+        run: |
+          date=$(python -c "import json; print(json.load(open('$RUNNER_TEMP/inferencex-candidate/manifest.json'))['snapshot_date'])")
+          python scripts/evaluate_snapshot_candidate.py \
+            --candidate-manifest "$RUNNER_TEMP/inferencex-candidate/versioned-manifest.json" \
+            --active-data-dir "$(python -c 'from modeling.dataset_checkpoint import default_data_dir, load_data_manifest; print(default_data_dir(load_data_manifest()))')" \
+            --candidate-data-dir "$RUNNER_TEMP/inferencex-candidate/checkpoint" \
+            --research-gates "$RUNNER_TEMP/inferencex-candidate/research-gates.json" \
+            --clean-clone-passed \
+            --output-json "$RUNNER_TEMP/inferencex-candidate/candidate-vs-active.json" \
+            --output-markdown "$RUNNER_TEMP/inferencex-candidate/db-dump-$date.md"
+      - name: Publish immutable candidate bundles without changing active pointers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          date=$(python -c "import json; print(json.load(open('$RUNNER_TEMP/inferencex-candidate/manifest.json'))['snapshot_date'])")
+          release_tag="dashboard-data-candidate/$date"
+          data_name="inferencex-dashboard-data-$date.zip"
+          research_name="inferencex-research-artifacts-$date.zip"
+          gh release create "$release_tag" \
+            "$RUNNER_TEMP/inferencex-candidate/$data_name#$data_name" \
+            "$RUNNER_TEMP/inferencex-candidate/$research_name#$research_name" \
+            --title "InferenceX candidate data $date" \
+            --notes "Candidate-only InferenceX checkpoint for ${{ inputs.source_release }}. This release does not alter the active dashboard checkpoint. Promotion requires a reviewed pointer change and post-promotion clean-clone verification."
+      - name: Open a draft candidate review PR without promoting it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          date=$(python -c "import json; print(json.load(open('$RUNNER_TEMP/inferencex-candidate/versioned-manifest.json'))['snapshot_date'])")
+          branch="refresh/db-dump-$date"
+          git switch -c "$branch"
+          mkdir -p "data/manifests" "data/candidates" "reports/refresh"
+          cp "$RUNNER_TEMP/inferencex-candidate/versioned-manifest.json" "data/manifests/$date.json"
+          cp "$RUNNER_TEMP/inferencex-candidate/artifact-entry.json" "data/candidates/db-dump-$date-artifacts.json"
+          cp "$RUNNER_TEMP/inferencex-candidate/candidate-vs-active.json" "reports/refresh/db-dump-$date.json"
+          cp "$RUNNER_TEMP/inferencex-candidate/db-dump-$date.md" "reports/refresh/db-dump-$date.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "data/manifests/$date.json" "data/candidates/db-dump-$date-artifacts.json" "reports/refresh/db-dump-$date.json" "reports/refresh/db-dump-$date.md"
+          git commit -m "Add candidate InferenceX snapshot $date"
+          git push --set-upstream origin "$branch"
+          gh pr create --draft --base main --head "$branch" --title "Candidate InferenceX snapshot db-dump/$date" --body "Candidate-only refresh for ${{ inputs.source_release }}. Review the generated provenance, data/schema audit, research artifacts, and release hashes. This PR deliberately does not update data-manifest.json or the active artifact pointer; a separate explicit promotion PR is required after review."
+      - name: Retain candidate evidence for human review
+        uses: actions/upload-artifact@v4
+        with:
+          name: inferencex-candidate-${{ inputs.source_release }}
+          path: |
+            ${{ runner.temp }}/inferencex-candidate/manifest.json
+            ${{ runner.temp }}/inferencex-candidate/candidate-vs-active.json
+            ${{ runner.temp }}/inferencex-candidate/research-gates.json
+            ${{ runner.temp }}/inferencex-candidate/*.md
+            ${{ runner.temp }}/inferencex-candidate/research-artifacts/
+          retention-days: 30
+      # A follow-up finalization step publishes immutable candidate data/artifact
+      # bundles and opens refresh/db-dump-YYYY-MM-DD only after its hashes,
+      # research gates, and clean-clone validation have all passed.  It never
+      # changes data-manifest.json or auto-merges that PR.

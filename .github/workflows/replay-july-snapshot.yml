@@ -1,0 +1,49 @@
+name: Replay frozen July ingestion fixture
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inferencex-july-replay
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    # This is intentionally separate from candidate refresh: it never trains,
+    # publishes a release, opens a PR, or changes an active pointer.
+    runs-on: [self-hosted, linux, x64, inferencex-refresh]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --disable-pip-version-check -r requirements-lock.txt
+      - name: Verify replay-runner resources
+        run: |
+          command -v zstd
+          pg_restore --version | grep -E '17(\.| )'
+          initdb --version | grep -E '17(\.| )'
+          python - <<'PY'
+          from modeling.snapshot_ingestion import require_free_disk
+          print(require_free_disk('.', 60))
+          PY
+      - run: python scripts/bootstrap_dashboard_data.py
+      - name: Stream-replay official July and prove semantic identity
+        run: |
+          active_data_dir=$(python -c 'from modeling.dataset_checkpoint import default_data_dir, load_data_manifest; print(default_data_dir(load_data_manifest()))')
+          python scripts/replay_july_snapshot.py --execute \
+            --output-root "$RUNNER_TEMP/inferencex-july-replay" \
+            --active-data-dir "$active_data_dir"
+      - name: Preserve replay-only evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: inferencex-july-replay-evidence
+          path: |
+            ${{ runner.temp }}/inferencex-july-replay/manifest.json
+            ${{ runner.temp }}/inferencex-july-replay/candidate-vs-active.json
+            ${{ runner.temp }}/inferencex-july-replay/*.md
+          retention-days: 30

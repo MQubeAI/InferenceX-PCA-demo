@@ -1130,6 +1130,7 @@ def validate_representation_artifact(
     *,
     expected_method: str | None = None,
     expected_cohort_hash: str | None = None,
+    expected_source_dump: str | None = SOURCE_DUMP_VERSION,
 ) -> None:
     required = {
         "schema_version",
@@ -1149,7 +1150,7 @@ def validate_representation_artifact(
         raise ValueError("Representation artifact is missing: " + ", ".join(missing))
     if artifact["schema_version"] != REPRESENTATION_SCHEMA_VERSION:
         raise ValueError("Representation artifact schema version is incompatible.")
-    if artifact["source_dump"] != SOURCE_DUMP_VERSION:
+    if expected_source_dump is not None and artifact["source_dump"] != expected_source_dump:
         raise ValueError("Representation artifact source dump is incompatible.")
     if artifact["feature_order"] != list(PCA_FEATURES):
         raise ValueError("Representation artifact feature order is incompatible.")
@@ -1169,12 +1170,14 @@ def load_representation_artifact(
     *,
     expected_method: str | None = None,
     expected_cohort_hash: str | None = None,
+    expected_source_dump: str | None = SOURCE_DUMP_VERSION,
 ) -> dict[str, Any]:
     artifact = json.loads(Path(path).read_text(encoding="utf-8"))
     validate_representation_artifact(
         artifact,
         expected_method=expected_method,
         expected_cohort_hash=expected_cohort_hash,
+        expected_source_dump=expected_source_dump,
     )
     return artifact
 
@@ -1186,6 +1189,7 @@ def validate_final_representation_artifact(
     expected_method: str | None = None,
     expected_cohort_hash: str | None = None,
     validate_companion: bool = True,
+    expected_source_dump: str | None = SOURCE_DUMP_VERSION,
 ) -> Path:
     required = {
         "schema_version",
@@ -1211,7 +1215,7 @@ def validate_final_representation_artifact(
         raise ValueError("Final representation artifact is missing: " + ", ".join(missing))
     if artifact["schema_version"] != FINAL_REPRESENTATION_SCHEMA_VERSION:
         raise ValueError("Final representation artifact schema version is incompatible.")
-    if artifact["source_dump"] != SOURCE_DUMP_VERSION:
+    if expected_source_dump is not None and artifact["source_dump"] != expected_source_dump:
         raise ValueError("Final representation artifact source dump is incompatible.")
     if artifact["feature_order"] != list(PCA_FEATURES):
         raise ValueError("Final representation artifact feature order is incompatible.")
@@ -1257,6 +1261,7 @@ def load_final_representation_artifact(
     expected_method: str | None = None,
     expected_cohort_hash: str | None = None,
     validate_companion: bool = True,
+    expected_source_dump: str | None = SOURCE_DUMP_VERSION,
 ) -> tuple[dict[str, Any], Path]:
     artifact_path = Path(path)
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
@@ -1266,6 +1271,7 @@ def load_final_representation_artifact(
         expected_method=expected_method,
         expected_cohort_hash=expected_cohort_hash,
         validate_companion=validate_companion,
+        expected_source_dump=expected_source_dump,
     )
     return artifact, companion_path
 

@@ -108,15 +108,18 @@ def build_final_comparison(
     ae_path: Path,
     vae_path: Path,
     beta_diagnostic_path: Path,
+    source_dump: str = SOURCE_DUMP_VERSION,
+    enforce_snapshot_counts: bool = True,
 ) -> dict[str, Any]:
     pca = json.loads(pca_path.read_text(encoding="utf-8"))
     ae, _ae_companion = load_final_representation_artifact(
-        ae_path, expected_method="autoencoder"
+        ae_path, expected_method="autoencoder", expected_source_dump=source_dump
     )
     vae, _vae_companion = load_final_representation_artifact(
         vae_path,
         expected_method="variational_autoencoder",
         expected_cohort_hash=ae["cohort_hash"],
+        expected_source_dump=source_dump,
     )
     diagnostic = json.loads(beta_diagnostic_path.read_text(encoding="utf-8"))
     if ae["split_definitions"] != vae["split_definitions"]:
@@ -126,7 +129,9 @@ def build_final_comparison(
     if pca["shared_basis"]["full_eligible_row_count"] != ae["cohort_rows"]:
         raise ValueError("PCA and final neural cohort sizes differ.")
     _raw, aggregate, _metadata = load_aggregate(data_dir)
-    data = canonical_representation_data(aggregate)
+    data = canonical_representation_data(
+        aggregate, enforce_snapshot_counts=enforce_snapshot_counts
+    )
     if data.cohort_hash != ae["cohort_hash"]:
         raise ValueError("Active cohort differs from the final neural artifacts.")
 
@@ -332,7 +337,7 @@ def build_final_comparison(
     return {
         "schema_version": FINAL_COMPARISON_SCHEMA_VERSION,
         "created_at_utc": datetime.now(UTC).isoformat(),
-        "source_dump": SOURCE_DUMP_VERSION,
+        "source_dump": source_dump,
         "status": "final",
         "cohort_hash": ae["cohort_hash"],
         "row_key_hash": ae["row_key_hash"],
@@ -404,4 +409,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
