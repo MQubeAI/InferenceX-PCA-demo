@@ -143,6 +143,10 @@ class PcaRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         _, source = app.data_source_status(app.DEFAULT_DATA_DIR)
+        if source["checkpoint"]["status"] != "VERIFIED CHECKPOINT":
+            raise unittest.SkipTest(
+                "requires the verified July checkpoint; run scripts/bootstrap_dashboard_data.py"
+            )
         manifest = app.build_dataset_manifest(source)
         benchmarks, _configs, joined, _info = app.load_joined_data(
             app.DEFAULT_DATA_DIR, manifest["fingerprint"]

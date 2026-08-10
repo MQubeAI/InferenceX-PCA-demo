@@ -47,6 +47,10 @@ class SharedRepresentationProtocolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         _, probe = app.data_source_status(app.DEFAULT_DATA_DIR)
+        if probe["checkpoint"]["status"] != "VERIFIED CHECKPOINT":
+            raise unittest.SkipTest(
+                "requires the verified July checkpoint; run scripts/bootstrap_dashboard_data.py"
+            )
         manifest = app.build_dataset_manifest(probe)
         _benchmarks, _configs, joined, _source = app.load_joined_data(
             app.DEFAULT_DATA_DIR, manifest["fingerprint"]

@@ -1,0 +1,55 @@
+{
+  "schema_version": "inferencex-dashboard-data-manifest-v1",
+  "dataset_id": "inferencex-db-dump-2026-07-20",
+  "source": {
+    "project": "SemiAnalysisAI/InferenceX-app",
+    "release": "db-dump/2026-07-20",
+    "release_url": "https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20"
+  },
+  "snapshot_date": "2026-07-20",
+  "format": "raw_csv",
+  "dashboard_compatibility_version": "2026-07-20-v1",
+  "local_directory": ".data/inferencex-db-dump-2026-07-20",
+  "files": {
+    "benchmark_results_raw.csv": {
+      "size_bytes": 78570522,
+      "sha256": null,
+      "expected": {
+        "rows": 81851,
+        "required_columns": ["config_id", "metrics"]
+      }
+    },
+    "configs.csv": {
+      "size_bytes": 118252,
+      "sha256": null,
+      "expected": {
+        "rows": 1368,
+        "required_columns": ["id"]
+      }
+    }
+  },
+  "bundle": {
+    "filename": "inferencex-dashboard-data-2026-07-20.zip",
+    "download_url": null,
+    "sha256": null,
+    "archive_format": "zip",
+    "archive_root": "",
+    "publication_status": "pending",
+    "publication_note": "A rights-cleared dashboard-only CSV bundle must be published before normal bootstrap can download this checkpoint. Do not substitute the upstream PostgreSQL dump."
+  },
+  "upstream_recovery": {
+    "normal_dashboard_use": "not required",
+    "release_assets": [
+      {
+        "name": "inferencex-2026-07-20.dump.zst.part00",
+        "size_bytes": 1992294400,
+        "sha256": "0f1c5f4631cdc8d69de2b31ae1abeadb9ceba9c01408559cfa3eafcfabf0719e"
+      },
+      {
+        "name": "inferencex-2026-07-20.dump.zst.part01",
+        "size_bytes": 1882650124,
+        "sha256": "672390222e46826cc66b90ea5603168196fb2da4f57d19af201117065ecdb935"
+      }
+    ]
+  }
+}

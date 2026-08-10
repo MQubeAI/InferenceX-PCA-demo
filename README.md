@@ -20,63 +20,81 @@ This repository contains a Streamlit research dashboard and reproducible modelin
 
 Inference performance depends on more than model and hardware. Serving framework, precision, concurrency, workload length, parallelism, disaggregation, speculative decoding, and worker allocation can all affect throughput and latency. Benchmarking every possible combination is expensive, so this project tests whether performance can be predicted for configurations that were not present in training.
 
-## Data Source
+## Quick Start
 
-Active snapshot: **`db-dump/2026-07-20`**, published in the official
-[SemiAnalysisAI/InferenceX-app release](https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20).
-The official InferenceX About page identifies these weekly GitHub releases as the full-database
-snapshot source. The older `inferencex-pca-data/` June export remains a rollback source.
-
-Required files (official raw export):
-
-- `benchmark_results_raw.csv`
-- `configs.csv`
-
-The legacy flattened export uses `benchmark_results.csv` with the same `configs.csv`.
-
-Optional or supported later:
-
-- `availability.csv`
-- `eval_results.csv`
-- `run_stats.csv`
-- `workflow_runs.csv`
-- `changelog_entries.csv`
-
-Intentionally skipped:
-
-- `server_logs.json`
-- `eval_samples.json`
-
-The skipped files can be extremely large and are unnecessary for this workflow.
-
-## Local Data Setup
-
-Download and verify the official July 20 dump outside the repository, restore only the required
-tables, and provide `benchmark_results_raw.csv` plus `configs.csv`. Activate it with:
+The dashboard is tied to the frozen **`inferencex-db-dump-2026-07-20`** checkpoint from
+[`SemiAnalysisAI/InferenceX-app` release `db-dump/2026-07-20`](https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20).
+On macOS or Linux with CPython 3.11 installed:
 
 ```bash
-export INFERENCEX_DATA_DIR=/absolute/path/to/db-dump-2026-07-20
+git clone https://github.com/MQubeAI/InferenceX-PCA-demo.git
+cd InferenceX-PCA-demo
+./run_dashboard.sh
 ```
 
-For the verified local audit, the default is
-`/tmp/inferencex-dump-comparison/db-dump-2026-07-20/`. The loader expands the official
-`metrics` JSON column deterministically. It also supports the older flattened
-`benchmark_results.csv` format and compatible JSON/JSONL dumps. No dump is committed.
+The launcher creates `.venv-dashboard`, installs the committed Python 3.11 runtime lock,
+validates the committed research artifacts, downloads the small dashboard-only CSV bundle when
+needed, checks the bundle and both CSV files with SHA-256, installs it atomically under
+`.data/inferencex-db-dump-2026-07-20/`, and starts Streamlit. It does not install PostgreSQL,
+restore the multi-gigabyte upstream dump, or train PCA, AE/VAE, TabFM, or any supervised model.
 
-Rollback to the preserved June export with:
+The default dashboard location is repository-relative:
+
+```text
+.data/inferencex-db-dump-2026-07-20/
+├── benchmark_results_raw.csv
+└── configs.csv
+```
+
+`.data/` is ignored by Git. Delete that checkpoint directory and rerun `./run_dashboard.sh` to
+force a clean bootstrap. `INFERENCEX_DATA_DIR` remains an advanced developer override only; a
+custom, legacy flattened, or JSON dataset is visibly labelled and cannot receive July research
+artifact overlays.
+
+### Dataset verification and publication state
+
+`data-manifest.json` records the dataset ID, source release, expected raw CSV format, sizes,
+schema/row properties, dashboard compatibility version, pinned bundle contract, and full-file
+SHA-256 fields. The bootstrap command is idempotent:
 
 ```bash
-export INFERENCEX_DATA_DIR=inferencex-pca-data
+python3.11 scripts/bootstrap_dashboard_data.py
 ```
 
-## Local App Setup
+At this repository revision, the upstream project publishes only the original PostgreSQL dump
+parts, not a dashboard-only CSV release asset. The manifest deliberately leaves the dashboard
+bundle URL and the three unavailable full hashes unset rather than fabricate them. Until a
+rights-cleared `inferencex-dashboard-data-2026-07-20.zip` is published and its archive/file hashes
+are committed, bootstrap fails with an explicit publication-required error. See
+`docs/future-automated-snapshot-refresh.md` for the deferred refresh work; it is not implemented
+by this dashboard.
+
+After that release is published, run the network-backed clean-clone acceptance smoke test from a
+fresh checkout (with no `.data/` directory):
 
 ```bash
-python3 -m venv .venv-streamlit
-source .venv-streamlit/bin/activate
-python3 -m pip install -r requirements-streamlit.txt
-PYTHONPATH=. streamlit run apps/inferencex_pca_demo.py
+python3.11 scripts/clean_clone_smoke_test.py
 ```
+
+### Docker
+
+After the dashboard data release asset has been published, the same runtime bootstrap can run
+without host Python:
+
+```bash
+docker compose up --build
+```
+
+The Compose volume stores `.data/` outside image layers, so the frozen dataset is neither baked
+into the image nor committed to Git. Open <http://localhost:8501>.
+
+### Advanced provenance and developer recovery
+
+Normal users should not restore the upstream database dump. The official release remains the
+provenance/recovery source for maintainers who have confirmed redistribution terms and need to
+recreate the dashboard-only bundle. The upstream asset hashes are recorded in `data-manifest.json`.
+Legacy `benchmark_results.csv` and JSON inputs are still available through the developer override
+for backward-compatible analysis, but they are never treated as the validated July checkpoint.
 
 The four top-level pages are **Overview**, **Data Understanding**, **Representation Analysis**, and
 **Model Results**. Representation Analysis contains **Principal Component Analysis**,
@@ -113,7 +131,11 @@ Energy prediction remains blocked by narrow workload/category/time coverage and 
 row-level metric-code version. The dashboard does not train or load an energy model, impute labels,
 or generate modeled or extrapolated energy values.
 
-## Reproducible Analysis Runs
+## Historical Research Provenance (Not Dashboard Setup)
+
+The commands in this section produced historical research artifacts. They are intentionally not
+run by Streamlit or `run_dashboard.sh`; the dashboard reads completed artifacts. If a maintainer
+has a verified checkpoint, the repository-relative location below is the supported source.
 
 The legacy June command below also fits the historical Random Forest baseline; it is retained for
 provenance and is not part of the July refresh:
@@ -130,7 +152,7 @@ supervised model:
 
 ```bash
 PYTHONPATH=. .venv-streamlit/bin/python scripts/build_july_pca_artifact.py \
-  --july-data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --july-data-dir .data/inferencex-db-dump-2026-07-20 \
   --june-data-dir inferencex-pca-data \
   --output artifacts/pca-db-dump-2026-07-20.json
 ```
@@ -139,17 +161,17 @@ The preserved Stage 2 bounded neural screens are generated separately:
 
 ```bash
 PYTHONPATH=. .venv-representation/bin/python scripts/train_autoencoder_representation.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --data-dir .data/inferencex-db-dump-2026-07-20 \
   --output artifacts/representation-ae-db-dump-2026-07-20.json \
   --weights artifacts/representation-ae-db-dump-2026-07-20.pt
 
 PYTHONPATH=. .venv-representation/bin/python scripts/train_vae_representation.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --data-dir .data/inferencex-db-dump-2026-07-20 \
   --output artifacts/representation-vae-db-dump-2026-07-20.json \
   --weights artifacts/representation-vae-db-dump-2026-07-20.pt
 
 PYTHONPATH=. .venv-streamlit/bin/python scripts/build_representation_comparison_artifact.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --data-dir .data/inferencex-db-dump-2026-07-20 \
   --output artifacts/representation-comparison-db-dump-2026-07-20.json
 ```
 
@@ -158,17 +180,17 @@ The bounded Stage 3 final experiment uses the fixed 15-dimensional architecture 
 
 ```bash
 PYTHONPATH=. .venv-representation/bin/python scripts/train_autoencoder_representation_final.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20 \
+  --data-dir .data/inferencex-db-dump-2026-07-20 \
   --maximum-epochs 250
 
 PYTHONPATH=. .venv-representation/bin/python scripts/diagnose_vae_representation_beta.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+  --data-dir .data/inferencex-db-dump-2026-07-20
 
 PYTHONPATH=. .venv-representation/bin/python scripts/train_vae_representation_final.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+  --data-dir .data/inferencex-db-dump-2026-07-20
 
 PYTHONPATH=. .venv-streamlit/bin/python scripts/build_representation_comparison_final.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+  --data-dir .data/inferencex-db-dump-2026-07-20
 ```
 
 Stage 4 is a fixed methodological validation, not another model search. It fits every imputer,
@@ -180,7 +202,7 @@ feature-family ablations:
 ```bash
 PYTHONPATH=. .venv-representation/bin/python \
   scripts/run_representation_validation_stage4.py \
-  --data-dir /tmp/inferencex-dump-comparison/db-dump-2026-07-20
+  --data-dir .data/inferencex-db-dump-2026-07-20
 ```
 
 The command writes
@@ -636,6 +658,7 @@ contain supervised predictions.
 
 Do not commit:
 
+- `.data/`
 - `inferencex-dump-*/`
 - `inferencex-pca-data/`
 - `exports/`
@@ -651,13 +674,11 @@ Do not commit:
 ## Team Workflow
 
 1. Clone the repository.
-2. Download and place the approved CSV data folder locally.
-3. Create the appropriate Python virtual environment.
-4. Install `requirements-streamlit.txt`.
-5. Run Streamlit with `PYTHONPATH=.`.
-6. Use the median aggregate analysis unit.
-7. Read completed aggregate research artifacts in the dashboard.
-8. Re-run experiments only when the data, task, or evaluation contract changes.
+2. Run `./run_dashboard.sh` with CPython 3.11 available.
+3. Let the launcher install or verify the pinned `.data/` checkpoint.
+4. Use the median aggregate analysis unit and read completed research artifacts in the dashboard.
+5. Do not rebuild research artifacts unless the data, task, or evaluation contract changes and a
+   separately approved research workflow is being run.
 
 ## Future Improvements
 

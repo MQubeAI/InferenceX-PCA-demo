@@ -27,6 +27,18 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from modeling.comparison import evaluate_models, missingness_report
+from modeling.dataset_checkpoint import (
+    ARTIFACT_INCOMPATIBLE,
+    CHECKSUM_FAILURE,
+    MISSING,
+    active_dataset_manifest,
+    artifact_matches_active_dataset,
+    checkpoint_status,
+    default_data_dir,
+    file_identity,
+    load_data_manifest,
+    resolve_data_dir as resolve_checkpoint_data_dir,
+)
 from modeling.energy_measurements import (
     CONFIG_FIELDS as ENERGY_CONFIG_FIELDS,
     ENERGY_TARGET,
@@ -56,11 +68,13 @@ from modeling.representation_analysis import (
 )
 
 
-ACTIVE_DUMP_VERSION = "db-dump/2026-07-20"
+ACTIVE_DATA_MANIFEST = load_data_manifest()
+ACTIVE_DATASET_ID = ACTIVE_DATA_MANIFEST["dataset_id"]
+ACTIVE_DUMP_VERSION = ACTIVE_DATA_MANIFEST["source"]["release"]
 ACTIVE_DUMP_RELEASE = "InferenceX database snapshot 2026-07-20"
 DEFAULT_DATA_DIR = os.environ.get(
     "INFERENCEX_DATA_DIR",
-    "/tmp/inferencex-dump-comparison/db-dump-2026-07-20",
+    str(default_data_dir(ACTIVE_DATA_MANIFEST)),
 )
 ROLLBACK_DATA_DIR = "inferencex-pca-data"
 DEFAULT_JSON_DUMP_DIR = os.environ.get("INFERENCEX_JSON_DUMP_DIR", "")
@@ -342,10 +356,9 @@ def join_benchmarks_configs(
 
 
 def resolve_data_dir(data_dir_text: str) -> Path:
-    data_dir = Path(data_dir_text).expanduser()
-    if not data_dir.is_absolute():
-        data_dir = Path.cwd() / data_dir
-    return data_dir
+    """Resolve developer overrides relative to the repository, never the machine home."""
+
+    return resolve_checkpoint_data_dir(data_dir_text)
 
 
 def has_required_files(directory: Path, files: tuple[str, ...]) -> bool:
@@ -430,10 +443,10 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
             break
     json_ready = json_ready_dir is not None
     active_mode = (
-        "CSV"
-        if csv_ready
-        else "Raw CSV"
+        "Raw CSV"
         if raw_csv_ready
+        else "CSV"
+        if csv_ready
         else "JSON fallback"
         if json_ready
         else "missing"
@@ -445,14 +458,27 @@ def data_source_status(data_dir_text: str) -> tuple[pd.DataFrame, dict[str, Any]
         if active_mode == "JSON fallback" and json_ready_dir
         else csv_dir
     )
-    return status, {
+    source = {
         "csv_ready": csv_ready,
         "raw_csv_ready": raw_csv_ready,
         "json_ready": json_ready,
         "active_mode": active_mode,
         "active_dir": active_dir,
-        "active_candidate": "selected data directory" if active_mode in {"CSV", "Raw CSV"} else json_ready_label,
+        "active_candidate": (
+            "frozen checkpoint location"
+            if active_mode == "Raw CSV"
+            and active_dir.resolve() == default_data_dir(ACTIVE_DATA_MANIFEST).resolve()
+            else "selected data directory"
+            if active_mode in {"CSV", "Raw CSV"}
+            else json_ready_label
+        ),
     }
+    source["checkpoint"] = checkpoint_status(
+        active_dir,
+        active_mode=active_mode,
+        manifest=ACTIVE_DATA_MANIFEST,
+    )
+    return status, source
 
 
 def flatten_metrics_column(frame: pd.DataFrame) -> pd.DataFrame:
@@ -783,41 +809,18 @@ def build_analysis_frame(
 
 
 def file_snapshot(path: Path, sample_bytes: int = 1_048_576) -> dict[str, Any]:
-    """Return non-row-level metadata and a bounded content fingerprint for one source file."""
-    stat = path.stat()
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        digest.update(handle.read(sample_bytes))
-        if stat.st_size > sample_bytes:
-            handle.seek(max(0, stat.st_size - sample_bytes))
-            digest.update(handle.read(sample_bytes))
-    return {
-        "name": path.name,
-        "size_bytes": stat.st_size,
-        "modified_at_utc": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
-        "content_sample_sha256": digest.hexdigest(),
-    }
+    """Return full content identity; the argument stays for script compatibility."""
+
+    del sample_bytes
+    return file_identity(path)
 
 
 def build_dataset_manifest(source_info: dict[str, Any]) -> dict[str, Any]:
-    active_dir = Path(source_info["active_dir"])
-    required_files = (
-        REQUIRED_CSV_FILES
-        if source_info["active_mode"] == "CSV"
-        else REQUIRED_RAW_CSV_FILES
-        if source_info["active_mode"] == "Raw CSV"
-        else REQUIRED_JSON_FILES
+    return active_dataset_manifest(
+        source_info["active_dir"],
+        active_mode=source_info["active_mode"],
+        manifest=ACTIVE_DATA_MANIFEST,
     )
-    files = [file_snapshot(active_dir / file_name) for file_name in required_files]
-    payload = {
-        "active_mode": source_info["active_mode"],
-        "active_dir": str(active_dir.resolve()),
-        "files": files,
-    }
-    fingerprint = hashlib.sha256(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    return {**payload, "fingerprint": fingerprint}
 
 
 def git_commit() -> str:
@@ -4205,13 +4208,20 @@ def render_data_source_details(
             f"{analysis_metadata['analysis_row_count']:,} analysis rows"
         )
     with detail_cols[1]:
+        checkpoint = source_info.get("checkpoint", {})
+        st.caption("Dataset checkpoint")
+        st.write(checkpoint.get("status", MISSING))
+        st.caption("Verification")
+        st.write(checkpoint.get("reason", "Unavailable"))
+    with st.expander("Developer source diagnostics"):
         st.caption("Resolved source")
-        st.write(f"{source_info['active_mode']} · {source_info.get('active_candidate') or 'selected data directory'}")
-        st.caption("Required-file status")
-        st.write("Available")
-    st.caption("Local data directory")
-    st.code(str(source_info["active_dir"]), language=None)
-    st.dataframe(file_status, width="stretch", hide_index=True)
+        st.write(
+            f"{source_info['active_mode']} · "
+            f"{source_info.get('active_candidate') or 'selected data directory'}"
+        )
+        st.caption("Resolved local directory")
+        st.code(str(source_info["active_dir"]), language=None)
+        st.dataframe(file_status, width="stretch", hide_index=True)
 
 
 def render_data_understanding_dashboard(
@@ -4312,11 +4322,11 @@ def render_pca_dashboard(
             language="bash",
         )
         return
-    active_fingerprint = analysis_metadata.get("dataset_manifest", {}).get("fingerprint")
-    artifact_fingerprint = artifact.get("dump", {}).get("manifest", {}).get("fingerprint")
-    if active_fingerprint != artifact_fingerprint:
+    active_dataset = analysis_metadata.get("dataset_manifest", {})
+    if not artifact_matches_active_dataset(active_dataset, artifact):
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
         st.error(
-            "The loaded data does not match the cumulative-snapshot PCA artifact. "
+            f"{ARTIFACT_INCOMPATIBLE}: the loaded data is not a verified match for the cumulative-snapshot PCA artifact. "
             "No saved basis or target overlay was applied."
         )
         return
@@ -4578,6 +4588,7 @@ def render_neural_representation_dashboard(
     method: str,
     artifact_path: Path,
     title: str,
+    active_dataset: dict[str, Any],
 ) -> None:
     """Render completed aggregate artifacts only; never import or fit a neural model."""
 
@@ -4605,6 +4616,14 @@ def render_neural_representation_dashboard(
     except Exception as exc:
         st.error(
             f"The {title} artifact is incompatible or unreadable: {exc}. "
+            "No representation results were rendered."
+        )
+        return
+
+    if not artifact_matches_active_dataset(active_dataset, artifact):
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the {title} artifact is not compatible with the active dataset. "
             "No representation results were rendered."
         )
         return
@@ -4880,7 +4899,7 @@ def render_neural_representation_dashboard(
         )
 
 
-def render_representation_comparison_dashboard() -> None:
+def render_representation_comparison_dashboard(active_dataset: dict[str, Any]) -> None:
     render_section_intro(
         "Results and Comparison",
         "Matched-protocol evidence across linear and nonlinear representations.",
@@ -4896,6 +4915,14 @@ def render_representation_comparison_dashboard() -> None:
     except Exception as exc:
         st.error(
             f"The representation comparison artifact is incompatible: {exc}. "
+            "No cross-method comparison was rendered."
+        )
+        return
+
+    if not artifact_matches_active_dataset(active_dataset, artifact):
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the representation comparison is not compatible with the active dataset. "
             "No cross-method comparison was rendered."
         )
         return
@@ -5042,7 +5069,7 @@ def render_representation_comparison_dashboard() -> None:
     st.write(interpretation["unresolved_questions"])
 
 
-def render_research_validation_dashboard() -> None:
+def render_research_validation_dashboard(active_dataset: dict[str, Any]) -> None:
     """Render Stage 4 as a methods-validation section rather than a leaderboard."""
 
     render_section_intro(
@@ -5063,6 +5090,14 @@ def render_research_validation_dashboard() -> None:
     except Exception as exc:
         st.error(
             f"The Research Validation artifact is incompatible: {exc}. "
+            "No validation conclusions were rendered."
+        )
+        return
+
+    if not artifact_matches_active_dataset(active_dataset, artifact):
+        active_dataset.setdefault("verification", {})["artifact_status"] = ARTIFACT_INCOMPATIBLE
+        st.error(
+            f"{ARTIFACT_INCOMPATIBLE}: the Research Validation artifact is not compatible with the active dataset. "
             "No validation conclusions were rendered."
         )
         return
@@ -5412,17 +5447,19 @@ def render_representation_analysis_dashboard(
             method="autoencoder",
             artifact_path=AE_REPRESENTATION_ARTIFACT_PATH,
             title="Autoencoder",
+            active_dataset=analysis_metadata.get("dataset_manifest", {}),
         )
     with subpages[2]:
         render_neural_representation_dashboard(
             method="variational_autoencoder",
             artifact_path=VAE_REPRESENTATION_ARTIFACT_PATH,
             title="Variational Autoencoder",
+            active_dataset=analysis_metadata.get("dataset_manifest", {}),
         )
     with subpages[3]:
-        render_representation_comparison_dashboard()
+        render_representation_comparison_dashboard(analysis_metadata.get("dataset_manifest", {}))
     with subpages[4]:
-        render_research_validation_dashboard()
+        render_research_validation_dashboard(analysis_metadata.get("dataset_manifest", {}))
 
 
 def render_model_results_dashboard(research_summary: dict[str, Any] | None, error: str = "") -> None:
@@ -5658,21 +5695,35 @@ def main() -> None:
     with st.sidebar:
         st.header("Controls")
         analysis_unit = st.selectbox("Analysis unit", options=ANALYSIS_UNIT_OPTIONS, index=2)
-        with st.expander("Advanced settings"):
+        with st.expander("Advanced developer settings"):
             max_rows = st.number_input("Maximum rows", min_value=500, max_value=100_000, value=20_000, step=500)
             seed = st.number_input("Random seed", min_value=0, max_value=999_999, value=42, step=1)
-            data_dir = st.text_input("Data directory", value=data_dir, key="data_dir_control")
-            st.caption("The official raw CSV export, flattened CSV, and JSON fallback are supported.")
+            data_dir = st.text_input("Developer data-directory override", value=data_dir, key="data_dir_control")
+            st.caption("Normal operation uses the verified raw CSV checkpoint. Flattened CSV and JSON are legacy developer paths.")
             fallback_status = "available" if source_probe["json_ready"] else "not found"
             st.caption(f"Source check: {source_probe['active_mode']}. JSON fallback: {fallback_status}.")
 
     research_summary, research_error = research_summary_or_none()
     tabs = st.tabs(MAIN_TAB_LABELS)
-    if source_probe["active_mode"] == "missing":
+    checkpoint = source_probe.get("checkpoint", {})
+    if source_probe["active_mode"] == "missing" or checkpoint.get("status") == CHECKSUM_FAILURE:
         with tabs[0]:
-            st.info("Benchmark data is unavailable. Update the data directory in Advanced settings.")
+            if checkpoint.get("status") == CHECKSUM_FAILURE:
+                st.error(
+                    "The local frozen checkpoint failed checksum verification. "
+                    "Run `python scripts/bootstrap_dashboard_data.py` to reinstall it."
+                )
+            else:
+                st.info(
+                    "The frozen July 20 checkpoint is not installed. Run `./run_dashboard.sh` "
+                    "or `python scripts/bootstrap_dashboard_data.py` to install it."
+                )
             with st.expander("Data source details"):
-                st.dataframe(file_status, width="stretch", hide_index=True)
+                render_data_source_details(file_status, source_probe, {
+                    "analysis_unit": analysis_unit,
+                    "raw_row_count": 0,
+                    "analysis_row_count": 0,
+                })
         with tabs[1]:
             st.info("Data Understanding is available after benchmark data loads.")
         with tabs[2]:

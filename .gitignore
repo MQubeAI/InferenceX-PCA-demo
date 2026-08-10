@@ -84,6 +84,7 @@ __pycache__/
 inferencex-pca-data/
 inferencex-dump-*/
 exports/
+.data/
 
 # Python/Streamlit local files
 .venv*/

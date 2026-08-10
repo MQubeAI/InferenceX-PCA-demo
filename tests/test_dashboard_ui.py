@@ -121,7 +121,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertNotIn(".fit(", source)
         self.assertNotIn("import torch", inspect.getsource(app))
 
-    def test_streamlit_apptest_renders_representation_pages_without_errors(self) -> None:
+    def test_streamlit_apptest_handles_a_missing_checkpoint_without_errors(self) -> None:
         tested = AppTest.from_file(
             "apps/inferencex_pca_demo.py",
             default_timeout=90,
@@ -129,15 +129,16 @@ class DashboardUiTests(unittest.TestCase):
         self.assertEqual(len(tested.exception), 0)
         self.assertEqual(len(tested.error), 0)
         labels = [tab.label for tab in tested.tabs]
-        for label in (*app.MAIN_TAB_LABELS, *app.REPRESENTATION_SUBPAGE_LABELS):
+        for label in app.MAIN_TAB_LABELS:
             self.assertIn(label, labels)
+        self.assertTrue(any("not installed" in info.value for info in tested.info))
 
     def test_model_results_are_marked_historical_on_july_data(self) -> None:
         source = inspect.getsource(app.render_model_results_dashboard)
         self.assertIn("historical experiments on the June snapshot", source)
         self.assertIn("not applied to cumulative-snapshot rows", source)
 
-    def test_csv_first_and_json_fallback_data_loading_are_preserved(self) -> None:
+    def test_raw_csv_is_preferred_and_legacy_csv_json_loading_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             pd.DataFrame({"config_id": [1], "metrics_tput_per_gpu": [10.0]}).to_csv(
@@ -151,6 +152,22 @@ class DashboardUiTests(unittest.TestCase):
             self.assertEqual(len(benchmarks), 1)
             self.assertIn("config_hardware", configs)
             self.assertIn("config_hardware", joined)
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            pd.DataFrame({"config_id": [1], "metrics": ['{"tput_per_gpu": 10.0}']}).to_csv(
+                path / "benchmark_results_raw.csv", index=False
+            )
+            pd.DataFrame({"config_id": [1], "metrics_tput_per_gpu": [5.0]}).to_csv(
+                path / "benchmark_results.csv", index=False
+            )
+            pd.DataFrame({"id": [1], "hardware": ["gpu"]}).to_csv(
+                path / "configs.csv", index=False
+            )
+            benchmarks, _configs, joined, source = app.load_joined_data(str(path), "raw-test")
+            self.assertEqual(source["active_mode"], "Raw CSV")
+            self.assertEqual(float(benchmarks["metrics_tput_per_gpu"].iloc[0]), 10.0)
+            self.assertIn("metrics_tput_per_gpu", joined)
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
