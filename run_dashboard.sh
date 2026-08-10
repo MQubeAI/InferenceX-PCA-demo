@@ -33,24 +33,10 @@ if [[ ! -f "$lock_marker" ]] || [[ "$(<"$lock_marker")" != "$lock_digest" ]]; th
   printf '%s\n' "$lock_digest" > "$lock_marker"
 fi
 
-required_artifacts=(
-  "artifacts/pca-db-dump-2026-07-20.json"
-  "artifacts/representation-ae-final-db-dump-2026-07-20.json"
-  "artifacts/representation-ae-final-db-dump-2026-07-20.parquet"
-  "artifacts/representation-vae-final-db-dump-2026-07-20.json"
-  "artifacts/representation-vae-final-db-dump-2026-07-20.parquet"
-  "artifacts/representation-comparison-final-db-dump-2026-07-20.json"
-  "artifacts/representation-validation-stage4-db-dump-2026-07-20.json"
-)
-for artifact in "${required_artifacts[@]}"; do
-  if [[ ! -f "$repo_root/$artifact" ]]; then
-    echo "Required artifact missing: $artifact. Restore the committed artifact before launching." >&2
-    exit 2
-  fi
-done
-
 echo "Validating frozen dashboard data..."
 "$venv_dir/bin/python" scripts/bootstrap_dashboard_data.py
+echo "Validating active research artifacts..."
+"$venv_dir/bin/python" scripts/bootstrap_dashboard_artifacts.py
 
 export PYTHONPATH="$repo_root${PYTHONPATH:+:$PYTHONPATH}"
 exec "$venv_dir/bin/streamlit" run apps/inferencex_pca_demo.py "$@"

@@ -22,7 +22,7 @@ Inference performance depends on more than model and hardware. Serving framework
 
 ## Quick Start
 
-The dashboard is tied to the frozen **`inferencex-db-dump-2026-07-20`** checkpoint from
+The dashboard currently uses the frozen **`inferencex-db-dump-2026-07-20`** checkpoint from
 [`SemiAnalysisAI/InferenceX-app` release `db-dump/2026-07-20`](https://github.com/SemiAnalysisAI/InferenceX-app/releases/tag/db-dump/2026-07-20).
 On macOS or Linux with CPython 3.11 installed:
 
@@ -33,12 +33,12 @@ cd InferenceX-PCA-demo
 ```
 
 The launcher creates `.venv-dashboard`, installs the committed Python 3.11 runtime lock,
-validates the committed research artifacts, downloads the small dashboard-only CSV bundle when
-needed, checks the bundle and both CSV files with SHA-256, installs it atomically under
-`.data/inferencex-db-dump-2026-07-20/`, and starts Streamlit. It does not install PostgreSQL,
+validates the active research-artifact pointer, downloads the active dashboard-only CSV bundle when
+needed, checks the bundle and both CSV files with SHA-256, installs it atomically under the
+manifest-selected `.data/inferencex-db-dump-YYYY-MM-DD/`, and starts Streamlit. It does not install PostgreSQL,
 restore the multi-gigabyte upstream dump, or train PCA, AE/VAE, TabFM, or any supervised model.
 
-The default dashboard location is repository-relative:
+The default dashboard location is repository-relative (currently):
 
 ```text
 .data/inferencex-db-dump-2026-07-20/
@@ -67,24 +67,19 @@ The manifest pins its download URL, archive SHA-256, and the full SHA-256 values
 bootstrap fails closed if any verification step differs. The original PostgreSQL dump remains
 provenance/recovery material, not a normal dashboard dependency.
 
+### Maintainer refreshes
+
+Normal users do not need database tooling or snapshot dates. Maintainers can use the documented
+[candidate refresh lifecycle](docs/future-automated-snapshot-refresh.md) to discover, validate, and
+review a later upstream snapshot. A candidate never replaces this active checkpoint automatically;
+only a reviewed promotion pointer change does so.
+
 Run the network-backed clean-clone acceptance smoke test from a fresh checkout (with no `.data/`
 directory):
 
 ```bash
 python3.11 scripts/clean_clone_smoke_test.py
 ```
-
-### Docker
-
-After the dashboard data release asset has been published, the same runtime bootstrap can run
-without host Python:
-
-```bash
-docker compose up --build
-```
-
-The Compose volume stores `.data/` outside image layers, so the frozen dataset is neither baked
-into the image nor committed to Git. Open <http://localhost:8501>.
 
 ### Advanced provenance and developer recovery
 

@@ -27,6 +27,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from modeling.comparison import evaluate_models, missingness_report
+from modeling.artifact_checkpoint import active_artifact_paths
 from modeling.dataset_checkpoint import (
     ARTIFACT_INCOMPATIBLE,
     CHECKSUM_FAILURE,
@@ -63,7 +64,6 @@ from modeling.pca_target_analysis import (
 )
 from modeling.representation_analysis import (
     FINAL_COMPARISON_SCHEMA_VERSION,
-    SOURCE_DUMP_VERSION as REPRESENTATION_SOURCE_DUMP_VERSION,
     CanonicalRepresentationData,
     align_companion_to_active_cohort,
     canonical_representation_data,
@@ -74,7 +74,7 @@ from modeling.representation_analysis import (
 ACTIVE_DATA_MANIFEST = load_data_manifest()
 ACTIVE_DATASET_ID = ACTIVE_DATA_MANIFEST["dataset_id"]
 ACTIVE_DUMP_VERSION = ACTIVE_DATA_MANIFEST["source"]["release"]
-ACTIVE_DUMP_RELEASE = "InferenceX database snapshot 2026-07-20"
+ACTIVE_DUMP_RELEASE = f"InferenceX database snapshot {ACTIVE_DATA_MANIFEST['snapshot_date']}"
 DEFAULT_DATA_DIR = os.environ.get(
     "INFERENCEX_DATA_DIR",
     str(default_data_dir(ACTIVE_DATA_MANIFEST)),
@@ -156,24 +156,14 @@ DEFAULT_PERMUTATION_REPEATS = 5
 DEFAULT_PCA_STABILITY_RUNS = 5
 DEFAULT_PCA_STABILITY_FRACTION = 0.8
 RESEARCH_ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
-PCA_TARGET_ARTIFACT_PATH = RESEARCH_ARTIFACT_DIR / "pca-db-dump-2026-07-20.json"
-AE_REPRESENTATION_ARTIFACT_PATH = (
-    RESEARCH_ARTIFACT_DIR / "representation-ae-final-db-dump-2026-07-20.json"
-)
-VAE_REPRESENTATION_ARTIFACT_PATH = (
-    RESEARCH_ARTIFACT_DIR / "representation-vae-final-db-dump-2026-07-20.json"
-)
-REPRESENTATION_COMPARISON_ARTIFACT_PATH = (
-    RESEARCH_ARTIFACT_DIR / "representation-comparison-final-db-dump-2026-07-20.json"
-)
-VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH = (
-    RESEARCH_ARTIFACT_DIR
-    / "representation-vae-beta-diagnostic-db-dump-2026-07-20.json"
-)
-REPRESENTATION_VALIDATION_ARTIFACT_PATH = (
-    RESEARCH_ARTIFACT_DIR
-    / "representation-validation-stage4-db-dump-2026-07-20.json"
-)
+ACTIVE_ARTIFACT_PATHS = active_artifact_paths(ACTIVE_DATA_MANIFEST)
+PCA_TARGET_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["pca"]
+AE_REPRESENTATION_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["ae"]
+VAE_REPRESENTATION_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["vae"]
+REPRESENTATION_COMPARISON_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["comparison"]
+REPRESENTATION_VALIDATION_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["stage4"]
+VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["vae_beta"]
+MODEL_SUMMARY_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["model_summary"]
 MAIN_TAB_LABELS = (
     "Overview",
     "Data Understanding",
@@ -3186,9 +3176,11 @@ def run_tabfm_comparison_subprocess(
     seed: int,
     context_cap: int,
     analysis_unit: str,
+    *,
+    interpreter: str | Path | None = None,
 ) -> tuple[dict[str, Any] | None, str]:
     """Keep TabFM imports and checkpoint loading out of the Streamlit process."""
-    interpreter = Path(".venv-tabfm/bin/python")
+    interpreter = Path(interpreter) if interpreter is not None else Path(".venv-tabfm/bin/python")
     script = Path("scripts/model_comparison.py")
     if not interpreter.exists():
         return None, "TabFM environment is unavailable at .venv-tabfm/bin/python."
@@ -4038,7 +4030,10 @@ def compact_value_chart(frame: pd.DataFrame, column: str, title: str) -> None:
 def research_summary_or_none() -> tuple[dict[str, Any] | None, str]:
     """Read completed aggregate artifacts without touching a model runtime."""
     try:
-        return build_research_summary(RESEARCH_ARTIFACT_DIR), ""
+        summary = json.loads(MODEL_SUMMARY_ARTIFACT_PATH.read_text(encoding="utf-8"))
+        if summary.get("aggregate_only") is not True:
+            raise ValueError("Active model summary is not aggregate-only.")
+        return summary, ""
     except Exception as exc:
         return None, str(exc)
 
@@ -4046,8 +4041,9 @@ def research_summary_or_none() -> tuple[dict[str, Any] | None, str]:
 @st.cache_data(show_spinner=False)
 def load_pca_target_artifact(path_text: str = str(PCA_TARGET_ARTIFACT_PATH)) -> dict[str, Any]:
     artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
-    if artifact.get("dump", {}).get("version") != ACTIVE_DUMP_VERSION:
-        raise ValueError("PCA artifact dump version does not match the active July snapshot.")
+    source_release = artifact.get("dump", {}).get("version") or artifact.get("dataset", {}).get("source_release")
+    if source_release != ACTIVE_DUMP_VERSION:
+        raise ValueError("PCA artifact dump version does not match the active snapshot.")
     if artifact.get("shared_basis", {}).get("feature_order") != list(TARGET_PCA_FEATURES):
         raise ValueError("PCA artifact feature order does not match the frozen shared basis.")
     return artifact
@@ -4061,7 +4057,7 @@ def load_neural_representation_artifact(
     """Load and validate aggregate neural results without importing PyTorch."""
 
     artifact, companion_path = load_final_representation_artifact(
-        path_text, expected_method=method
+        path_text, expected_method=method, expected_source_dump=ACTIVE_DUMP_VERSION
     )
     return artifact, pd.read_parquet(companion_path)
 
@@ -4073,7 +4069,7 @@ def load_representation_comparison_artifact(
     artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
     if artifact.get("schema_version") != FINAL_COMPARISON_SCHEMA_VERSION:
         raise ValueError("Comparison artifact schema version is incompatible.")
-    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+    if artifact.get("source_dump") != ACTIVE_DUMP_VERSION:
         raise ValueError("Comparison artifact source dump is incompatible.")
     if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
         raise ValueError("Comparison artifact feature order is incompatible.")
@@ -4089,9 +4085,9 @@ def load_vae_beta_diagnostic_artifact(
     path_text: str = str(VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH),
 ) -> dict[str, Any]:
     artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
-    if artifact.get("schema_version") != "representation-vae-beta-diagnostic-v1":
+    if artifact.get("schema_version") not in {"representation-vae-beta-diagnostic-v1", "representation-vae-beta-diagnostic-v2"}:
         raise ValueError("VAE beta diagnostic schema version is incompatible.")
-    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+    if artifact.get("source_dump") != ACTIVE_DUMP_VERSION:
         raise ValueError("VAE beta diagnostic source dump is incompatible.")
     if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
         raise ValueError("VAE beta diagnostic feature order is incompatible.")
@@ -4109,9 +4105,14 @@ def load_representation_validation_artifact(
     artifact = json.loads(Path(path_text).read_text(encoding="utf-8"))
     if artifact.get("schema_version") != "representation-validation-stage4-v1":
         raise ValueError("Research Validation artifact schema version is incompatible.")
-    if artifact.get("source_dump") != REPRESENTATION_SOURCE_DUMP_VERSION:
+    if artifact.get("source_dump") != ACTIVE_DUMP_VERSION:
         raise ValueError("Research Validation artifact source dump is incompatible.")
-    if artifact.get("cohort_rows") != 8_063:
+    pca = load_pca_target_artifact()
+    expected_cohort_rows = (
+        pca.get("shared_basis", {}).get("full_eligible_row_count")
+        or pca.get("counts", {}).get("cohort_rows")
+    )
+    if artifact.get("cohort_rows") != expected_cohort_rows:
         raise ValueError("Research Validation artifact cohort is incompatible.")
     if artifact.get("feature_order") != list(TARGET_PCA_FEATURES):
         raise ValueError("Research Validation artifact feature order is incompatible.")

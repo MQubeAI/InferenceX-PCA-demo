@@ -310,11 +310,15 @@ def run_final_experiment(
     seeds: tuple[int, ...] = RANDOM_SEEDS,
     maximum_epochs: int,
     patience: int = 12,
+    source_dump: str = SOURCE_DUMP_VERSION,
+    enforce_snapshot_counts: bool = True,
 ) -> dict[str, Any]:
     """Train the fixed Stage 3 architecture across three seeds and three folds."""
 
     started = time.perf_counter()
-    data = canonical_representation_data(aggregate)
+    data = canonical_representation_data(
+        aggregate, enforce_snapshot_counts=enforce_snapshot_counts
+    )
     splits = grouped_split_definitions(data)
     all_records: list[dict[str, Any]] = []
     raw_results: dict[int, list[dict[str, Any]]] = {}
@@ -386,7 +390,7 @@ def run_final_experiment(
         data,
         splits,
         method=method,
-        source_dump=SOURCE_DUMP_VERSION,
+        source_dump=source_dump,
         seed=seeds[0],
     )
     common["schema_version"] = FINAL_REPRESENTATION_SCHEMA_VERSION
@@ -650,11 +654,15 @@ def run_vae_beta_diagnostic(
     seed: int = 42,
     maximum_epochs: int = 150,
     patience: int = 12,
+    source_dump: str = SOURCE_DUMP_VERSION,
+    enforce_snapshot_counts: bool = True,
 ) -> dict[str, Any]:
     """Run only beta 0.1/0.5 and reuse the comparable beta-1 Stage 2 result."""
 
     started = time.perf_counter()
-    data = canonical_representation_data(aggregate)
+    data = canonical_representation_data(
+        aggregate, enforce_snapshot_counts=enforce_snapshot_counts
+    )
     splits = grouped_split_definitions(data)
     results = [
         _diagnostic_result_from_new_runs(
@@ -689,7 +697,7 @@ def run_vae_beta_diagnostic(
     artifact = {
         "schema_version": "representation-vae-beta-diagnostic-v1",
         "created_at_utc": datetime.now(UTC).isoformat(),
-        "source_dump": SOURCE_DUMP_VERSION,
+        "source_dump": source_dump,
         "cohort_hash": data.cohort_hash,
         "row_key_hash": data.row_key_hash,
         "cohort_rows": len(data.cohort),
@@ -699,7 +707,7 @@ def run_vae_beta_diagnostic(
             data,
             splits,
             method="variational_autoencoder",
-            source_dump=SOURCE_DUMP_VERSION,
+            source_dump=source_dump,
             seed=seed,
         )["split_definitions"],
         "seed": seed,

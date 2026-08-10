@@ -121,7 +121,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertNotIn(".fit(", source)
         self.assertNotIn("import torch", inspect.getsource(app))
 
-    def test_streamlit_apptest_handles_a_missing_checkpoint_without_errors(self) -> None:
+    def test_streamlit_apptest_handles_checkpoint_states_without_errors(self) -> None:
         tested = AppTest.from_file(
             "apps/inferencex_pca_demo.py",
             default_timeout=90,
@@ -131,7 +131,8 @@ class DashboardUiTests(unittest.TestCase):
         labels = [tab.label for tab in tested.tabs]
         for label in app.MAIN_TAB_LABELS:
             self.assertIn(label, labels)
-        self.assertTrue(any("not installed" in info.value for info in tested.info))
+        if not Path(app.DEFAULT_DATA_DIR).exists():
+            self.assertTrue(any("not installed" in info.value for info in tested.info))
 
     def test_model_results_are_marked_historical_on_july_data(self) -> None:
         source = inspect.getsource(app.render_model_results_dashboard)

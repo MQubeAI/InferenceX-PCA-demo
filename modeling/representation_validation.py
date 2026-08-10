@@ -698,9 +698,13 @@ def run_stage4_validation(
     stage3_comparison_path: str | Path,
     pca_artifact_path: str | Path,
     output_path: str | Path,
+    source_dump: str = SOURCE_DUMP_VERSION,
+    enforce_snapshot_counts: bool = True,
 ) -> dict[str, Any]:
     wall_started = time.perf_counter()
-    data = canonical_representation_data(aggregate)
+    data = canonical_representation_data(
+        aggregate, enforce_snapshot_counts=enforce_snapshot_counts
+    )
     pca_hash_before = hashlib.sha256(Path(pca_artifact_path).read_bytes()).hexdigest()
     stage3_ae = json.loads(Path(stage3_ae_path).read_text(encoding="utf-8"))
     stage3_vae = json.loads(Path(stage3_vae_path).read_text(encoding="utf-8"))
@@ -968,7 +972,7 @@ def run_stage4_validation(
     artifact = {
         "schema_version": STAGE4_SCHEMA_VERSION,
         "created_at_utc": datetime.now(UTC).isoformat(),
-        "source_dump": SOURCE_DUMP_VERSION,
+        "source_dump": source_dump,
         "cohort_hash": data.cohort_hash,
         "row_key_hash": data.row_key_hash,
         "cohort_rows": len(data.cohort),

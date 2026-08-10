@@ -1,0 +1,63 @@
+name: Prepare explicit InferenceX promotion PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_date:
+        description: Reviewed candidate YYYY-MM-DD to promote
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: inferencex-promotion-${{ inputs.snapshot_date }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-promotion:
+    runs-on: ubuntu-24.04
+    environment: inferencex-promotion
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Create an explicit pointer-change branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          date='${{ inputs.snapshot_date }}'
+          branch="promote/db-dump-$date"
+          git switch -c "$branch"
+          python - "$date" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          date = sys.argv[1]
+          manifest_path = Path("data/manifests") / f"{date}.json"
+          entry_path = Path("data/candidates") / f"db-dump-{date}-artifacts.json"
+          manifest = json.loads(manifest_path.read_text())
+          entry = json.loads(entry_path.read_text())
+          if manifest.get("status") != "candidate" or entry.get("status") != "candidate":
+              raise SystemExit("Promotion source is not a candidate.")
+          manifest["status"] = "promoted"
+          entry["status"] = "promoted"
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+          entry_path.write_text(json.dumps(entry, indent=2) + "\n")
+          index_path = Path("data/artifact-index.json")
+          index = json.loads(index_path.read_text())
+          index["snapshots"][manifest["dataset_id"]] = entry
+          index_path.write_text(json.dumps(index, indent=2) + "\n")
+          PY
+          python scripts/promote_snapshot.py --snapshot-date "$date" --apply
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data-manifest.json data/artifact-index.json "data/manifests/$date.json" "data/candidates/db-dump-$date-artifacts.json"
+          git commit -m "Promote InferenceX snapshot $date"
+          git push --set-upstream origin "$branch"
+          gh pr create --base main --head "$branch" --title "Promote InferenceX snapshot db-dump/$date" --body "Explicit reviewed promotion of candidate db-dump/$date. This pointer change updates the active data manifest and artifact index only; it does not mutate any prior release. Required post-merge verification is the clean-clone workflow."
