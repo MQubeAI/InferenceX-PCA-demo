@@ -15,6 +15,7 @@ from typing import Any, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
+from sklearn import config_context
 from sklearn.manifold import TSNE
 
 from modeling.neighborhood_analysis import (
@@ -437,19 +438,30 @@ def fit_tsne(
         init=config.init,
         method=config.method,
         random_state=config.seed,
+        n_jobs=1,
     )
     started = time.perf_counter()
-    coordinates = np.asarray(model.fit_transform(values), dtype=float)
+    # Barnes-Hut's neighbor search delegates temporary-distance chunking to
+    # scikit-learn's working-memory setting. Bound only that implementation
+    # buffer for the 8,063-row cohort; frozen t-SNE parameters are unchanged.
+    with config_context(working_memory=64):
+        coordinates = np.asarray(model.fit_transform(values), dtype=float)
     if coordinates.shape != (len(values), config.n_components):
         raise RuntimeError("t-SNE fit returned an unexpected coordinate shape.")
+    runtime = time.perf_counter() - started
+    final_kl_divergence = (
+        float(model.kl_divergence_) if hasattr(model, "kl_divergence_") else None
+    )
+    iterations = int(model.n_iter_) if hasattr(model, "n_iter_") else None
+    # t-SNE has no transform API; its fitted object is not part of the result
+    # contract, so free its substantial temporary state between frozen runs.
+    del model
     return FittedTSNE(
         coordinates=coordinates,
         config=config,
-        runtime_seconds=time.perf_counter() - started,
-        final_kl_divergence=(
-            float(model.kl_divergence_) if hasattr(model, "kl_divergence_") else None
-        ),
-        iterations=int(model.n_iter_) if hasattr(model, "n_iter_") else None,
+        runtime_seconds=runtime,
+        final_kl_divergence=final_kl_divergence,
+        iterations=iterations,
         software=software_versions(),
     )
 

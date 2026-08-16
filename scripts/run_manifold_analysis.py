@@ -51,30 +51,13 @@ def _load_canonical_data(data_dir: str) -> Any:
 
 
 def _execute_frozen_projection_fits(data: Any) -> dict[str, int]:
-    """Fit frozen projections in memory only; PR 2 supplies evaluation/output logic.
+    """Compatibility hook retained for the safe default runner test.
 
-    This deliberately has no artifact-writing side effect.  It is protected by
-    the explicit command-line flag because it performs the real, costly fitting.
+    PR 2's actual results execution is deliberately invoked only in ``main``
+    after ``--execute`` and canonical-cohort validation; the no-flag path never
+    reaches this hook or imports the research results layer.
     """
 
-    for config in UMAP_2_GRID:
-        fit_stage5_umap(
-            data.matrix,
-            config,
-            encoded_feature_names=data.encoded_feature_names,
-        )
-    for config in UMAP_15_GRID:
-        fit_stage5_umap(
-            data.matrix,
-            config,
-            encoded_feature_names=data.encoded_feature_names,
-        )
-    for config in TSNE_2_GRID:
-        fit_stage5_tsne(
-            data.matrix,
-            config,
-            encoded_feature_names=data.encoded_feature_names,
-        )
     return {
         "umap_2_fits": len(UMAP_2_GRID),
         "umap_15_fits": len(UMAP_15_GRID),
@@ -90,7 +73,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--execute",
         action="store_true",
-        help="Explicitly run the real frozen UMAP/t-SNE fits in memory (no artifact is written).",
+        help="Explicitly execute the frozen Stage 5 study and write non-promoted research artifacts.",
+    )
+    parser.add_argument(
+        "--artifact-dir",
+        default="artifacts",
+        help="Directory for non-promoted Stage 5 research artifacts and temporary resumability cache.",
     )
     args = parser.parse_args(argv)
     plan = stage5_plan()
@@ -114,10 +102,17 @@ def main(argv: list[str] | None = None) -> int:
         print("Validation-only mode: no UMAP/t-SNE fit and no research artifact written.")
         return 0
 
-    fitted = _execute_frozen_projection_fits(data)
+    # Importing the results layer is intentionally delayed until the explicit
+    # execution guard has passed, keeping default/dashboard-adjacent imports
+    # isolated from UMAP and its research-only dependency chain.
+    from modeling.manifold_results import run_stage5_results
+
+    _raw, aggregate, _metadata = load_aggregate(args.data_dir)
+    fitted = run_stage5_results(aggregate, artifact_dir=args.artifact_dir)
     print(
-        "Explicit projection fitting completed in memory only: "
-        + ", ".join(f"{name}={count}" for name, count in fitted.items())
+        "Frozen Stage 5 results execution completed: "
+        f"structural={fitted['structural_path']} sha256={fitted['structural_sha256']} "
+        f"final={fitted['final_path']}"
     )
     return 0
 
