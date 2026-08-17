@@ -488,6 +488,7 @@ def grouped_bootstrap(
     replicates: int = DEFAULT_GROUPED_BOOTSTRAP_REPLICATES,
     seed: int = DEFAULT_GROUPED_BOOTSTRAP_SEED,
     percentiles: tuple[float, float] = (2.5, 97.5),
+    return_samples: bool = True,
 ) -> dict[str, Any]:
     """Bootstrap complete groups, not individual rows, from precomputed values."""
 
@@ -510,17 +511,19 @@ def grouped_bootstrap(
     reducer = statistic or (lambda sample: float(np.nanmean(sample)))
     generator = np.random.default_rng(seed)
     estimates = []
-    sampled_groups = []
-    sampled_row_counts = []
+    sampled_groups = [] if return_samples else None
+    sampled_row_counts = [] if return_samples else None
     for _ in range(replicates):
         selected_positions = generator.integers(0, len(unique), size=len(unique))
         indices = np.concatenate([index_by_group[position] for position in selected_positions])
         estimates.append(float(reducer(values[indices])))
-        sampled_groups.append([unique[position] for position in selected_positions])
-        sampled_row_counts.append(int(len(indices)))
+        if return_samples:
+            assert sampled_groups is not None and sampled_row_counts is not None
+            sampled_groups.append([unique[position] for position in selected_positions])
+            sampled_row_counts.append(int(len(indices)))
     estimate_array = np.asarray(estimates, dtype=float)
     lower, upper = np.nanpercentile(estimate_array, percentiles)
-    return {
+    result = {
         "groups": len(unique),
         "replicates": replicates,
         "seed": seed,
@@ -530,9 +533,11 @@ def grouped_bootstrap(
             "lower": float(lower),
             "upper": float(upper),
         },
-        "sampled_groups": sampled_groups,
-        "sampled_row_counts": sampled_row_counts,
     }
+    if return_samples:
+        result["sampled_groups"] = sampled_groups
+        result["sampled_row_counts"] = sampled_row_counts
+    return result
 
 
 def _workload_keys(workloads: Any) -> np.ndarray:

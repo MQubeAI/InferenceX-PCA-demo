@@ -157,6 +157,9 @@ class GroupAndHierarchyTests(unittest.TestCase):
         for selected, estimate in zip(first["sampled_groups"], first["replicate_values"], strict=True):
             expected = np.mean(np.concatenate([group_values[group] for group in selected]))
             self.assertEqual(estimate, expected)
+        compact = grouped_bootstrap(values, groups, replicates=2, seed=42, return_samples=False)
+        self.assertNotIn("sampled_groups", compact)
+        self.assertNotIn("sampled_row_counts", compact)
 
     def test_workload_purity_on_hand_constructed_hierarchy(self) -> None:
         neighbors = np.array([[1, 2], [0, 3], [3, 0], [2, 1]])
