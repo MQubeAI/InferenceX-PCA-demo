@@ -20,7 +20,26 @@ from modeling.dataset_checkpoint import DatasetBootstrapError, repository_root, 
 
 
 ARTIFACT_INDEX_PATH = repository_root() / "data" / "artifact-index.json"
-REQUIRED_ARTIFACT_KEYS = ("pca", "ae", "vae", "vae_beta", "comparison", "stage4", "model_summary")
+REQUIRED_ARTIFACT_KEYS = (
+    "pca",
+    "ae",
+    "vae",
+    "vae_beta",
+    "comparison",
+    "stage4",
+    "model_summary",
+)
+
+# Stage 5 is a complete dashboard capability for the July 20 snapshot, but it
+# is deliberately not a prerequisite for a later promoted snapshot.  A future
+# snapshot may validly contain the established representation artifacts before
+# Stage 5 is repeated and externally validated.  When Stage 5 is present it
+# must, however, be complete: a partial result set is never safe to display.
+OPTIONAL_STAGE5_ARTIFACT_KEYS = (
+    "manifold",
+    "manifold_structural",
+    "manifold_projections",
+)
 
 
 class ArtifactIndexError(ValueError):
@@ -53,6 +72,18 @@ def _active_entry(manifest: dict[str, Any], index: dict[str, Any]) -> dict[str, 
     if not isinstance(artifacts, dict) or set(REQUIRED_ARTIFACT_KEYS) - set(artifacts):
         raise ArtifactIndexError("Active artifact entry is incomplete.")
     return entry
+
+
+def _stage5_capability_declared(entry: dict[str, Any]) -> bool:
+    """Return whether Stage 5 is complete; reject a partial optional capability."""
+
+    stage5_keys = set(entry["artifacts"]).intersection(OPTIONAL_STAGE5_ARTIFACT_KEYS)
+    if stage5_keys and stage5_keys != set(OPTIONAL_STAGE5_ARTIFACT_KEYS):
+        missing = sorted(set(OPTIONAL_STAGE5_ARTIFACT_KEYS) - stage5_keys)
+        raise ArtifactIndexError(
+            "Stage 5 manifold artifact capability is incomplete; missing: " + ", ".join(missing)
+        )
+    return bool(stage5_keys)
 
 
 def _safe_extract(archive: Path, destination: Path) -> None:
@@ -103,6 +134,45 @@ def active_artifact_paths(
     if missing:
         raise ArtifactIndexError("Active research artifacts are missing: " + ", ".join(missing))
     return {key: paths[key] for key in REQUIRED_ARTIFACT_KEYS}
+
+
+def optional_stage5_artifact_paths(
+    manifest: dict[str, Any],
+    *,
+    index_path: str | Path | None = None,
+    artifact_root: str | Path | None = None,
+) -> dict[str, Path] | None:
+    """Resolve the all-or-nothing Stage 5 dashboard capability when declared.
+
+    ``None`` means this promoted snapshot has no Stage 5 evidence.  A partial
+    declaration is rejected by :func:`_active_entry`; a complete declaration
+    must also resolve to all three local artifacts before it can be rendered.
+    """
+
+    index = load_artifact_index(index_path)
+    entry = _active_entry(manifest, index)
+    artifacts = entry["artifacts"]
+    if not _stage5_capability_declared(entry):
+        return None
+    storage = entry.get("storage")
+    root = repository_root()
+    if storage == "repository":
+        paths = {
+            key: root / _artifact_filename(artifacts[key])
+            for key in OPTIONAL_STAGE5_ARTIFACT_KEYS
+        }
+    elif storage == "release_bundle":
+        base = Path(artifact_root) if artifact_root else root / ".artifacts" / manifest["dataset_id"]
+        paths = {
+            key: base / _artifact_filename(artifacts[key])
+            for key in OPTIONAL_STAGE5_ARTIFACT_KEYS
+        }
+    else:
+        raise ArtifactIndexError("Active artifact storage must be repository or release_bundle.")
+    missing = [key for key, path in paths.items() if not path.is_file()]
+    if missing:
+        raise ArtifactIndexError("Stage 5 manifold artifacts are missing: " + ", ".join(missing))
+    return paths
 
 
 def bootstrap_active_artifacts(

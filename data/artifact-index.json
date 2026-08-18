@@ -13,7 +13,10 @@
         "vae_beta": "artifacts/representation-vae-beta-diagnostic-db-dump-2026-07-20.json",
         "comparison": "artifacts/representation-comparison-final-db-dump-2026-07-20.json",
         "stage4": "artifacts/representation-validation-stage4-db-dump-2026-07-20.json",
-        "model_summary": "artifacts/model-research-summary.json"
+        "model_summary": "artifacts/model-research-summary.json",
+        "manifold": "artifacts/manifold-analysis-stage5-db-dump-2026-07-20.json",
+        "manifold_structural": "artifacts/manifold-analysis-stage5-structural-db-dump-2026-07-20.json",
+        "manifold_projections": "artifacts/manifold-projections-stage5-db-dump-2026-07-20.parquet"
       }
     }
   }
