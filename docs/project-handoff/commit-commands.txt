@@ -1,0 +1,5 @@
+git status --short
+git diff --cached --stat
+git diff --cached
+git commit -m "Add Epoch hardware validation and DC Bench inference track"
+git status --short

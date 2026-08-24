@@ -1,0 +1,161 @@
+{
+  "accepted_mapping_row_coverage": 0.8700084961767205,
+  "capability_missingness": [
+    {
+      "column": "epoch_memory_capacity_bytes",
+      "missing_count": 1071,
+      "missing_percentage": 12.999150382327954
+    },
+    {
+      "column": "epoch_memory_bandwidth_bytes_per_second",
+      "missing_count": 1071,
+      "missing_percentage": 12.999150382327954
+    },
+    {
+      "column": "epoch_tensor_fp16_bf16_peak_flops",
+      "missing_count": 1071,
+      "missing_percentage": 12.999150382327954
+    },
+    {
+      "column": "epoch_fp8_peak_flops",
+      "missing_count": 1736,
+      "missing_percentage": 21.07051826677995
+    },
+    {
+      "column": "epoch_fp4_peak_flops",
+      "missing_count": 1736,
+      "missing_percentage": 21.07051826677995
+    },
+    {
+      "column": "epoch_int8_peak_ops",
+      "missing_count": 1071,
+      "missing_percentage": 12.999150382327954
+    },
+    {
+      "column": "epoch_int4_peak_ops",
+      "missing_count": 2417,
+      "missing_percentage": 29.33608447627139
+    },
+    {
+      "column": "epoch_tdp_watts",
+      "missing_count": 1071,
+      "missing_percentage": 12.999150382327954
+    },
+    {
+      "column": "epoch_intranode_bandwidth_bytes_per_second",
+      "missing_count": 6471,
+      "missing_percentage": 78.54108508314116
+    },
+    {
+      "column": "epoch_internode_bandwidth_bits_per_second",
+      "missing_count": 8239,
+      "missing_percentage": 100.0
+    }
+  ],
+  "hardware_mapping_coverage": [
+    {
+      "config_hardware": "b200",
+      "configs": 284,
+      "hardware_mapping_status": "accepted",
+      "rows": 1994
+    },
+    {
+      "config_hardware": "b300",
+      "configs": 211,
+      "hardware_mapping_status": "accepted",
+      "rows": 1237
+    },
+    {
+      "config_hardware": "gb200",
+      "configs": 249,
+      "hardware_mapping_status": "accepted",
+      "rows": 681
+    },
+    {
+      "config_hardware": "gb300",
+      "configs": 254,
+      "hardware_mapping_status": "accepted",
+      "rows": 531
+    },
+    {
+      "config_hardware": "h100",
+      "configs": 26,
+      "hardware_mapping_status": "unresolved",
+      "rows": 279
+    },
+    {
+      "config_hardware": "h200",
+      "configs": 99,
+      "hardware_mapping_status": "unresolved",
+      "rows": 792
+    },
+    {
+      "config_hardware": "mi300x",
+      "configs": 20,
+      "hardware_mapping_status": "accepted",
+      "rows": 279
+    },
+    {
+      "config_hardware": "mi325x",
+      "configs": 34,
+      "hardware_mapping_status": "accepted",
+      "rows": 386
+    },
+    {
+      "config_hardware": "mi355x",
+      "configs": 191,
+      "hardware_mapping_status": "accepted",
+      "rows": 2060
+    }
+  ],
+  "invariant_results": {
+    "config_id_count_preserved": {
+      "after": 1368,
+      "before": 1368,
+      "pass": true
+    },
+    "no_infrastructure_columns": {
+      "pass": true
+    },
+    "row_count_preserved": {
+      "after": 8239,
+      "before": 8239,
+      "pass": true
+    },
+    "target_values_unchanged": {
+      "pass": true,
+      "target": "metrics_tput_per_gpu"
+    },
+    "unique_integration_row_id": {
+      "duplicates": 0,
+      "pass": true
+    }
+  },
+  "target": "metrics_tput_per_gpu",
+  "target_distribution_after": {
+    "25%": 337.62260154103154,
+    "50%": 1081.95724708913,
+    "75%": 3076.3274231603355,
+    "count": 8239.0,
+    "max": 63535.86841096026,
+    "mean": 2833.787485034447,
+    "min": 0.17057130168953033,
+    "std": 4922.385737841518
+  },
+  "target_distribution_before": {
+    "25%": 337.62260154103154,
+    "50%": 1081.95724708913,
+    "75%": 3076.3274231603355,
+    "count": 8239.0,
+    "max": 63535.86841096026,
+    "mean": 2833.787485034447,
+    "min": 0.17057130168953033,
+    "std": 4922.385737841518
+  },
+  "temporal_caveat": "Epoch raw snapshot provenance post-dates the InferenceX July cutoff. Release dates are used as a necessary record-level eligibility check, but this snapshot alone cannot prove field-level historical availability. The resulting experiment is a post-hoc descriptor study, not an as-of claim.",
+  "temporal_descriptor_status": {
+    "release_date_precedes_benchmark": 7168,
+    "unmapped_or_ambiguous": 1071
+  },
+  "view": "views/inferencex_throughput_epoch_hardware_v1.csv"
+}

@@ -1,0 +1,430 @@
+{
+  "all_features": [
+    {
+      "feature": "conc",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 2011.1989995119063,
+      "held_out_mae_degradation_std": 234.3167726342971
+    },
+    {
+      "feature": "config_model",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 932.8755680688223,
+      "held_out_mae_degradation_std": 203.8410326818109
+    },
+    {
+      "feature": "isl",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 753.228271856395,
+      "held_out_mae_degradation_std": 76.53014938320273
+    },
+    {
+      "feature": "config_decode_tp",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 437.1086463948665,
+      "held_out_mae_degradation_std": 42.35391218076608
+    },
+    {
+      "feature": "config_decode_dp_attention",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 196.88651563660906,
+      "held_out_mae_degradation_std": 147.68296391075597
+    },
+    {
+      "feature": "osl__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 191.7134693372864,
+      "held_out_mae_degradation_std": 121.5610317296064
+    },
+    {
+      "feature": "isl__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 180.78530038763256,
+      "held_out_mae_degradation_std": 60.72315768602087
+    },
+    {
+      "feature": "config_precision",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 122.64500811752926,
+      "held_out_mae_degradation_std": 9.010505740655319
+    },
+    {
+      "feature": "config_prefill_tp",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 100.5767967297637,
+      "held_out_mae_degradation_std": 16.548637990405467
+    },
+    {
+      "feature": "config_decode_num_workers",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 58.36143046205933,
+      "held_out_mae_degradation_std": 13.61810324377881
+    },
+    {
+      "feature": "config_framework",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 50.90459660814932,
+      "held_out_mae_degradation_std": 6.757556337149748
+    },
+    {
+      "feature": "config_num_prefill_gpu",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 47.41937601740258,
+      "held_out_mae_degradation_std": 8.5263126837537
+    },
+    {
+      "feature": "epoch_fp8_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 44.53686137557391,
+      "held_out_mae_degradation_std": 34.43308882663134
+    },
+    {
+      "feature": "config_prefill_ep",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 34.53398875929291,
+      "held_out_mae_degradation_std": 10.966904698956975
+    },
+    {
+      "feature": "osl",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 28.945459641200944,
+      "held_out_mae_degradation_std": 12.396534061114986
+    },
+    {
+      "feature": "config_spec_method",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 27.793118004159798,
+      "held_out_mae_degradation_std": 5.5656076288035
+    },
+    {
+      "feature": "config_prefill_num_workers",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 23.790333897320277,
+      "held_out_mae_degradation_std": 2.374731662225696
+    },
+    {
+      "feature": "config_decode_ep",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 19.347333288135815,
+      "held_out_mae_degradation_std": 7.8615423552629595
+    },
+    {
+      "feature": "epoch_int4_peak_ops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 10.885482490823833,
+      "held_out_mae_degradation_std": 10.169430883762846
+    },
+    {
+      "feature": "epoch_int8_peak_ops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 10.005008070068454,
+      "held_out_mae_degradation_std": 10.491470782949841
+    },
+    {
+      "feature": "config_disagg",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 7.03277169172483,
+      "held_out_mae_degradation_std": 1.716279993654995
+    },
+    {
+      "feature": "config_prefill_dp_attention",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 5.973114604759492,
+      "held_out_mae_degradation_std": 3.4834997016105005
+    },
+    {
+      "feature": "config_is_multinode",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 5.638160452947454,
+      "held_out_mae_degradation_std": 2.0700360865153122
+    },
+    {
+      "feature": "epoch_memory_bandwidth_bytes_per_second",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.843864200819765,
+      "held_out_mae_degradation_std": 5.019375932699048
+    },
+    {
+      "feature": "epoch_tensor_fp16_bf16_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.8298194613047825,
+      "held_out_mae_degradation_std": 4.92084570341484
+    },
+    {
+      "feature": "epoch_fp4_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.6780155412839575,
+      "held_out_mae_degradation_std": 1.5947249604506073
+    },
+    {
+      "feature": "epoch_tdp_watts",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.042767149524722,
+      "held_out_mae_degradation_std": 4.519829579042741
+    },
+    {
+      "feature": "config_hardware",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 3.771851094606109,
+      "held_out_mae_degradation_std": 4.7883178744580235
+    },
+    {
+      "feature": "epoch_memory_capacity_bytes",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 2.8369908522607674,
+      "held_out_mae_degradation_std": 6.283377730566157
+    },
+    {
+      "feature": "epoch_fp4_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 2.4087471553415143,
+      "held_out_mae_degradation_std": 3.485259954684441
+    },
+    {
+      "feature": "epoch_fp8_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 1.7517925107209067,
+      "held_out_mae_degradation_std": 2.936562741319173
+    },
+    {
+      "feature": "epoch_tdp_watts__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_memory_capacity_bytes__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_tensor_fp16_bf16_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_memory_bandwidth_bytes_per_second__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_decode_num_workers__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_intranode_bandwidth_bytes_per_second",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_int8_peak_ops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "conc__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_prefill_num_workers__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_prefill_ep__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_num_prefill_gpu__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_decode_ep__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_decode_tp__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "config_prefill_tp__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_int4_peak_ops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": -0.7592665395287517,
+      "held_out_mae_degradation_std": 4.383087852606336
+    },
+    {
+      "feature": "epoch_intranode_bandwidth_bytes_per_second__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": -0.8030404344443243,
+      "held_out_mae_degradation_std": 3.9999889516944918
+    }
+  ],
+  "available": true,
+  "causal_interpretation": "Predictive association only. Correlated physical descriptors and missingness patterns preclude causal attribution.",
+  "epoch_features": [
+    {
+      "feature": "epoch_fp8_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 44.53686137557391,
+      "held_out_mae_degradation_std": 34.43308882663134
+    },
+    {
+      "feature": "epoch_int4_peak_ops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 10.885482490823833,
+      "held_out_mae_degradation_std": 10.169430883762846
+    },
+    {
+      "feature": "epoch_int8_peak_ops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 10.005008070068454,
+      "held_out_mae_degradation_std": 10.491470782949841
+    },
+    {
+      "feature": "epoch_memory_bandwidth_bytes_per_second",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.843864200819765,
+      "held_out_mae_degradation_std": 5.019375932699048
+    },
+    {
+      "feature": "epoch_tensor_fp16_bf16_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.8298194613047825,
+      "held_out_mae_degradation_std": 4.92084570341484
+    },
+    {
+      "feature": "epoch_fp4_peak_flops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.6780155412839575,
+      "held_out_mae_degradation_std": 1.5947249604506073
+    },
+    {
+      "feature": "epoch_tdp_watts",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 4.042767149524722,
+      "held_out_mae_degradation_std": 4.519829579042741
+    },
+    {
+      "feature": "epoch_memory_capacity_bytes",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 2.8369908522607674,
+      "held_out_mae_degradation_std": 6.283377730566157
+    },
+    {
+      "feature": "epoch_fp4_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 2.4087471553415143,
+      "held_out_mae_degradation_std": 3.485259954684441
+    },
+    {
+      "feature": "epoch_fp8_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 1.7517925107209067,
+      "held_out_mae_degradation_std": 2.936562741319173
+    },
+    {
+      "feature": "epoch_tdp_watts__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_memory_capacity_bytes__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_tensor_fp16_bf16_peak_flops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_memory_bandwidth_bytes_per_second__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_intranode_bandwidth_bytes_per_second",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_int8_peak_ops__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": 0.0,
+      "held_out_mae_degradation_std": 0.0
+    },
+    {
+      "feature": "epoch_int4_peak_ops",
+      "folds": 3,
+      "held_out_mae_degradation_mean": -0.7592665395287517,
+      "held_out_mae_degradation_std": 4.383087852606336
+    },
+    {
+      "feature": "epoch_intranode_bandwidth_bytes_per_second__missing",
+      "folds": 3,
+      "held_out_mae_degradation_mean": -0.8030404344443243,
+      "held_out_mae_degradation_std": 3.9999889516944918
+    }
+  ],
+  "method": "Permutation importance on each outer validation fold, scoring neg_mean_absolute_error; positive values indicate held-out MAE degradation after permutation.",
+  "model": "random_forest",
+  "representation_features": [
+    "isl",
+    "osl",
+    "conc",
+    "config_prefill_tp",
+    "config_prefill_ep",
+    "config_prefill_dp_attention",
+    "config_prefill_num_workers",
+    "config_decode_tp",
+    "config_decode_ep",
+    "config_decode_dp_attention",
+    "config_decode_num_workers",
+    "config_num_prefill_gpu",
+    "config_hardware",
+    "config_framework",
+    "config_model",
+    "config_precision",
+    "config_spec_method",
+    "config_disagg",
+    "config_is_multinode",
+    "epoch_memory_capacity_bytes",
+    "epoch_memory_bandwidth_bytes_per_second",
+    "epoch_tensor_fp16_bf16_peak_flops",
+    "epoch_fp8_peak_flops",
+    "epoch_fp4_peak_flops",
+    "epoch_int8_peak_ops",
+    "epoch_int4_peak_ops",
+    "epoch_tdp_watts",
+    "epoch_intranode_bandwidth_bytes_per_second"
+  ]
+}
