@@ -1,6 +1,6 @@
 # Inference question bank v0.1
 
-Generated from the frozen derived view and validation artifacts. Objective operations are not hidden chain-of-thought requirements.
+Generated from the committed immutable source slice and compact validation artifacts. Objective operations are not hidden chain-of-thought requirements.
 
 ## inference_v0_1_001 — direct_retrieval (easy)
 

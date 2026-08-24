@@ -1,0 +1,32 @@
+{
+  "allowed_difference": "operating-point source provenance only",
+  "comparisons": {
+    "persisted_v0_1": {
+      "equivalent_to_frozen_rebuild": true,
+      "questions": 12
+    },
+    "persisted_v0_2": {
+      "equivalent_to_frozen_rebuild": true,
+      "questions": 28
+    },
+    "v0_1_evaluation_inputs": {
+      "equivalent_except_source_provenance": true,
+      "expected_count": 2,
+      "frozen_normalized_sha256": "1754d20cec4dfe4685cea7a5029209ddd93fbceb6313eb12a6d615c686d31a56",
+      "full_normalized_sha256": "1754d20cec4dfe4685cea7a5029209ddd93fbceb6313eb12a6d615c686d31a56"
+    },
+    "v0_1_questions": {
+      "equivalent_except_source_provenance": true,
+      "expected_count": 12,
+      "frozen_normalized_sha256": "24d3f652a6f01c44c0ee4e04b059a937c7c01711004d669418e2f59d0c898318",
+      "full_normalized_sha256": "24d3f652a6f01c44c0ee4e04b059a937c7c01711004d669418e2f59d0c898318"
+    },
+    "v0_2_candidate_questions": {
+      "equivalent_except_source_provenance": true,
+      "expected_count": 28,
+      "frozen_normalized_sha256": "d94b3a5084db4515389ae0a87ec24f990a73511eea9263abe99e590937466012",
+      "full_normalized_sha256": "d94b3a5084db4515389ae0a87ec24f990a73511eea9263abe99e590937466012"
+    }
+  },
+  "status": "PASS"
+}

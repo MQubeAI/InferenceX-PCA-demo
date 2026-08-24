@@ -13,9 +13,17 @@ Optional / expensive historical TabFM reproduction uses `.venv-tabfm/bin/python`
 It is not needed for integration/DC Bench and should reproduce R² 0.961979 ±
 0.008605 and MAE 338.540 tokens/s/GPU.
 
-DC Bench: `.venv-streamlit/bin/python scripts/build_dcbench_inference_questions.py`;
-score `responses.jsonl` with `.venv-streamlit/bin/python scripts/evaluate_dcbench_inference.py responses.jsonl`.
-Focused tests: `.venv-streamlit/bin/python -m unittest tests.test_integration tests.test_hardware_validation tests.test_dcbench -v`.
+DC Bench clean-CI rebuild uses the tracked immutable source slice:
+`.venv-streamlit/bin/python scripts/build_dcbench_inference_questions.py` and
+`.venv-streamlit/bin/python scripts/build_dcbench_inference_v0_2_candidates.py`.
+When the excluded local full enriched view is available, regenerate the exact
+slice with `.venv-streamlit/bin/python scripts/build_dcbench_source_slice.py`;
+then prove full/slice equivalence with
+`.venv-streamlit/bin/python scripts/verify_dcbench_source_slice_equivalence.py`.
+The `--source full` option is an explicit local provenance check, not a normal
+CI requirement. Score `responses.jsonl` with
+`.venv-streamlit/bin/python scripts/evaluate_dcbench_inference.py responses.jsonl`.
+Focused tests: `.venv-streamlit/bin/python -m unittest tests.test_integration tests.test_hardware_validation tests.test_dcbench tests.test_dcbench_v0_2_candidates -v`.
 Full: `.venv-streamlit/bin/python -m unittest discover -s tests -v`.
-Syntax: `.venv-streamlit/bin/python -m py_compile modeling/dcbench.py scripts/build_dcbench_inference_questions.py scripts/evaluate_dcbench_inference.py`.
+Syntax: `.venv-streamlit/bin/python -m py_compile modeling/dcbench.py modeling/dcbench_source.py modeling/dcbench_v0_2_candidates.py scripts/build_dcbench_source_slice.py scripts/build_dcbench_inference_questions.py scripts/build_dcbench_inference_v0_2_candidates.py scripts/evaluate_dcbench_inference.py`.
 Check: `git diff --check`.

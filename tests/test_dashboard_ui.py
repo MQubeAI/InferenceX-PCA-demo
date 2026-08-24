@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import ast
 import inspect
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -186,8 +186,18 @@ class DashboardUiTests(unittest.TestCase):
         self.assertEqual(active_dataset["verification"]["artifact_status"], "valid")
 
     def test_dashboard_import_remains_research_dependency_isolated(self) -> None:
+        # Test the dashboard module's dependency boundary, not global interpreter
+        # state populated when unittest discovery imports the separate Stage 5
+        # research test module.
+        app_source = inspect.getsource(app)
+        imports = set()
+        for node in ast.walk(ast.parse(app_source)):
+            if isinstance(node, ast.Import):
+                imports.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imports.add(node.module)
         for module_name in ("umap", "numba", "pynndescent", "torch", "modeling.manifold_results"):
-            self.assertNotIn(module_name, sys.modules)
+            self.assertNotIn(module_name, imports)
 
     def test_research_validation_is_artifact_only_and_reports_method_limits(self) -> None:
         source = inspect.getsource(app.render_research_validation_dashboard)

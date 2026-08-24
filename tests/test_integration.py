@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import inspect
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,8 +9,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from apps import inferencex_pca_demo as app
+from modeling.dataset_checkpoint import default_data_dir, load_data_manifest
 from modeling import integration
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def capability_frame() -> pd.DataFrame:
@@ -68,12 +71,13 @@ class IntegrationInvariantTests(unittest.TestCase):
         self.assertEqual(before, after)
 
     def test_pipeline_preserves_raw_epoch_hashes(self) -> None:
-        if not integration.EPOCH_HASH_MANIFEST.exists() or not Path(app.DEFAULT_DATA_DIR).exists():
+        data_dir = default_data_dir(load_data_manifest())
+        if not integration.EPOCH_HASH_MANIFEST.exists() or not data_dir.exists():
             self.skipTest("Epoch or frozen InferenceX snapshot is not installed")
         before = integration.verify_epoch_raw_hashes()
         with tempfile.TemporaryDirectory() as directory:
             result = integration.run_integration_pipeline(
-                app.DEFAULT_DATA_DIR,
+                data_dir,
                 Path(directory) / "derived",
                 run_experiments=False,
             )
@@ -144,13 +148,19 @@ class IntegrationInvariantTests(unittest.TestCase):
         self.assertEqual(unsupported["status"], "unsupported")
         self.assertFalse(unsupported["observed"])
 
-    def test_prototype_renderer_has_no_prediction_runtime(self) -> None:
-        source = inspect.getsource(app.render_hardware_integration_prototype)
-        self.assertIn("Observed throughput", source)
-        self.assertIn("Prediction: unsupported", source)
-        self.assertIn("Artificial Analysis data not loaded", source)
-        self.assertNotIn(".fit(", source)
-        self.assertNotIn("model.predict(", source)
+    def test_core_integration_import_has_no_dashboard_dependency(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import modeling.integration; assert not any(name.startswith('apps.') for name in sys.modules)",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
