@@ -1,0 +1,70 @@
+{
+  "records": [
+    {
+      "aa_definition": "current AA API/model output-speed observation",
+      "aa_entity_level": "AA model record; provider aggregation not declared",
+      "aa_source_field": "performance.median_output_tokens_per_second",
+      "aa_unit": "tokens/s, not per GPU",
+      "caveat": "Hardware, workload, concurrency, aggregation, and denominator differ; provider context is absent. Never overwrite or alias.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "measured InferenceX deployment throughput per GPU",
+      "inferencex_unit": "tokens/s/GPU",
+      "related_inferencex_field": "metrics_tput_per_gpu"
+    },
+    {
+      "aa_definition": "current AA API/model median time to first token",
+      "aa_entity_level": "AA model record; provider aggregation not declared",
+      "aa_source_field": "performance.median_time_to_first_token_seconds",
+      "aa_unit": "seconds",
+      "caveat": "No matched request, server, provider, or measurement protocol.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "measured deployment median TTFT at an operating point",
+      "inferencex_unit": "not declared in cohort schema",
+      "related_inferencex_field": "metrics_median_ttft"
+    },
+    {
+      "aa_definition": "current AA API/model answer-start latency",
+      "aa_entity_level": "AA model record; provider aggregation not declared",
+      "aa_source_field": "performance.median_time_to_first_answer_token_seconds",
+      "aa_unit": "seconds",
+      "caveat": "AA answer-token definition and provider context are source-specific.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "deployment median TTFT",
+      "inferencex_unit": "not declared in cohort schema",
+      "related_inferencex_field": "metrics_median_ttft"
+    },
+    {
+      "aa_definition": "current AA API/model end-to-end response latency",
+      "aa_entity_level": "AA model record; provider aggregation not declared",
+      "aa_source_field": "performance.median_end_to_end_response_time_seconds",
+      "aa_unit": "seconds",
+      "caveat": "AA aggregate and absent provider context must remain source-specific.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "measured deployment median end-to-end latency",
+      "inferencex_unit": "not declared in cohort schema",
+      "related_inferencex_field": "metrics_median_e2el"
+    },
+    {
+      "aa_definition": "AA benchmark/capability index",
+      "aa_entity_level": "AA model benchmark aggregate",
+      "aa_source_field": "evaluations.artificial_analysis_*_index",
+      "aa_unit": "index points",
+      "caveat": "Capability outcome, not physical serving descriptor.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "none",
+      "inferencex_unit": "n/a",
+      "related_inferencex_field": "none"
+    },
+    {
+      "aa_definition": "current provider price/cost metadata",
+      "aa_entity_level": "AA model offering",
+      "aa_source_field": "pricing.price_1m_*_tokens and intelligence_index_cost",
+      "aa_unit": "price per 1M tokens; currency not supplied",
+      "caveat": "Business metadata can change and is not a measured InferenceX metric.",
+      "comparability": "NOT_DIRECTLY_COMPARABLE",
+      "inferencex_definition": "none",
+      "inferencex_unit": "n/a",
+      "related_inferencex_field": "none"
+    }
+  ]
+}

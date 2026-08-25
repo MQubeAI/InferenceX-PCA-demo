@@ -1,0 +1,318 @@
+{
+  "models": [
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "dsr1",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 1885,
+      "unique_config_count": 465
+    },
+    {
+      "benchmark_type_coverage": [
+        "agentic_traces",
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "dsv4",
+      "osl_coverage": [
+        1024.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 969,
+      "unique_config_count": 165
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h200",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "glm5",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 420,
+      "unique_config_count": 100
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "gb200",
+        "gb300",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "glm5.1",
+      "osl_coverage": [
+        1024.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 122,
+      "unique_config_count": 50
+    },
+    {
+      "benchmark_type_coverage": [
+        "agentic_traces"
+      ],
+      "hardware_coverage": [
+        "b300",
+        "h200",
+        "mi325x"
+      ],
+      "isl_coverage": [],
+      "model_label": "glm5.2",
+      "osl_coverage": [],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 22,
+      "unique_config_count": 5
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "gb200",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "gptoss120b",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4"
+      ],
+      "row_count": 617,
+      "unique_config_count": 50
+    },
+    {
+      "benchmark_type_coverage": [
+        "agentic_traces",
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "kimik2.5",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "int4"
+      ],
+      "row_count": 378,
+      "unique_config_count": 70
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "llama70b",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 681,
+      "unique_config_count": 43
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "minimaxm2.5",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 882,
+      "unique_config_count": 143
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "minimaxm3",
+      "osl_coverage": [
+        1024.0
+      ],
+      "precision_coverage": [
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 1524,
+      "unique_config_count": 196
+    },
+    {
+      "benchmark_type_coverage": [
+        "single_turn"
+      ],
+      "hardware_coverage": [
+        "b200",
+        "b300",
+        "gb200",
+        "gb300",
+        "h100",
+        "h200",
+        "mi300x",
+        "mi325x",
+        "mi355x"
+      ],
+      "isl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "model_label": "qwen3.5",
+      "osl_coverage": [
+        1024.0,
+        8192.0
+      ],
+      "precision_coverage": [
+        "bf16",
+        "fp4",
+        "fp8"
+      ],
+      "row_count": 739,
+      "unique_config_count": 81
+    }
+  ],
+  "snapshot": "db-dump/2026-07-20"
+}

@@ -1,0 +1,57 @@
+{
+  "accepted_aa_mappings": 2,
+  "accepted_epoch_mappings": 7,
+  "accepted_mappings_to_both": 2,
+  "configs_represented_across_all_three_sources": 339,
+  "configs_represented_by_accepted_aa_mappings": 339,
+  "rows_represented_across_all_three_sources": 2406,
+  "rows_represented_by_accepted_aa_mappings": 2406,
+  "total_inferencex_model_labels": 11,
+  "unresolved_or_missing": [
+    {
+      "inferencex_model": "dsr1",
+      "overall_mapping_status": "UNRESOLVED",
+      "reason": "InferenceX shorthand lacks release/version; AA additionally contains base and distill variants."
+    },
+    {
+      "inferencex_model": "dsv4",
+      "overall_mapping_status": "UNRESOLVED",
+      "reason": "InferenceX V4 shorthand cannot select an Epoch Pro/Flash/dated variant; no AA V4 record."
+    },
+    {
+      "inferencex_model": "glm5",
+      "overall_mapping_status": "UNRESOLVED",
+      "reason": "Epoch exact match. AA distinguishes a reasoning offering and Turbo offering, while InferenceX does not."
+    },
+    {
+      "inferencex_model": "glm5.1",
+      "overall_mapping_status": "NO_CANDIDATE",
+      "reason": "Exact Epoch match; no GLM-5.1 AA record in the frozen Free response."
+    },
+    {
+      "inferencex_model": "glm5.2",
+      "overall_mapping_status": "NO_CANDIDATE",
+      "reason": "Exact Epoch match; no GLM-5.2 AA record in the frozen Free response."
+    },
+    {
+      "inferencex_model": "gptoss120b",
+      "overall_mapping_status": "NO_CANDIDATE",
+      "reason": "Exact Epoch match; no exact gpt-oss-120b AA record in the frozen Free response."
+    },
+    {
+      "inferencex_model": "kimik2.5",
+      "overall_mapping_status": "NO_CANDIDATE",
+      "reason": "Exact Epoch match; AA has K2.6 offerings, not K2.5, so there is no exact AA candidate."
+    },
+    {
+      "inferencex_model": "llama70b",
+      "overall_mapping_status": "UNRESOLVED",
+      "reason": "Family/size shorthand does not identify Llama release or fine-tune; AA candidates are derivative offerings."
+    },
+    {
+      "inferencex_model": "qwen3.5",
+      "overall_mapping_status": "UNRESOLVED",
+      "reason": "InferenceX family label omits size, dense/MoE choice, mode, and Omni variant."
+    }
+  ]
+}

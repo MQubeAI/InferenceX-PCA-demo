@@ -1,0 +1,82 @@
+# Three-source worked example
+
+Deterministic first accepted MiniMax-M2.5 InferenceX row with accepted Epoch hardware and AA mapping.
+
+## InferenceX deployment
+
+| Field | Value |
+|---|---|
+| `config_model` | minimaxm2.5 |
+| `config_hardware` | mi355x |
+| `isl` | 1024.0 |
+| `osl` | 1024.0 |
+| `conc` | 4 |
+| `config_framework` | vllm |
+| `config_precision` | fp8 |
+| `config_prefill_tp` | 2 |
+| `config_prefill_ep` | 1 |
+| `config_prefill_num_workers` | 0 |
+| `config_decode_tp` | 2 |
+| `config_decode_ep` | 1 |
+| `config_decode_num_workers` | 0 |
+| `config_num_prefill_gpu` | 2 |
+| `config_num_decode_gpu` | 2 |
+| `metrics_tput_per_gpu` | 313.4034587821018 |
+| `metrics_median_ttft` | 0.0922370309999678 |
+| `metrics_median_e2el` | 11.52114172250731 |
+
+## Epoch hardware
+
+| Field | Value |
+|---|---|
+| `canonical_hardware_id` | epoch_hardware:amd-instinct-mi355x |
+| `epoch_memory_capacity_bytes` | 288000000000.0 |
+| `epoch_memory_bandwidth_bytes_per_second` | 8000000000000.0 |
+| `epoch_tensor_fp16_bf16_peak_flops` | 2516600000000000.0 |
+| `epoch_fp8_peak_flops` | 4600000000000000.0 |
+| `epoch_fp4_peak_flops` | 9200000000000000.0 |
+| `epoch_tdp_watts` | 1400.0 |
+| `epoch_intranode_bandwidth_bytes_per_second` | None |
+
+## Epoch model metadata
+
+| Field | Value |
+|---|---|
+| `Model` | MiniMax-M2.5 |
+| `Organization` | MiniMax |
+| `Publication date` | 2026-02-12 |
+| `Parameters` | 229000000000.0 |
+| `Parameters notes` | HF lists 229B params
+10B active parameters |
+| `Domain` | Language |
+| `Task` | Code generation,System control,Search,Language modeling/generation,Question answering |
+
+## Artificial Analysis model/provider observation
+
+| Field | Value |
+|---|---|
+| `aa_model_id` | 12adec16-19fe-4d92-aeff-5ef3eb7e780a |
+| `aa_model_name` | MiniMax-M2.5 |
+| `aa_slug` | minimax-m2-5 |
+| `aa_model_creator_id` | a31a9071-6144-4dbb-92dc-2e02d653ecea |
+| `aa_model_creator_name` | MiniMax |
+| `aa_release_date` | 2026-02-12 |
+| `aa_artificial_analysis_intelligence_index` | 34.5 |
+| `aa_artificial_analysis_coding_index` | None |
+| `aa_artificial_analysis_agentic_index` | None |
+| `aa_median_output_tokens_per_second` | 101.67 |
+| `aa_median_time_to_first_token_seconds` | 1.68 |
+| `aa_median_time_to_first_answer_token_seconds` | 21.35 |
+| `aa_median_end_to_end_response_time_seconds` | 26.27 |
+| `aa_price_1m_cache_hit_tokens` | 0.03 |
+| `aa_price_1m_cache_write_tokens` | 0.38 |
+| `aa_price_1m_input_tokens` | 0.3 |
+| `aa_price_1m_output_tokens` | 1.2 |
+| `aa_intelligence_index_cost_total_cost` | None |
+| `aa_intelligence_index_cost_per_task_total_cost` | None |
+| `aa_source` | Artificial Analysis Data API Free endpoint |
+| `aa_source_snapshot` | artificial_analysis/free-models/2026-08-25 |
+
+## What the connection adds
+
+It relates one measured physical deployment to a documented exact model identity, accelerator descriptors, and separate current AA capability/provider observations. It does not turn AA observations into per-GPU outcomes or causal explanations.
