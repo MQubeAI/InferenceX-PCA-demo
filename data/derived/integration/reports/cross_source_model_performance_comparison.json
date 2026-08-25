@@ -1,0 +1,7 @@
+{
+  "decision": "No Spearman correlation or rank comparison was calculated.",
+  "invariant": "AA output speed is NOT per-GPU throughput; this analysis would be descriptive only even with adequate overlap.",
+  "mapped_model_count": 2,
+  "reason": "Only two exact three-source models are available, and AA output speed is a provider/API aggregate rather than per-GPU throughput. A common controlled InferenceX subset would not cure the inadequate overlap.",
+  "status": "NOT SCIENTIFICALLY_DEFENSIBLE_YET"
+}

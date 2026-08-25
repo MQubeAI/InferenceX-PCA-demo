@@ -27,7 +27,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from modeling.comparison import evaluate_models, missingness_report
-from modeling.artifact_checkpoint import active_artifact_paths
+from modeling.artifact_checkpoint import active_artifact_paths, optional_stage5_artifact_paths
 from modeling.dataset_checkpoint import (
     ARTIFACT_INCOMPATIBLE,
     CHECKSUM_FAILURE,
@@ -52,6 +52,12 @@ from modeling.energy_measurements import (
     exact_observed_lookup,
     mark_dominated_comparisons,
     nearest_measured_configurations,
+)
+from modeling.manifold_dashboard_artifacts import (
+    STAGE5_COHORT_ROWS,
+    STAGE5_SOURCE_DUMP,
+    aligned_projection_frame,
+    load_stage5_dashboard_artifacts,
 )
 from modeling.research_summary import build_research_summary
 from modeling.pca_target_analysis import (
@@ -164,6 +170,14 @@ REPRESENTATION_COMPARISON_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["comparison"]
 REPRESENTATION_VALIDATION_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["stage4"]
 VAE_BETA_DIAGNOSTIC_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["vae_beta"]
 MODEL_SUMMARY_ARTIFACT_PATH = ACTIVE_ARTIFACT_PATHS["model_summary"]
+try:
+    STAGE5_ARTIFACT_PATHS = optional_stage5_artifact_paths(ACTIVE_DATA_MANIFEST)
+    STAGE5_ARTIFACT_CAPABILITY_ERROR: str | None = None
+except Exception as exc:
+    # Stage 5 never makes the established representation checkpoint unusable.
+    # The Manifold page renders this fail-closed capability error in isolation.
+    STAGE5_ARTIFACT_PATHS = None
+    STAGE5_ARTIFACT_CAPABILITY_ERROR = str(exc)
 MAIN_TAB_LABELS = (
     "Overview",
     "Data Understanding",
@@ -172,6 +186,7 @@ MAIN_TAB_LABELS = (
 )
 REPRESENTATION_SUBPAGE_LABELS = (
     "Principal Component Analysis",
+    "Manifold Analysis",
     "Autoencoder",
     "Variational Autoencoder",
     "Results and Comparison",
@@ -4126,6 +4141,25 @@ def load_representation_validation_artifact(
     return artifact
 
 
+@st.cache_data(show_spinner=False)
+def load_manifold_dashboard_artifacts(
+    final_path_text: str,
+    structural_path_text: str,
+    projection_path_text: str,
+    canonical_row_ids: tuple[str, ...],
+    active_source_dump: str,
+) -> Any:
+    """Read completed Stage 5 artifacts; this path never fits an embedding."""
+
+    return load_stage5_dashboard_artifacts(
+        final_path=final_path_text,
+        structural_path=structural_path_text,
+        projection_path=projection_path_text,
+        canonical_row_ids=canonical_row_ids,
+        active_source_dump=active_source_dump,
+    )
+
+
 def render_overview(
     benchmarks: pd.DataFrame,
     analysis_metadata: dict[str, Any],
@@ -5430,6 +5464,777 @@ def render_research_validation_dashboard(active_dataset: dict[str, Any]) -> None
         )
 
 
+def _manifold_metric(run: dict[str, Any], k: int) -> dict[str, Any]:
+    """Return one frozen metric row without deriving a new neighborhood graph."""
+
+    return next(metric for metric in run["metrics"] if metric["k"] == k)
+
+
+MANIFOLD_DISPLAY_LABELS = {
+    "isl": "Input sequence length",
+    "osl": "Output sequence length",
+    "conc": "Concurrency",
+    "config_prefill_tp": "Prefill tensor parallelism",
+    "config_prefill_ep": "Prefill expert parallelism",
+    "config_prefill_dp_attention": "Prefill data-parallel attention",
+    "config_prefill_num_workers": "Prefill worker count",
+    "config_decode_tp": "Decode tensor parallelism",
+    "config_decode_ep": "Decode expert parallelism",
+    "config_decode_dp_attention": "Decode data-parallel attention",
+    "config_decode_num_workers": "Decode worker count",
+    "config_num_prefill_gpu": "Prefill GPU count",
+    "config_hardware": "Hardware",
+    "hardware_display": "Hardware",
+    "config_framework": "Framework",
+    "config_model": "Model",
+    "config_precision": "Precision",
+    "config_spec_method": "Specification method",
+    "config_disagg": "Disaggregated serving",
+    "config_is_multinode": "Multinode",
+    "metrics_median_tpot": "Median TPOT",
+    "metrics_tput_per_gpu": "Throughput per GPU",
+    "metrics_joules_per_output_token": "Joules per output token",
+}
+
+
+def _manifold_label(value: str) -> str:
+    """Prefer a plain-language dashboard label while retaining raw fields in detail tables."""
+
+    return MANIFOLD_DISPLAY_LABELS.get(value, value.replace("_", " ").title())
+
+
+def _manifold_run(
+    runs: list[dict[str, Any]],
+    **parameters: Any,
+) -> dict[str, Any]:
+    """Find one completed run by its frozen configuration, never by appearance."""
+
+    for run in runs:
+        config = run.get("config", run)
+        if all(config.get(name) == value for name, value in parameters.items()):
+            return run
+    raise ValueError("The requested frozen Stage 5 run is unavailable.")
+
+
+def _manifold_fidelity_table(
+    run: dict[str, Any],
+    *,
+    all_runs: list[dict[str, Any]] | None = None,
+    seed_stability: list[dict[str, Any]] | None = None,
+    stability_parameters: dict[str, Any] | None = None,
+) -> pd.DataFrame:
+    """Format completed local-neighborhood metrics for concise display."""
+
+    rows = []
+    selected_stability = None
+    if seed_stability is not None and stability_parameters is not None:
+        selected_stability = next(
+            (
+                item
+                for item in seed_stability
+                if all(item.get(key) == value for key, value in stability_parameters.items())
+            ),
+            None,
+        )
+    for k in (10, 30, 50, 100):
+        metric = _manifold_metric(run, k)
+        row = {
+            "k": k,
+            "Trustworthiness": metric["trustworthiness"],
+            "Neighbor recall": metric["neighbor_recall"],
+            "Neighbor Jaccard": metric["neighbor_jaccard"],
+            "Local rank agreement": metric["local_rank_agreement"],
+        }
+        if all_runs is not None:
+            values = [_manifold_metric(item, k)["neighbor_recall"] for item in all_runs]
+            row["Frozen recall range"] = f"{min(values):.3f}–{max(values):.3f}"
+        if selected_stability is not None:
+            values = [
+                pair["neighbor_jaccard"]
+                for pair in selected_stability["pairs"]
+                if pair["k"] == k
+            ]
+            if values:
+                row["Matched-seed Jaccard"] = f"{min(values):.3f}–{max(values):.3f}"
+            else:
+                row["Matched-seed Jaccard"] = "Not recorded"
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _manifold_scatter(
+    frame: pd.DataFrame,
+    *,
+    color_column: str,
+    title: str,
+    method: str,
+    color_scale: str = "Raw",
+) -> None:
+    """Render completed coordinates with generic, non-physical axes."""
+
+    hover_columns = [
+        column
+        for column in (
+            "config_id",
+            "exact_workload",
+            "config_hardware",
+            "config_model",
+            "config_framework",
+            "config_precision",
+            "metrics_median_tpot",
+            "metrics_tput_per_gpu",
+            "metrics_joules_per_output_token",
+        )
+        if column in frame and (color_scale == "Log display" or column != color_column)
+    ]
+    plot_frame = frame
+    plot_color = color_column
+    numeric_color = color_column in frame and pd.api.types.is_numeric_dtype(frame[color_column])
+    color_label = _manifold_label(color_column)
+    if color_scale == "Log display" and numeric_color:
+        values = frame[color_column].dropna()
+        if not values.empty and values.gt(0).all():
+            plot_frame = frame.copy()
+            plot_color = "_log_color_display"
+            plot_frame[plot_color] = np.log10(plot_frame[color_column])
+            color_label = f"log10({color_label}) — display only"
+    figure = px.scatter(
+        plot_frame,
+        x="x",
+        y="y",
+        color=plot_color if plot_color in plot_frame else None,
+        hover_data=hover_columns,
+        opacity=0.68,
+        render_mode="webgl",
+        color_continuous_scale="Viridis" if numeric_color else None,
+        title=title,
+    )
+    figure.update_layout(
+        xaxis_title=f"{method} 1",
+        yaxis_title=f"{method} 2",
+        legend_title_text=color_label if plot_color in plot_frame else None,
+    )
+    if numeric_color:
+        figure.update_layout(coloraxis_colorbar={"title": color_label})
+    st.plotly_chart(figure, width="stretch")
+
+
+def _manifold_projection_frame(
+    artifacts: Any,
+    parameter_id: str,
+    active_representation_data: CanonicalRepresentationData,
+) -> pd.DataFrame:
+    frame = aligned_projection_frame(
+        artifacts,
+        parameter_id=parameter_id,
+        canonical_row_ids=active_representation_data.row_ids,
+        canonical_cohort=active_representation_data.cohort,
+    )
+    frame["exact_workload"] = (
+        "isl=" + frame["isl"].astype(str)
+        + " | osl=" + frame["osl"].astype(str)
+        + " | conc=" + frame["conc"].astype(str)
+    )
+    if "config_hardware" in frame:
+        frame["hardware_display"] = frame["config_hardware"].astype("string").str.upper()
+    return frame
+
+
+def render_manifold_analysis_dashboard(
+    *,
+    active_dataset: dict[str, Any],
+    active_representation_data: CanonicalRepresentationData,
+) -> None:
+    """Render accepted Stage 5 findings exclusively from promoted artifacts."""
+
+    render_section_intro(
+        "Nonlinear Neighborhood Geometry",
+        (
+            "PCA, AE, and VAE ask how to represent the benchmark structurally. Stage 5 asks "
+            "whether nonlinear local-neighborhood views reveal reproducible organization those "
+            "representations may obscure. UMAP is the primary local visualization; t-SNE is an "
+            "independent robustness check. Outcomes were inspected only after structural analysis froze."
+        ),
+    )
+    if STAGE5_ARTIFACT_CAPABILITY_ERROR is not None:
+        st.error(
+            "Stage 5 manifold evidence is unavailable because its optional artifact capability "
+            f"failed closed: {STAGE5_ARTIFACT_CAPABILITY_ERROR}"
+        )
+        return
+    if STAGE5_ARTIFACT_PATHS is None or ACTIVE_DUMP_VERSION != STAGE5_SOURCE_DUMP:
+        st.info(
+            "Stage 5 manifold evidence is not available for this snapshot. "
+            "The completed Stage 5 study is specific to the July 20 source release."
+        )
+        return
+    try:
+        artifacts = load_manifold_dashboard_artifacts(
+            str(STAGE5_ARTIFACT_PATHS["manifold"]),
+            str(STAGE5_ARTIFACT_PATHS["manifold_structural"]),
+            str(STAGE5_ARTIFACT_PATHS["manifold_projections"]),
+            tuple(active_representation_data.row_ids),
+            ACTIVE_DUMP_VERSION,
+        )
+    except Exception as exc:
+        st.error(
+            "Stage 5 manifold evidence is unavailable because its promoted artifacts are incompatible: "
+            f"{exc}. Other representation pages remain available."
+        )
+        return
+
+    structural = artifacts.structural
+    final = artifacts.final
+    umap_runs = structural["umap_2"]["runs"]
+    canonical_umap = _manifold_run(
+        umap_runs, n_components=2, n_neighbors=15, min_dist=0.1, seed=42, metric="euclidean"
+    )
+    canonical_frame = _manifold_projection_frame(
+        artifacts, canonical_umap["parameter_id"], active_representation_data
+    )
+    canonical_k10 = _manifold_metric(canonical_umap, 10)
+    workload_run = next(run for run in structural["ablations"]["workload_only"]["runs"] if run["seed"] == 42)
+    configuration_run = next(run for run in structural["ablations"]["configuration_only"]["runs"] if run["seed"] == 42)
+    canonical_tsne = _manifold_run(structural["tsne_2"]["runs"], perplexity=30, seed=42)
+
+    st.caption(
+        f"July 20 snapshot · {STAGE5_COHORT_ROWS:,} rows · 1,354 configurations · "
+        f"structural-first analysis · structural SHA `{artifacts.structural_sha256[:12]}…`"
+    )
+    cards = st.columns(5)
+    card_values = (
+        ("Canonical UMAP-2 k=10 recall", f"{canonical_k10['neighbor_recall']:.3f}", "Frozen 15 / 0.1 / 42 display"),
+        ("Configuration-only k=10", f"{_manifold_metric(configuration_run, 10)['neighbor_recall']:.3f}", "Local recovery without workload fields"),
+        ("Workload-only k=10", f"{_manifold_metric(workload_run, 10)['neighbor_recall']:.3f}", "Workload alone is not the local geometry"),
+        ("Canonical t-SNE k=10", f"{_manifold_metric(canonical_tsne, 10)['neighbor_recall']:.3f}", "Independent local robustness check"),
+        ("Hierarchy verdict", "Partially supported", "Configuration within workload; no workload-first dominance"),
+    )
+    for column, (label, value, detail) in zip(cards, card_values):
+        with column:
+            render_compact_card(label, value, detail)
+
+    st.subheader("Primary local visualization: canonical UMAP-2")
+    st.caption(
+        "The default is preregistered: Euclidean UMAP-2 with n_neighbors=15, min_dist=0.1, "
+        "and seed=42. It is a descriptive local-neighborhood geometry, not a taxonomy or true manifold."
+    )
+    color_options = {
+        "Structural: hardware": "hardware_display",
+        "Structural: exact workload tuple": "exact_workload",
+        "Structural: model": "config_model",
+        "Structural: framework": "config_framework",
+        "Structural: precision": "config_precision",
+        "Post-hoc outcome overlay: median TPOT": "metrics_median_tpot",
+        "Post-hoc outcome overlay: throughput/GPU": "metrics_tput_per_gpu",
+        "Post-hoc outcome overlay: joules/output-token": "metrics_joules_per_output_token",
+    }
+    selected_color_label = st.selectbox(
+        "Color by", list(color_options), key="manifold_primary_color"
+    )
+    selected_color = color_options[selected_color_label]
+    primary_color_scale = "Raw"
+    if selected_color_label.startswith("Post-hoc outcome"):
+        primary_color_scale = st.selectbox(
+            "Outcome color scale (display only)",
+            ("Raw", "Log display"),
+            key="manifold_primary_outcome_scale",
+        )
+        st.caption(
+            "Outcome overlays are post-hoc, descriptive, and non-causal. Outcomes were excluded from structural fitting; "
+            "the color-scale choice changes only this display."
+        )
+    _manifold_scatter(
+        canonical_frame,
+        color_column=selected_color,
+        title="Canonical UMAP-2 (frozen display)",
+        method="UMAP",
+        color_scale=primary_color_scale,
+    )
+    if selected_color_label.startswith("Post-hoc outcome"):
+        available = int(canonical_frame[selected_color].notna().sum())
+        st.caption(
+            f"Post-hoc overlay: {available:,}/{len(canonical_frame):,} rows have this outcome. "
+            "The frozen coordinates were not refit or selected using outcomes; this is descriptive, not causal."
+        )
+
+    st.subheader("Sensitivity view")
+    st.caption(
+        "All 27 settings were frozen before outcome inspection. Changing this selector is diagnostic, "
+        "not model selection; no setting is called “best.” The canonical display is one preregistered "
+        "setting alongside 26 sensitivity runs."
+    )
+    sensitivity_summary = pd.DataFrame(
+        [
+            {
+                "n_neighbors": run["config"]["n_neighbors"],
+                "min_dist": run["config"]["min_dist"],
+                "n_neighbors label": f"n_neighbors={run['config']['n_neighbors']}",
+                "min_dist label": f"min_dist={run['config']['min_dist']}",
+                "seed": run["config"]["seed"],
+                "k=10 recall": _manifold_metric(run, 10)["neighbor_recall"],
+                "k=10 Jaccard": _manifold_metric(run, 10)["neighbor_jaccard"],
+                "Canonical display": "Yes"
+                if run["config"] == canonical_umap["config"]
+                else "Sensitivity run",
+            }
+            for run in umap_runs
+        ]
+    )
+    sensitivity_figure = px.scatter(
+        sensitivity_summary,
+        x="k=10 recall",
+        y="k=10 Jaccard",
+        color="n_neighbors label",
+        symbol="min_dist label",
+        hover_data=["seed", "Canonical display"],
+        title="All 27 frozen UMAP-2 settings: local-neighborhood sensitivity",
+    )
+    sensitivity_figure.add_scatter(
+        x=[_manifold_metric(canonical_umap, 10)["neighbor_recall"]],
+        y=[_manifold_metric(canonical_umap, 10)["neighbor_jaccard"]],
+        mode="markers",
+        name="Canonical: 15 / 0.1 / 42",
+        marker={"symbol": "star", "size": 15, "color": "black", "line": {"color": "white", "width": 1}},
+        hovertemplate="Canonical UMAP-2<br>n_neighbors=15<br>min_dist=0.1<br>seed=42<extra></extra>",
+    )
+    sensitivity_figure.update_layout(
+        legend_title_text="Color: n_neighbors · shape: min_dist",
+        legend={"groupclick": "toggleitem"},
+    )
+    sensitivity_figure.add_annotation(
+        text="★ Canonical = n_neighbors 15, min_dist 0.1, seed 42",
+        xref="paper",
+        yref="paper",
+        x=0,
+        y=1.11,
+        showarrow=False,
+        align="left",
+    )
+    st.plotly_chart(sensitivity_figure, width="stretch")
+    sensitivity_columns = st.columns(3)
+    selected_neighbors = sensitivity_columns[0].selectbox("n_neighbors", [15, 50, 100], key="manifold_neighbors")
+    selected_distance = sensitivity_columns[1].selectbox("min_dist", [0.0, 0.1, 0.5], index=1, key="manifold_min_dist")
+    selected_seed = sensitivity_columns[2].selectbox("seed", [42, 123, 2026], key="manifold_seed")
+    sensitivity_run = _manifold_run(
+        umap_runs,
+        n_components=2,
+        n_neighbors=selected_neighbors,
+        min_dist=selected_distance,
+        seed=selected_seed,
+        metric="euclidean",
+    )
+    sensitivity_frame = _manifold_projection_frame(
+        artifacts, sensitivity_run["parameter_id"], active_representation_data
+    )
+    _manifold_scatter(
+        sensitivity_frame,
+        color_column="hardware_display",
+        title="UMAP-2 sensitivity view (structural color only)",
+        method="UMAP",
+    )
+
+    st.subheader("UMAP-2 fidelity and stability")
+    stability = structural["umap_2"]["seed_stability"]
+    fidelity_trend = pd.DataFrame(
+        [
+            {
+                "k": k,
+                "Neighbor recall": _manifold_metric(canonical_umap, k)["neighbor_recall"],
+                "Neighbor Jaccard": _manifold_metric(canonical_umap, k)["neighbor_jaccard"],
+            }
+            for k in (10, 30, 50, 100)
+        ]
+    ).melt(id_vars="k", var_name="Metric", value_name="Original-neighbor agreement")
+    fidelity_figure = px.line(
+        fidelity_trend,
+        x="k",
+        y="Original-neighbor agreement",
+        color="Metric",
+        markers=True,
+        range_y=[0, 1],
+        title="Canonical UMAP-2: preservation of original-space neighborhoods",
+    )
+    fidelity_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(fidelity_figure, width="stretch")
+    st.caption(
+        "**What are we testing?** Whether canonical UMAP preserves original high-dimensional neighborhoods as "
+        "neighborhood size broadens. **What did we find?** Preservation is strongest locally and decreases at "
+        "broader k. **What can we claim?** Canonical UMAP is useful for local neighborhood visualization, not "
+        "faithful global geometry."
+    )
+    st.dataframe(
+        _manifold_fidelity_table(
+            canonical_umap,
+            all_runs=umap_runs,
+            seed_stability=stability,
+            stability_parameters={"n_neighbors": 15, "min_dist": 0.1},
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+    st.caption(
+        "UMAP preserves useful local structure, but is not parameter- or seed-invariant. "
+        "The displayed ranges are across the full frozen grid, not a ranking criterion."
+    )
+
+    st.subheader("What organizes local neighborhoods?")
+    st.markdown("#### A. Workload-level organization")
+    purity_rows = []
+    for representation_label, artifact_key in (
+        ("Original encoded structural space", "encoded_original"),
+        ("Canonical UMAP-2", "canonical_umap_2"),
+    ):
+        for k in (10, 30, 50):
+            value = structural["hierarchy"][artifact_key]["workload_purity"][str(k)]
+            interval = value["grouped_bootstrap"]["percentile_interval"]
+            purity_rows.append(
+                {
+                    "Geometry": representation_label,
+                    "k": k,
+                    "Exact workload purity": value["mean"],
+                    "Grouped bootstrap 95% interval": f"{interval['lower']:.3f}–{interval['upper']:.3f}",
+                    "Upper error": interval["upper"] - value["mean"],
+                    "Lower error": value["mean"] - interval["lower"],
+                    "Neighbor pairs": value["neighbor_pairs"],
+                }
+            )
+    purity_frame = pd.DataFrame(purity_rows)
+    purity_figure = px.bar(
+        purity_frame,
+        x="k",
+        y="Exact workload purity",
+        color="Geometry",
+        barmode="group",
+        error_y="Upper error",
+        error_y_minus="Lower error",
+        range_y=[0, 1],
+        title="Exact workload purity: original structural space versus canonical UMAP-2",
+    )
+    purity_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(purity_figure, width="stretch")
+    st.dataframe(
+        purity_frame.drop(columns=["Upper error", "Lower error"]),
+        width="stretch",
+        hide_index=True,
+    )
+    st.caption("Workload contributes structure, but exact workload does not dominate local neighborhoods.")
+
+    st.markdown("#### B. Configuration organization within workload")
+    hierarchy_k = st.selectbox("Conditioned hierarchy neighborhood size", [10, 30, 50], key="manifold_hierarchy_k")
+    configuration_rows = []
+    configuration_results = structural["hierarchy"]["canonical_umap_2"]["configuration_within_workload"]
+    directional_fields = 0
+    eligible_row_counts = []
+    for feature, values in configuration_results.items():
+        result = values[str(hierarchy_k)]
+        eligibility = result["eligibility"]
+        direction_is_higher = result["alternative"].startswith(("greater", "higher"))
+        directional_fields += int(
+            result["observed_mean"] > result["null_mean"]
+            if direction_is_higher
+            else result["observed_mean"] < result["null_mean"]
+        )
+        eligible_row_counts.append(eligibility["eligible_rows"])
+        configuration_rows.append(
+            {
+                "Feature": _manifold_label(feature),
+                "Internal field": feature,
+                "Type": result["kind"],
+                "Observed local statistic": result["observed_mean"],
+                "Conditioned-null mean": result["null_mean"],
+                "Direction": result["alternative"],
+                "Empirical permutation evidence": result["p_value"],
+                "Eligible rows": eligibility["eligible_rows"],
+                "Eligible neighbor pairs": result["eligible_neighbor_pairs"],
+            }
+        )
+    eligibility_text = (
+        f"{eligible_row_counts[0]:,} eligible rows"
+        if len(set(eligible_row_counts)) == 1
+        else f"{min(eligible_row_counts):,}–{max(eligible_row_counts):,} eligible rows across fields"
+    )
+    st.caption(
+        f"{directional_fields} of {len(configuration_results)} configuration fields move in the preregistered "
+        f"direction at k={hierarchy_k} across {eligibility_text}."
+    )
+    st.dataframe(pd.DataFrame(configuration_rows), width="stretch", hide_index=True)
+    st.caption(
+        "Categorical/boolean fields use higher homophily; numeric/discrete fields use smaller absolute difference. "
+        "No significance stars or post-hoc thresholds are applied."
+    )
+    st.markdown("#### C. Verdict: **PARTIALLY SUPPORTED**")
+    st.write(
+        "Configuration choices remain organized among otherwise comparable workloads, but the evidence does not support a simple workload-first local hierarchy."
+    )
+
+    st.subheader("Workload-only and configuration-only ablations")
+    ablation_rows = []
+    for name, run in (
+        ("Full canonical structural UMAP-2", canonical_umap),
+        ("Workload-only UMAP-2", workload_run),
+        ("Configuration-only UMAP-2", configuration_run),
+    ):
+        k10 = _manifold_metric(run, 10)
+        ablation_rows.append(
+            {
+                "Input family": name,
+                "k=10 recall": k10["neighbor_recall"],
+                "k=10 Jaccard": k10["neighbor_jaccard"],
+                "k=10 trustworthiness": k10["trustworthiness"],
+            }
+        )
+    ablation_frame = pd.DataFrame(ablation_rows)
+    ablation_plot = ablation_frame.melt(
+        id_vars="Input family",
+        value_vars=["k=10 recall", "k=10 Jaccard"],
+        var_name="Metric",
+        value_name="Original-neighbor agreement",
+    )
+    ablation_figure = px.bar(
+        ablation_plot,
+        x="Input family",
+        y="Original-neighbor agreement",
+        color="Metric",
+        barmode="group",
+        range_y=[0, 1],
+        title="Ablation: local-neighborhood recovery at k=10",
+    )
+    st.plotly_chart(ablation_figure, width="stretch")
+    st.dataframe(ablation_frame, width="stretch", hide_index=True)
+    st.caption(
+        "Much more local structural organization survives in configuration variables than workload variables alone. This is not a causal attribution."
+    )
+
+    st.subheader("Mixed-distance sensitivity")
+    st.caption(
+        "The encoded-Euclidean similarity definition was challenged with a source-balanced mixed-type metric. "
+        "This is a sensitivity analysis, not a replacement selected after results.")
+    mixed_rows = []
+    for value in structural["mixed_distance"]["reference_overlap"]:
+        overlap = value["per_row_jaccard"]
+        mixed_rows.append(
+            {
+                "k": value["k"],
+                "Euclidean vs mixed recall": value["neighbor_recall"],
+                "Euclidean vs mixed Jaccard": value["neighbor_jaccard"],
+                "Rows below half overlap": overlap["fraction_below_half_overlap"],
+            }
+        )
+    mixed_frame = pd.DataFrame(mixed_rows)
+    mixed_plot = mixed_frame.melt(
+        id_vars="k",
+        value_vars=["Euclidean vs mixed Jaccard", "Rows below half overlap"],
+        var_name="Comparison",
+        value_name="Fraction",
+    )
+    mixed_figure = px.line(
+        mixed_plot,
+        x="k",
+        y="Fraction",
+        color="Comparison",
+        markers=True,
+        range_y=[0, 1],
+        title="Source-balanced mixed-distance sensitivity",
+    )
+    mixed_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(mixed_figure, width="stretch")
+    st.dataframe(mixed_frame, width="stretch", hide_index=True)
+    st.caption(
+        "Partially robust / metric-sensitive: metric choice increasingly changes broader local neighborhoods."
+    )
+
+    st.subheader("Independent visualization check: t-SNE")
+    st.caption(
+        "t-SNE is a subordinate local robustness visualization. It has no transform, is not clustered, and its global spacing, island area, and island-to-island distance are not quantitative evidence.")
+    tsne_columns = st.columns(2)
+    selected_perplexity = tsne_columns[0].selectbox("t-SNE perplexity", [15, 30, 50], index=1, key="manifold_tsne_perplexity")
+    selected_tsne_seed = tsne_columns[1].selectbox("t-SNE seed", [42, 123, 2026], key="manifold_tsne_seed")
+    tsne_run = _manifold_run(
+        structural["tsne_2"]["runs"], perplexity=selected_perplexity, seed=selected_tsne_seed
+    )
+    tsne_frame = _manifold_projection_frame(artifacts, tsne_run["parameter_id"], active_representation_data)
+    _manifold_scatter(
+        tsne_frame,
+        color_column="hardware_display",
+        title="t-SNE sensitivity view (structural color only)",
+        method="t-SNE",
+    )
+    nonlinear_recall = pd.DataFrame(
+        [
+            {
+                "k": k,
+                "Canonical UMAP-2": _manifold_metric(canonical_umap, k)["neighbor_recall"],
+                "Canonical t-SNE": _manifold_metric(canonical_tsne, k)["neighbor_recall"],
+            }
+            for k in (10, 30, 50, 100)
+        ]
+    ).melt(id_vars="k", var_name="Frozen visualization", value_name="Neighbor recall")
+    nonlinear_recall_figure = px.line(
+        nonlinear_recall,
+        x="k",
+        y="Neighbor recall",
+        color="Frozen visualization",
+        markers=True,
+        range_y=[0, 1],
+        title="Local-neighborhood preservation comparison — not a global geometry leaderboard",
+    )
+    nonlinear_recall_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(nonlinear_recall_figure, width="stretch")
+    st.dataframe(_manifold_fidelity_table(tsne_run), width="stretch", hide_index=True)
+
+    st.subheader("Post-hoc performance and energy overlays")
+    st.caption(
+        "These are descriptive associations on canonical UMAP-2 coordinates frozen before outcome inspection. They do not establish causation.")
+    outcome_options = {
+        "Median TPOT": "metrics_median_tpot",
+        "Throughput per GPU": "metrics_tput_per_gpu",
+        "Joules per output token": "metrics_joules_per_output_token",
+    }
+    selected_outcome_label = st.selectbox("Post-hoc outcome", list(outcome_options), key="manifold_outcome")
+    selected_outcome = outcome_options[selected_outcome_label]
+    outcome_color_scale = st.selectbox(
+        "Color scale (display only)",
+        ("Raw", "Log display"),
+        key="manifold_outcome_color_scale",
+    )
+    st.caption(
+        "All three available outcome fields are strictly positive and skewed. Log display changes point color only; "
+        "the frozen raw outcome values, correlations, and statistics are unchanged."
+    )
+    _manifold_scatter(
+        canonical_frame,
+        color_column=selected_outcome,
+        title=f"Canonical UMAP-2 — post-hoc {selected_outcome_label} overlay",
+        method="UMAP",
+        color_scale=outcome_color_scale,
+    )
+    outcome_summary = final["outcome_overlays"]["metrics"][selected_outcome]
+    outcome_table = pd.DataFrame(
+        [
+            {
+                "Available rows": outcome_summary["available_rows"],
+                "Raw x Pearson": outcome_summary["x_pearson"],
+                "Raw y Pearson": outcome_summary["y_pearson"],
+                "Within-workload x Pearson": outcome_summary["within_exact_workload"]["x_pearson"],
+                "Within-workload y Pearson": outcome_summary["within_exact_workload"]["y_pearson"],
+            }
+        ]
+    )
+    st.dataframe(outcome_table, width="stretch", hide_index=True)
+
+    st.subheader("Where do representation methods agree?")
+    st.caption(
+        "The PCA-15 / AE-15 / VAE-15 core uses neighborhood agreement. Canonical UMAP-15 is a sensitivity extension, not a four-method leaderboard; t-SNE is excluded.")
+    consensus_rows = []
+    for k in (10, 30, 50):
+        result = final["cross_method"]["consensus"][str(k)]
+        consensus_rows.append(
+            {
+                "k": k,
+                "Core recurring-neighbor count": result["core_consensus_neighbor_count"],
+                "Core bounded consensus fraction": result["core_consensus_fraction"],
+                "With UMAP-15 recurring count": result["extended_consensus_neighbor_count"],
+                "With UMAP-15 bounded consensus fraction": result["extended_consensus_fraction"],
+            }
+        )
+    consensus_frame = pd.DataFrame(consensus_rows)
+    consensus_plot = consensus_frame.melt(
+        id_vars="k",
+        value_vars=["Core bounded consensus fraction", "With UMAP-15 bounded consensus fraction"],
+        var_name="Consensus definition",
+        value_name="Bounded consensus fraction",
+    )
+    consensus_figure = px.line(
+        consensus_plot,
+        x="k",
+        y="Bounded consensus fraction",
+        color="Consensus definition",
+        markers=True,
+        range_y=[0, 1],
+        title="Core neighborhood consensus with UMAP-15 as sensitivity only",
+    )
+    consensus_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(consensus_figure, width="stretch")
+    st.dataframe(consensus_frame, width="stretch", hide_index=True)
+
+    st.subheader("UMAP-15 candidate — not promoted")
+    st.caption(
+        "UMAP-15 was evaluated quantitatively but is not a promoted core representation. No UMAP-15 coordinates, clustering, or permanent embedding companion are exposed here.")
+    canonical_umap15 = _manifold_run(
+        final["umap_15"]["runs"], n_components=15, n_neighbors=15, min_dist=0.1, seed=42, metric="euclidean"
+    )
+    held_out_rows = final["umap_15"]["grouped_held_out"]
+    candidate_rows = []
+    for k in (10, 30, 50):
+        held_out_recall = float(np.mean([_manifold_metric(run, k)["neighbor_recall"] for run in held_out_rows]))
+        candidate_rows.append(
+            {
+                "k": k,
+                "Canonical UMAP-15 recall": _manifold_metric(canonical_umap15, k)["neighbor_recall"],
+                "Grouped held-out mean recall": held_out_recall,
+            }
+        )
+    evidence_rows = pd.DataFrame(
+        [
+            {"Evidence category": "Local fidelity", "Assessment": "mixed"},
+            {"Evidence category": "Seed robustness", "Assessment": "supportive"},
+            {"Evidence category": "Parameter robustness", "Assessment": "mixed"},
+            {"Evidence category": "Grouped held-out behavior", "Assessment": "mixed"},
+            {"Evidence category": "Metric sensitivity", "Assessment": "mixed"},
+            {"Evidence category": "Incremental/complementary information", "Assessment": "mixed"},
+        ]
+    )
+    candidate_frame = pd.DataFrame(candidate_rows)
+    candidate_plot = candidate_frame.melt(
+        id_vars="k",
+        var_name="Evaluation setting",
+        value_name="Neighbor recall",
+    )
+    candidate_figure = px.line(
+        candidate_plot,
+        x="k",
+        y="Neighbor recall",
+        color="Evaluation setting",
+        markers=True,
+        range_y=[0, 1],
+        title="UMAP-15: in-cohort versus grouped held-out recovery",
+    )
+    candidate_figure.update_layout(xaxis_title="Neighborhood size (k)")
+    st.plotly_chart(candidate_figure, width="stretch")
+    candidate_left, candidate_right = st.columns((1.1, 1))
+    with candidate_left:
+        st.dataframe(candidate_frame, width="stretch", hide_index=True)
+    with candidate_right:
+        st.dataframe(evidence_rows, width="stretch", hide_index=True)
+        st.caption(
+            "Grouped held-out recovery is lower than in-cohort recovery; this mixed generalization evidence is part "
+            "of why UMAP-15 was not promoted."
+        )
+
+    st.subheader("What we can and cannot conclude")
+    supported, not_established = st.columns(2)
+    with supported:
+        st.markdown("**Supported**")
+        st.markdown(
+            "- Reproducible local nonlinear structure exists.\n"
+            "- Configuration organization persists within comparable workloads.\n"
+            "- UMAP and t-SNE recover meaningful local neighborhoods.\n"
+            "- Metric and parameter choices matter."
+        )
+    with not_established:
+        st.markdown("**Not established**")
+        st.markdown(
+            "- Visible islands are physical regimes.\n"
+            "- Workload dominates all geometry.\n"
+            "- Global t-SNE distances are meaningful.\n"
+            "- Energy relationships are causal.\n"
+            "- UMAP-15 is superior or promoted."
+        )
+    st.info(
+        "The July 20 snapshot is the development/analysis snapshot. An untouched future snapshot is still needed before stronger external-generalization or publication claims."
+    )
+
+
 def render_representation_analysis_dashboard(
     joined: pd.DataFrame,
     analysis_metadata: dict[str, Any],
@@ -5495,6 +6300,11 @@ def render_representation_analysis_dashboard(
     with subpages[0]:
         render_pca_dashboard(joined, analysis_metadata, max_rows, seed, semantic_report)
     with subpages[1]:
+        render_manifold_analysis_dashboard(
+            active_dataset=active_dataset,
+            active_representation_data=active_representation_data,
+        )
+    with subpages[2]:
         render_neural_representation_dashboard(
             method="autoencoder",
             artifact_path=AE_REPRESENTATION_ARTIFACT_PATH,
@@ -5502,7 +6312,7 @@ def render_representation_analysis_dashboard(
             active_dataset=active_dataset,
             active_representation_data=active_representation_data,
         )
-    with subpages[2]:
+    with subpages[3]:
         render_neural_representation_dashboard(
             method="variational_autoencoder",
             artifact_path=VAE_REPRESENTATION_ARTIFACT_PATH,
@@ -5510,9 +6320,9 @@ def render_representation_analysis_dashboard(
             active_dataset=active_dataset,
             active_representation_data=active_representation_data,
         )
-    with subpages[3]:
-        render_representation_comparison_dashboard(active_dataset)
     with subpages[4]:
+        render_representation_comparison_dashboard(active_dataset)
+    with subpages[5]:
         render_research_validation_dashboard(active_dataset)
 
 

@@ -1,0 +1,53 @@
+{
+  "capability_metrics": {
+    "mae": 851.8969394340577,
+    "median_absolute_error": 323.34015453091376,
+    "median_absolute_percentage_error": 0.4277265782214689,
+    "r2": 0.6961460453266999
+  },
+  "features": [
+    "isl",
+    "osl",
+    "conc",
+    "config_prefill_tp",
+    "config_prefill_ep",
+    "config_prefill_num_workers",
+    "config_decode_tp",
+    "config_decode_ep",
+    "config_decode_num_workers",
+    "config_num_prefill_gpu",
+    "config_num_decode_gpu",
+    "epoch_memory_capacity_bytes",
+    "epoch_memory_bandwidth_bytes_per_second",
+    "epoch_tensor_fp16_bf16_peak_flops",
+    "epoch_fp8_peak_flops",
+    "epoch_fp4_peak_flops",
+    "epoch_int8_peak_ops",
+    "epoch_int4_peak_ops",
+    "epoch_tdp_watts",
+    "epoch_intranode_bandwidth_bytes_per_second",
+    "benchmark_type",
+    "config_framework",
+    "config_model",
+    "config_precision",
+    "config_spec_method",
+    "config_disagg",
+    "config_is_multinode"
+  ],
+  "group_overlap": 0,
+  "hardware_sku": "mi355x",
+  "minimum_test_rows": 30,
+  "model": "capabilities_only_random_forest",
+  "note": "Hardware identity is intentionally absent. Categorical identity-only is not a semantic unseen-SKU baseline.",
+  "status": "evaluated",
+  "test_configs": 191,
+  "test_rows": 2060,
+  "train_configs": 1052,
+  "train_rows": 5108,
+  "training_median_baseline_metrics": {
+    "mae": 1516.1716448545774,
+    "median_absolute_error": 1027.9828519138878,
+    "median_absolute_percentage_error": 0.7927768694002033,
+    "r2": -0.0211843766585591
+  }
+}

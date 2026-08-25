@@ -1,0 +1,492 @@
+{
+  "excluded_aa_outcome_columns": [
+    "aa_artificial_analysis_intelligence_index",
+    "aa_artificial_analysis_coding_index",
+    "aa_artificial_analysis_agentic_index",
+    "aa_median_output_tokens_per_second",
+    "aa_median_time_to_first_token_seconds",
+    "aa_median_time_to_first_answer_token_seconds",
+    "aa_median_end_to_end_response_time_seconds",
+    "aa_price_1m_cache_hit_tokens",
+    "aa_price_1m_cache_write_tokens",
+    "aa_price_1m_input_tokens",
+    "aa_price_1m_output_tokens",
+    "aa_intelligence_index_cost_total_cost",
+    "aa_intelligence_index_cost_per_task_total_cost"
+  ],
+  "policy_version": "v1",
+  "primary_static_model_feature_columns": [
+    "epoch_model_parameters"
+  ],
+  "records": [
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Model",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Domain",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Task",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Organization",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Authors",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Publication date",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Reference",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Link",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Citations",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Notability criteria",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Notability criteria notes",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "A. STATIC / PRE-DEPLOYMENT MODEL DESCRIPTOR",
+      "field": "Parameters",
+      "primary_feature_eligibility": "conditional: only normalized, exact-version static values; primary currently only Parameters",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "A. STATIC / PRE-DEPLOYMENT MODEL DESCRIPTOR",
+      "field": "Parameters notes",
+      "primary_feature_eligibility": "conditional: only normalized, exact-version static values; primary currently only Parameters",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute (FLOP)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training dataset size (total)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Dataset size notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training time (hours)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training time notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training hardware",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Approach",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Confidence",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Abstract",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Epochs",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "B. POST-RELEASE BENCHMARK / CAPABILITY OUTCOME",
+      "field": "WikiText and Penn Treebank data",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Model accessibility",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Country (of organization)",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Base model",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Finetune compute (FLOP)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Finetune compute notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Hardware quantity",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Hardware utilization (MFU)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Last modified",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training cloud compute vendor",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training data center",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Archived links",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Batch size",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Batch size notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Organization categorization",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Foundation model",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute lower bound",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute upper bound",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training chip-hours",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training code accessibility",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Accessibility notes",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Possibly over 1e23 FLOP",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute cost (2023 USD)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Utilization notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "A. STATIC / PRE-DEPLOYMENT MODEL DESCRIPTOR",
+      "field": "Numerical format",
+      "primary_feature_eligibility": "conditional: only normalized, exact-version static values; primary currently only Parameters",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Frontier model",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training power draw (W)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Training compute estimation method",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Hugging Face developer id",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Post-training compute (FLOP)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Post-training compute notes",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Hardware utilization (HFU)",
+      "primary_feature_eligibility": "excluded: training/development metadata is not a serving-throughput descriptor",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "Open model weights?",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Epoch all_ai_models.csv"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_model_id",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_model_name",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_slug",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_model_creator_id",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_model_creator_name",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_release_date",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "B. POST-RELEASE BENCHMARK / CAPABILITY OUTCOME",
+      "field": "aa_artificial_analysis_intelligence_index",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "B. POST-RELEASE BENCHMARK / CAPABILITY OUTCOME",
+      "field": "aa_artificial_analysis_coding_index",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "B. POST-RELEASE BENCHMARK / CAPABILITY OUTCOME",
+      "field": "aa_artificial_analysis_agentic_index",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "C. API / PROVIDER PERFORMANCE OUTCOME",
+      "field": "aa_median_output_tokens_per_second",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "C. API / PROVIDER PERFORMANCE OUTCOME",
+      "field": "aa_median_time_to_first_token_seconds",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "C. API / PROVIDER PERFORMANCE OUTCOME",
+      "field": "aa_median_time_to_first_answer_token_seconds",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "C. API / PROVIDER PERFORMANCE OUTCOME",
+      "field": "aa_median_end_to_end_response_time_seconds",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_price_1m_cache_hit_tokens",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_price_1m_cache_write_tokens",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_price_1m_input_tokens",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_price_1m_output_tokens",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_intelligence_index_cost_total_cost",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "D. PRICING / BUSINESS METADATA",
+      "field": "aa_intelligence_index_cost_per_task_total_cost",
+      "primary_feature_eligibility": "excluded from primary physical-throughput representation",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_source",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    },
+    {
+      "category": "E. IDENTITY / PROVENANCE",
+      "field": "aa_source_snapshot",
+      "primary_feature_eligibility": "contextual/display only",
+      "source": "Artificial Analysis Free endpoint"
+    }
+  ],
+  "rule": "Only model-intrinsic, pre-deployment static descriptors can enter a future primary unseen-model physical-throughput representation. No AA outcome, performance, latency, capability-index, or pricing field may enter it."
+}

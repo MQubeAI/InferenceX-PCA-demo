@@ -1,0 +1,19 @@
+{
+  "categories": {
+    "configuration_tradeoff_reasoning": 1,
+    "controlled_comparison": 4,
+    "direct_retrieval": 4,
+    "generalization_transfer_reasoning": 4,
+    "planning_constrained_decision": 3,
+    "quantitative_multirow_reasoning": 5,
+    "research_result_interpretation": 4,
+    "support_uncertainty_reasoning": 3
+  },
+  "difficulty": {
+    "easy": 4,
+    "hard": 15,
+    "medium": 9
+  },
+  "questions": 28,
+  "version": "inference_v0_2_candidate"
+}

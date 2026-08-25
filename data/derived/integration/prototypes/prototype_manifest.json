@@ -1,0 +1,15 @@
+{
+  "artificial_analysis": {
+    "expected_contract": "artificial_analysis_observations.csv",
+    "files_detected": [],
+    "message": "Artificial Analysis data not loaded.",
+    "raw_directory": "data/external/artificial_analysis/raw",
+    "status": "not_loaded"
+  },
+  "nearest_analogues": "Original configuration/workload mixed-distance only; no UMAP/t-SNE coordinates.",
+  "observed_lookup": "Exact InferenceX measurements may be shown as observed; exact structural cross-hardware counterparts may be shown as observed what-if evidence.",
+  "prediction_reason": "The historical TabFM result is aggregate-only and no reusable predictor is present.",
+  "prediction_status": "unsupported_without_a_reproducible_point_model_artifact",
+  "prototype_version": "v1",
+  "throughput_view": "views/inferencex_throughput_epoch_hardware_v1.csv"
+}

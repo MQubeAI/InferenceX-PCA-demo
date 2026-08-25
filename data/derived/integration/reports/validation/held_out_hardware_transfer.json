@@ -1,0 +1,1354 @@
+{
+  "claim_boundary": "Observed held-out-SKU transfer, not unreleased-hardware prediction.",
+  "features": [
+    "isl",
+    "osl",
+    "conc",
+    "config_prefill_tp",
+    "config_prefill_ep",
+    "config_prefill_dp_attention",
+    "config_prefill_num_workers",
+    "config_decode_tp",
+    "config_decode_ep",
+    "config_decode_dp_attention",
+    "config_decode_num_workers",
+    "config_num_prefill_gpu",
+    "config_framework",
+    "config_model",
+    "config_precision",
+    "config_spec_method",
+    "config_disagg",
+    "config_is_multinode",
+    "epoch_memory_capacity_bytes",
+    "epoch_memory_bandwidth_bytes_per_second",
+    "epoch_tensor_fp16_bf16_peak_flops",
+    "epoch_fp8_peak_flops",
+    "epoch_fp4_peak_flops",
+    "epoch_int8_peak_ops",
+    "epoch_int4_peak_ops",
+    "epoch_tdp_watts",
+    "epoch_intranode_bandwidth_bytes_per_second"
+  ],
+  "records": [
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "b200",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 1016.3105282512772,
+          "median_absolute_error": 273.79004269994823,
+          "median_absolute_log_ratio": 0.2508109947079361,
+          "median_absolute_percentage_error": 0.2321171280031224,
+          "p90_absolute_percentage_error": 0.5154569930333274,
+          "r2": 0.7592465229044709,
+          "rows": 1994,
+          "within_10_percent": 0.19307923771313942,
+          "within_20_percent": 0.42076228686058176,
+          "within_30_percent": 0.6574724172517553
+        },
+        "capability_ridge": {
+          "mae": 2265.846881270707,
+          "median_absolute_error": 1444.7813378336236,
+          "median_absolute_log_ratio": 0.9526728225313317,
+          "median_absolute_percentage_error": 0.765737191539726,
+          "p90_absolute_percentage_error": 7.265859012391679,
+          "r2": 0.3680703558164018,
+          "rows": 1994,
+          "within_10_percent": 0.057673019057171516,
+          "within_20_percent": 0.1148445336008024,
+          "within_30_percent": 0.1860581745235707
+        },
+        "global_training_median": {
+          "mae": 2682.708752245463,
+          "median_absolute_error": 961.1281386244775,
+          "median_absolute_log_ratio": 1.0509400874539296,
+          "median_absolute_percentage_error": 0.7807608298208757,
+          "p90_absolute_percentage_error": 5.6142692112805985,
+          "r2": -0.1605493821494759,
+          "rows": 1994,
+          "within_10_percent": 0.05717151454363089,
+          "within_20_percent": 0.10180541624874624,
+          "within_30_percent": 0.1629889669007021
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 2353.9084794161095,
+          "median_absolute_error": 866.9648889783623,
+          "median_absolute_log_ratio": 0.9659828031544813,
+          "median_absolute_percentage_error": 0.6762866065421774,
+          "p90_absolute_percentage_error": 1.1727466578823373,
+          "r2": 0.022390128687437727,
+          "rows": 1994,
+          "within_10_percent": 0.05917753259779338,
+          "within_20_percent": 0.11735205616850551,
+          "within_30_percent": 0.17301905717151456
+        },
+        "workload_conditioned_training_median": {
+          "mae": 2079.5824574612166,
+          "median_absolute_error": 593.6291437753691,
+          "median_absolute_log_ratio": 0.642654429739066,
+          "median_absolute_percentage_error": 0.5458298300082638,
+          "p90_absolute_percentage_error": 1.0038683555071541,
+          "r2": 0.1446264874553348,
+          "rows": 1994,
+          "within_10_percent": 0.08726178535606821,
+          "within_20_percent": 0.18304914744232698,
+          "within_30_percent": 0.2748244734202608
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.4129109516771589,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          },
+          {
+            "normalized_distance": 0.45560670270424825,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          },
+          {
+            "normalized_distance": 0.5846425315180486,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          },
+          {
+            "normalized_distance": 0.584998826517995,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.6295371711361476,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.8576246525782926,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          }
+        ],
+        "dimensions_outside_training_range": [
+          "epoch_memory_capacity_bytes",
+          "epoch_fp4_peak_flops",
+          "epoch_int4_peak_ops"
+        ],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [
+          "epoch_intranode_bandwidth_bytes_per_second"
+        ],
+        "missing_dimension_count": 1,
+        "nearest": {
+          "normalized_distance": 0.4129109516771589,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_fp8_peak_flops",
+            "epoch_fp4_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "gb200"
+        },
+        "outside_dimension_count": 3,
+        "vendor": "NVIDIA",
+        "vendor_novelty": false
+      },
+      "test_configs": 284,
+      "test_rows": 1994,
+      "test_target_distribution": {
+        "count": 1994,
+        "max": 63535.86841096026,
+        "mean": 3221.774512641111,
+        "median": 1398.2415510891042,
+        "min": 13.567850344933737,
+        "p01": 41.796340296663416,
+        "p05": 102.02930693050082,
+        "p95": 12343.293128760113,
+        "p99": 23453.533575205714,
+        "std": 5126.687801280013
+      },
+      "train_configs": 959,
+      "train_rows": 5174
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "b300",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 1386.7781540896576,
+          "median_absolute_error": 385.510556490656,
+          "median_absolute_log_ratio": 0.2927042430495856,
+          "median_absolute_percentage_error": 0.26434356999226327,
+          "p90_absolute_percentage_error": 0.49874596750745104,
+          "r2": 0.747861661076196,
+          "rows": 1237,
+          "within_10_percent": 0.16814874696847212,
+          "within_20_percent": 0.3718674211802749,
+          "within_30_percent": 0.5739692805173807
+        },
+        "capability_ridge": {
+          "mae": 2717.832093302683,
+          "median_absolute_error": 1757.546303965433,
+          "median_absolute_log_ratio": 0.7091770243869,
+          "median_absolute_percentage_error": 0.7052701289895604,
+          "p90_absolute_percentage_error": 8.656405226785035,
+          "r2": 0.5339949539304433,
+          "rows": 1237,
+          "within_10_percent": 0.08407437348423606,
+          "within_20_percent": 0.15602263540824576,
+          "within_30_percent": 0.23524656426839127
+        },
+        "global_training_median": {
+          "mae": 3798.41754932782,
+          "median_absolute_error": 1051.343971191214,
+          "median_absolute_log_ratio": 1.197939598132503,
+          "median_absolute_percentage_error": 0.799004335179909,
+          "p90_absolute_percentage_error": 5.026590332108888,
+          "r2": -0.25264463255315817,
+          "rows": 1237,
+          "within_10_percent": 0.046079223928860144,
+          "within_20_percent": 0.09054163298302344,
+          "within_30_percent": 0.13257881972514146
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 2938.537910087083,
+          "median_absolute_error": 862.7753640981736,
+          "median_absolute_log_ratio": 0.6846445562380811,
+          "median_absolute_percentage_error": 0.536897791800295,
+          "p90_absolute_percentage_error": 0.9026143818984329,
+          "r2": -0.020210012347702033,
+          "rows": 1237,
+          "within_10_percent": 0.07275666936135812,
+          "within_20_percent": 0.15602263540824576,
+          "within_30_percent": 0.26596604688763137
+        },
+        "workload_conditioned_training_median": {
+          "mae": 2903.8246102660405,
+          "median_absolute_error": 681.3159483760829,
+          "median_absolute_log_ratio": 0.5402526625211044,
+          "median_absolute_percentage_error": 0.46819619560267434,
+          "p90_absolute_percentage_error": 0.8769744149144019,
+          "r2": -0.001263214114893385,
+          "rows": 1237,
+          "within_10_percent": 0.116410670978173,
+          "within_20_percent": 0.22392886014551333,
+          "within_30_percent": 0.3177041228779305
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.416029510297263,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          },
+          {
+            "normalized_distance": 0.5091741422173884,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.537627058979226,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          },
+          {
+            "normalized_distance": 0.5885092998300895,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          },
+          {
+            "normalized_distance": 0.6673627660716703,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          },
+          {
+            "normalized_distance": 0.7020164411345351,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          }
+        ],
+        "dimensions_outside_training_range": [
+          "epoch_int8_peak_ops"
+        ],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [],
+        "missing_dimension_count": 0,
+        "nearest": {
+          "normalized_distance": 0.416029510297263,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_fp8_peak_flops",
+            "epoch_fp4_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_int4_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "gb300"
+        },
+        "outside_dimension_count": 1,
+        "vendor": "NVIDIA",
+        "vendor_novelty": false
+      },
+      "test_configs": 211,
+      "test_rows": 1237,
+      "test_target_distribution": {
+        "count": 1237,
+        "max": 47740.81848,
+        "mean": 4412.335102154436,
+        "median": 1874.59391,
+        "min": 20.44355666946449,
+        "p01": 40.78821118795141,
+        "p05": 103.88196247222838,
+        "p95": 17315.151226000016,
+        "p99": 31991.546465200016,
+        "std": 6550.046980785114
+      },
+      "train_configs": 1032,
+      "train_rows": 5931
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "gb200",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 1514.690299668225,
+          "median_absolute_error": 431.8586907231006,
+          "median_absolute_log_ratio": 0.22930729856309232,
+          "median_absolute_percentage_error": 0.23601657720177588,
+          "p90_absolute_percentage_error": 1.694825607855219,
+          "r2": 0.7496806175468539,
+          "rows": 681,
+          "within_10_percent": 0.28193832599118945,
+          "within_20_percent": 0.44933920704845814,
+          "within_30_percent": 0.5888399412628488
+        },
+        "capability_ridge": {
+          "mae": 3836.559399153565,
+          "median_absolute_error": 1612.1502910262734,
+          "median_absolute_log_ratio": 0.8091991138048502,
+          "median_absolute_percentage_error": 0.7696506353531659,
+          "p90_absolute_percentage_error": 15.614397822103616,
+          "r2": -0.008915487138563938,
+          "rows": 681,
+          "within_10_percent": 0.10719530102790015,
+          "within_20_percent": 0.19530102790014683,
+          "within_30_percent": 0.29809104258443464
+        },
+        "global_training_median": {
+          "mae": 4114.2190232486555,
+          "median_absolute_error": 1142.0161035107883,
+          "median_absolute_log_ratio": 1.4552327425348452,
+          "median_absolute_percentage_error": 0.8370463647475251,
+          "p90_absolute_percentage_error": 8.290605037301336,
+          "r2": -0.24253116665071284,
+          "rows": 681,
+          "within_10_percent": 0.03524229074889868,
+          "within_20_percent": 0.06020558002936858,
+          "within_30_percent": 0.10572687224669604
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 3638.495391064754,
+          "median_absolute_error": 1486.0478962679363,
+          "median_absolute_log_ratio": 1.076403742205579,
+          "median_absolute_percentage_error": 0.8027069299034408,
+          "p90_absolute_percentage_error": 5.307901424770054,
+          "r2": -0.0050986965553381225,
+          "rows": 681,
+          "within_10_percent": 0.06607929515418502,
+          "within_20_percent": 0.12481644640234948,
+          "within_30_percent": 0.16886930983847284
+        },
+        "workload_conditioned_training_median": {
+          "mae": 2913.942379499521,
+          "median_absolute_error": 1036.6638295951186,
+          "median_absolute_log_ratio": 0.6159627126600494,
+          "median_absolute_percentage_error": 0.6266770665345655,
+          "p90_absolute_percentage_error": 3.4052721726644344,
+          "r2": 0.1433283886403185,
+          "rows": 681,
+          "within_10_percent": 0.11894273127753303,
+          "within_20_percent": 0.23348017621145375,
+          "within_30_percent": 0.3245227606461087
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.4125089872563208,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          },
+          {
+            "normalized_distance": 0.48471824941592,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          },
+          {
+            "normalized_distance": 0.6159482270938879,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          },
+          {
+            "normalized_distance": 0.6670371254863018,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.675055107409327,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.7340853822375771,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          }
+        ],
+        "dimensions_outside_training_range": [],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [
+          "epoch_int4_peak_ops",
+          "epoch_intranode_bandwidth_bytes_per_second"
+        ],
+        "missing_dimension_count": 2,
+        "nearest": {
+          "normalized_distance": 0.4125089872563208,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_fp8_peak_flops",
+            "epoch_fp4_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "b200"
+        },
+        "outside_dimension_count": 0,
+        "vendor": "NVIDIA",
+        "vendor_novelty": false
+      },
+      "test_configs": 249,
+      "test_rows": 681,
+      "test_target_distribution": {
+        "count": 681,
+        "max": 53952.46806265401,
+        "mean": 4681.913942749235,
+        "median": 2176.4851467279314,
+        "min": 5.249994485479977,
+        "p01": 19.82731022761455,
+        "p05": 57.13370436883738,
+        "p95": 14868.623965436032,
+        "p99": 42839.518119118744,
+        "std": 7147.844382917897
+      },
+      "train_configs": 994,
+      "train_rows": 6487
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "gb300",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 1211.181022081731,
+          "median_absolute_error": 597.0195919770104,
+          "median_absolute_log_ratio": 0.2500440125199028,
+          "median_absolute_percentage_error": 0.2502755764321655,
+          "p90_absolute_percentage_error": 1.656542886822404,
+          "r2": 0.8184601637998816,
+          "rows": 531,
+          "within_10_percent": 0.2749529190207156,
+          "within_20_percent": 0.4463276836158192,
+          "within_30_percent": 0.5536723163841808
+        },
+        "capability_ridge": {
+          "mae": 2164.4201397522643,
+          "median_absolute_error": 1396.5873321484846,
+          "median_absolute_log_ratio": 0.5663147026853209,
+          "median_absolute_percentage_error": 0.5435305907277687,
+          "p90_absolute_percentage_error": 8.225095408186947,
+          "r2": 0.5898566254737947,
+          "rows": 531,
+          "within_10_percent": 0.1337099811676083,
+          "within_20_percent": 0.2617702448210923,
+          "within_30_percent": 0.3634651600753296
+        },
+        "global_training_median": {
+          "mae": 4414.19088961375,
+          "median_absolute_error": 1711.263008411985,
+          "median_absolute_log_ratio": 1.5969319166719558,
+          "median_absolute_percentage_error": 0.8634579540112673,
+          "p90_absolute_percentage_error": 7.1281203476094595,
+          "r2": -0.3553322440971718,
+          "rows": 531,
+          "within_10_percent": 0.02448210922787194,
+          "within_20_percent": 0.04519774011299435,
+          "within_30_percent": 0.08097928436911488
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 3251.2840269011144,
+          "median_absolute_error": 1742.6202236958484,
+          "median_absolute_log_ratio": 0.7802559917730146,
+          "median_absolute_percentage_error": 0.7168628896907938,
+          "p90_absolute_percentage_error": 5.738198800395859,
+          "r2": 0.10748584027144925,
+          "rows": 531,
+          "within_10_percent": 0.08286252354048965,
+          "within_20_percent": 0.1751412429378531,
+          "within_30_percent": 0.2617702448210923
+        },
+        "workload_conditioned_training_median": {
+          "mae": 2437.209382251977,
+          "median_absolute_error": 982.3565751437668,
+          "median_absolute_log_ratio": 0.47824617198745395,
+          "median_absolute_percentage_error": 0.421809123606077,
+          "p90_absolute_percentage_error": 2.375780380604979,
+          "r2": 0.23901597179802547,
+          "rows": 531,
+          "within_10_percent": 0.1657250470809793,
+          "within_20_percent": 0.2937853107344633,
+          "within_30_percent": 0.3766478342749529
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.42507025206758825,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.650417567498678,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          },
+          {
+            "normalized_distance": 0.668522642167892,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.7232547969287101,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          },
+          {
+            "normalized_distance": 0.8952233549836235,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          },
+          {
+            "normalized_distance": 0.8967185336169889,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          }
+        ],
+        "dimensions_outside_training_range": [
+          "epoch_fp4_peak_flops",
+          "epoch_int4_peak_ops"
+        ],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [],
+        "missing_dimension_count": 0,
+        "nearest": {
+          "normalized_distance": 0.42507025206758825,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_fp8_peak_flops",
+            "epoch_fp4_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_int4_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "b300"
+        },
+        "outside_dimension_count": 2,
+        "vendor": "NVIDIA",
+        "vendor_novelty": false
+      },
+      "test_configs": 254,
+      "test_rows": 531,
+      "test_target_distribution": {
+        "count": 531,
+        "max": 60202.20313,
+        "mean": 4999.054385153638,
+        "median": 2882.840027809636,
+        "min": 16.093682805244427,
+        "p01": 29.80940726173613,
+        "p05": 77.24456237155195,
+        "p95": 15432.128528854515,
+        "p99": 23069.331785233473,
+        "std": 6420.8913595051135
+      },
+      "train_configs": 989,
+      "train_rows": 6637
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "mi300x",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 560.9888756874996,
+          "median_absolute_error": 170.855843916092,
+          "median_absolute_log_ratio": 0.3238548317765855,
+          "median_absolute_percentage_error": 0.3824466052344167,
+          "p90_absolute_percentage_error": 0.7402822276276335,
+          "r2": 0.21090612497128158,
+          "rows": 279,
+          "within_10_percent": 0.13620071684587814,
+          "within_20_percent": 0.26881720430107525,
+          "within_30_percent": 0.3978494623655914
+        },
+        "capability_ridge": {
+          "mae": 2018.5889632222422,
+          "median_absolute_error": 1242.1441268147478,
+          "median_absolute_log_ratio": 1.8986490787654855,
+          "median_absolute_percentage_error": 2.662879940623814,
+          "p90_absolute_percentage_error": 18.419521871476984,
+          "r2": -1.898431057466496,
+          "rows": 279,
+          "within_10_percent": 0.035842293906810034,
+          "within_20_percent": 0.06451612903225806,
+          "within_30_percent": 0.10752688172043011
+        },
+        "global_training_median": {
+          "mae": 1082.601636356975,
+          "median_absolute_error": 947.0645469682474,
+          "median_absolute_log_ratio": 1.0884145526061557,
+          "median_absolute_percentage_error": 1.363314901856693,
+          "p90_absolute_percentage_error": 14.376956503719246,
+          "r2": -0.022471376202329196,
+          "rows": 279,
+          "within_10_percent": 0.03225806451612903,
+          "within_20_percent": 0.08243727598566308,
+          "within_30_percent": 0.14695340501792115
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 705.2619343309747,
+          "median_absolute_error": 284.0997649687376,
+          "median_absolute_log_ratio": 0.6885193386840097,
+          "median_absolute_percentage_error": 0.5939121540990602,
+          "p90_absolute_percentage_error": 2.6447962318805036,
+          "r2": 0.14672096547367064,
+          "rows": 279,
+          "within_10_percent": 0.0967741935483871,
+          "within_20_percent": 0.1827956989247312,
+          "within_30_percent": 0.25089605734767023
+        },
+        "workload_conditioned_training_median": {
+          "mae": 852.6397267327811,
+          "median_absolute_error": 417.53762860111146,
+          "median_absolute_log_ratio": 0.7592050232166445,
+          "median_absolute_percentage_error": 0.7006062137188526,
+          "p90_absolute_percentage_error": 4.607538840365037,
+          "r2": 0.14252139298827549,
+          "rows": 279,
+          "within_10_percent": 0.053763440860215055,
+          "within_20_percent": 0.13620071684587814,
+          "within_30_percent": 0.2007168458781362
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.41576443324486406,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.7211257651739698,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          },
+          {
+            "normalized_distance": 0.8472204932013069,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.9277113561066338,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          },
+          {
+            "normalized_distance": 1.137563121461018,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          },
+          {
+            "normalized_distance": 1.1401100695694157,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          }
+        ],
+        "dimensions_outside_training_range": [
+          "epoch_memory_bandwidth_bytes_per_second",
+          "epoch_tdp_watts"
+        ],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [
+          "epoch_fp8_peak_flops",
+          "epoch_fp4_peak_flops",
+          "epoch_int4_peak_ops",
+          "epoch_intranode_bandwidth_bytes_per_second"
+        ],
+        "missing_dimension_count": 4,
+        "nearest": {
+          "normalized_distance": 0.41576443324486406,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "mi325x"
+        },
+        "outside_dimension_count": 2,
+        "vendor": "AMD",
+        "vendor_novelty": false
+      },
+      "test_configs": 20,
+      "test_rows": 279,
+      "test_target_distribution": {
+        "count": 279,
+        "max": 11693.770337674663,
+        "mean": 1045.7314776320584,
+        "median": 543.5055156780339,
+        "min": 18.78457447728463,
+        "p01": 23.675573419046735,
+        "p05": 52.24422584469691,
+        "p95": 3616.36714975931,
+        "p99": 8555.105133555735,
+        "std": 1592.6347512472694
+      },
+      "train_configs": 1223,
+      "train_rows": 6889
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "mi325x",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 354.99998029529115,
+          "median_absolute_error": 112.19299078516946,
+          "median_absolute_log_ratio": 0.21576780630209605,
+          "median_absolute_percentage_error": 0.23024036974836976,
+          "p90_absolute_percentage_error": 1.1385589761369554,
+          "r2": 0.715305906682439,
+          "rows": 386,
+          "within_10_percent": 0.27979274611398963,
+          "within_20_percent": 0.4430051813471503,
+          "within_30_percent": 0.5854922279792746
+        },
+        "capability_ridge": {
+          "mae": 2033.0524417003385,
+          "median_absolute_error": 1948.6633876993315,
+          "median_absolute_log_ratio": 31.46954386113298,
+          "median_absolute_percentage_error": 3.0260269037263363,
+          "p90_absolute_percentage_error": 28.229822685456636,
+          "r2": -1.5144759698883679,
+          "rows": 386,
+          "within_10_percent": 0.02849740932642487,
+          "within_20_percent": 0.05699481865284974,
+          "within_30_percent": 0.09067357512953368
+        },
+        "global_training_median": {
+          "mae": 1034.226697395476,
+          "median_absolute_error": 940.7040878857268,
+          "median_absolute_log_ratio": 1.1135330978490416,
+          "median_absolute_percentage_error": 1.4920799770549502,
+          "p90_absolute_percentage_error": 15.050410388557093,
+          "r2": -0.038891046178661126,
+          "rows": 386,
+          "within_10_percent": 0.06217616580310881,
+          "within_20_percent": 0.11917098445595854,
+          "within_30_percent": 0.18393782383419688
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 638.3173496209691,
+          "median_absolute_error": 269.9612594413268,
+          "median_absolute_log_ratio": 0.598892966563165,
+          "median_absolute_percentage_error": 0.5643518708183172,
+          "p90_absolute_percentage_error": 2.5487517092497685,
+          "r2": 0.17260255993909457,
+          "rows": 386,
+          "within_10_percent": 0.13212435233160622,
+          "within_20_percent": 0.22020725388601037,
+          "within_30_percent": 0.2927461139896373
+        },
+        "workload_conditioned_training_median": {
+          "mae": 903.646486861193,
+          "median_absolute_error": 472.4481905888281,
+          "median_absolute_log_ratio": 0.7240327696645832,
+          "median_absolute_percentage_error": 0.7378020644907642,
+          "p90_absolute_percentage_error": 4.332335354153711,
+          "r2": -0.09806279834810727,
+          "rows": 386,
+          "within_10_percent": 0.04922279792746114,
+          "within_20_percent": 0.09844559585492228,
+          "within_30_percent": 0.18393782383419688
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.33654707764341535,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          },
+          {
+            "normalized_distance": 0.509022139644326,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.5746557142673178,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          },
+          {
+            "normalized_distance": 0.668522642167892,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          },
+          {
+            "normalized_distance": 0.6729388925295355,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi355x"
+          },
+          {
+            "normalized_distance": 0.675055107409327,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          }
+        ],
+        "dimensions_outside_training_range": [],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [
+          "epoch_fp8_peak_flops",
+          "epoch_fp4_peak_flops",
+          "epoch_int4_peak_ops",
+          "epoch_intranode_bandwidth_bytes_per_second"
+        ],
+        "missing_dimension_count": 4,
+        "nearest": {
+          "normalized_distance": 0.33654707764341535,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "mi300x"
+        },
+        "outside_dimension_count": 0,
+        "vendor": "AMD",
+        "vendor_novelty": false
+      },
+      "test_configs": 34,
+      "test_rows": 386,
+      "test_target_distribution": {
+        "count": 386,
+        "max": 14408.032153192236,
+        "mean": 998.2840701923133,
+        "median": 522.5338843468298,
+        "min": 13.720696655209736,
+        "p01": 23.034594407001425,
+        "p05": 44.681696658416065,
+        "p95": 3525.4804689904267,
+        "p99": 7952.458825586122,
+        "std": 1541.043369927727
+      },
+      "train_configs": 1209,
+      "train_rows": 6782
+    },
+    {
+      "failures": {},
+      "group_overlap": 0,
+      "held_out_sku": "mi355x",
+      "metrics": {
+        "capability_random_forest": {
+          "mae": 850.6876812307493,
+          "median_absolute_error": 304.4991962143665,
+          "median_absolute_log_ratio": 0.3419789126450107,
+          "median_absolute_percentage_error": 0.3922062356102399,
+          "p90_absolute_percentage_error": 1.410100674843202,
+          "r2": 0.6730619398717748,
+          "rows": 2060,
+          "within_10_percent": 0.13058252427184466,
+          "within_20_percent": 0.26601941747572816,
+          "within_30_percent": 0.39174757281553396
+        },
+        "capability_ridge": {
+          "mae": 1846.4292348541103,
+          "median_absolute_error": 1320.7435366358177,
+          "median_absolute_log_ratio": 1.0448740660858191,
+          "median_absolute_percentage_error": 1.4899431218093924,
+          "p90_absolute_percentage_error": 11.272544205461404,
+          "r2": 0.09375425672634474,
+          "rows": 2060,
+          "within_10_percent": 0.06067961165048544,
+          "within_20_percent": 0.11844660194174757,
+          "within_30_percent": 0.17475728155339806
+        },
+        "global_training_median": {
+          "mae": 1516.1716448545774,
+          "median_absolute_error": 1027.9828519138878,
+          "median_absolute_log_ratio": 0.9412919872971905,
+          "median_absolute_percentage_error": 0.7927768694002033,
+          "p90_absolute_percentage_error": 11.360533686503377,
+          "r2": -0.0211843766585591,
+          "rows": 2060,
+          "within_10_percent": 0.06893203883495146,
+          "within_20_percent": 0.129126213592233,
+          "within_30_percent": 0.18932038834951456
+        },
+        "nearest_hardware_capability_analogue": {
+          "mae": 1358.0123467910723,
+          "median_absolute_error": 664.6016077004567,
+          "median_absolute_log_ratio": 0.641009280072683,
+          "median_absolute_percentage_error": 0.7138935867776944,
+          "p90_absolute_percentage_error": 3.385708877157519,
+          "r2": 0.13702132901997965,
+          "rows": 2060,
+          "within_10_percent": 0.06699029126213592,
+          "within_20_percent": 0.13300970873786408,
+          "within_30_percent": 0.2145631067961165
+        },
+        "workload_conditioned_training_median": {
+          "mae": 1350.3609315957333,
+          "median_absolute_error": 584.8330537221041,
+          "median_absolute_log_ratio": 0.6186355856545,
+          "median_absolute_percentage_error": 0.6149749468093975,
+          "p90_absolute_percentage_error": 2.94619540011784,
+          "r2": -0.00318350243294363,
+          "rows": 2060,
+          "within_10_percent": 0.0645631067961165,
+          "within_20_percent": 0.1441747572815534,
+          "within_30_percent": 0.2262135922330097
+        }
+      },
+      "protocol": "All rows of the held-out SKU, including preprocessing fit, are excluded from training. Hardware-analogue selection uses only physical capability descriptors from training hardware profiles; its target estimate uses training rows only.",
+      "support": {
+        "all_distances": [
+          {
+            "normalized_distance": 0.4380580019996354,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b200"
+          },
+          {
+            "normalized_distance": 0.4859431376519603,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb200"
+          },
+          {
+            "normalized_distance": 0.5390547055954732,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "b300"
+          },
+          {
+            "normalized_distance": 0.6384994341706044,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_fp8_peak_flops",
+              "epoch_fp4_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_int4_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "gb300"
+          },
+          {
+            "normalized_distance": 0.6777183828561836,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi325x"
+          },
+          {
+            "normalized_distance": 0.9027639554966126,
+            "shared_capability_dimensions": [
+              "epoch_memory_capacity_bytes",
+              "epoch_memory_bandwidth_bytes_per_second",
+              "epoch_tensor_fp16_bf16_peak_flops",
+              "epoch_int8_peak_ops",
+              "epoch_tdp_watts"
+            ],
+            "training_hardware": "mi300x"
+          }
+        ],
+        "dimensions_outside_training_range": [
+          "epoch_memory_capacity_bytes",
+          "epoch_tensor_fp16_bf16_peak_flops",
+          "epoch_int8_peak_ops"
+        ],
+        "distance_definition": "Root mean squared difference after min-max scaling across training hardware profiles, calculated only on shared nonmissing dimensions with nonzero training range.",
+        "generation_novelty": "not assessed: Epoch fields do not provide a validated common generation taxonomy for these mapped SKUs.",
+        "missing_capability_dimensions": [
+          "epoch_intranode_bandwidth_bytes_per_second"
+        ],
+        "missing_dimension_count": 1,
+        "nearest": {
+          "normalized_distance": 0.4380580019996354,
+          "shared_capability_dimensions": [
+            "epoch_memory_capacity_bytes",
+            "epoch_memory_bandwidth_bytes_per_second",
+            "epoch_tensor_fp16_bf16_peak_flops",
+            "epoch_fp8_peak_flops",
+            "epoch_fp4_peak_flops",
+            "epoch_int8_peak_ops",
+            "epoch_int4_peak_ops",
+            "epoch_tdp_watts"
+          ],
+          "training_hardware": "b200"
+        },
+        "outside_dimension_count": 3,
+        "vendor": "AMD",
+        "vendor_novelty": false
+      },
+      "test_configs": 191,
+      "test_rows": 2060,
+      "test_target_distribution": {
+        "count": 2060,
+        "max": 44999.294668857816,
+        "mean": 1829.2808515936706,
+        "median": 932.8804843845408,
+        "min": 0.1705713016895303,
+        "p01": 22.76066161791688,
+        "p05": 60.3478645177638,
+        "p95": 6666.768482510073,
+        "p99": 13336.41112206096,
+        "std": 2884.832954046894
+      },
+      "train_configs": 1052,
+      "train_rows": 5108
+    }
+  ],
+  "representation": "C_capabilities_only",
+  "study": "held_out_hardware_sku_transfer",
+  "support_error_relationship": {
+    "available": true,
+    "interpretation": "Seven SKU-level points are descriptive only; no statistical inference or support threshold is claimed.",
+    "rows": 7,
+    "spearman_distance_vs_mae": 0.14285714285714288,
+    "spearman_distance_vs_mdape": 0.8214285714285715,
+    "spearman_outside_dimensions_vs_mdape": 0.45888943638397023
+  },
+  "target": "metrics_tput_per_gpu"
+}

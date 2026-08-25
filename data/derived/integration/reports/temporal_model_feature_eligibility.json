@@ -1,0 +1,142 @@
+{
+  "aa_snapshot": "2026-08-25",
+  "fields": [
+    {
+      "field": "data[].artificial_analysis_intelligence_index_cost",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].artificial_analysis_intelligence_index_cost.cost_per_task",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].artificial_analysis_intelligence_index_cost.cost_per_task.total_cost",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].artificial_analysis_intelligence_index_cost.total_cost",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].evaluations",
+      "rule": "Post-hoc outcome; never historical predictor feature.",
+      "temporal_status": "current benchmark result"
+    },
+    {
+      "field": "data[].evaluations.artificial_analysis_agentic_index",
+      "rule": "Post-hoc outcome; never historical predictor feature.",
+      "temporal_status": "current benchmark result"
+    },
+    {
+      "field": "data[].evaluations.artificial_analysis_coding_index",
+      "rule": "Post-hoc outcome; never historical predictor feature.",
+      "temporal_status": "current benchmark result"
+    },
+    {
+      "field": "data[].evaluations.artificial_analysis_intelligence_index",
+      "rule": "Post-hoc outcome; never historical predictor feature.",
+      "temporal_status": "current benchmark result"
+    },
+    {
+      "field": "data[].id",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].model_creator",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].model_creator.id",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].model_creator.name",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].name",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].performance",
+      "rule": "Post-hoc API/model observation; never historical predictor feature.",
+      "temporal_status": "provider-dependent current metric"
+    },
+    {
+      "field": "data[].performance.median_end_to_end_response_time_seconds",
+      "rule": "Post-hoc API/model observation; never historical predictor feature.",
+      "temporal_status": "provider-dependent current metric"
+    },
+    {
+      "field": "data[].performance.median_output_tokens_per_second",
+      "rule": "Post-hoc API/model observation; never historical predictor feature.",
+      "temporal_status": "provider-dependent current metric"
+    },
+    {
+      "field": "data[].performance.median_time_to_first_answer_token_seconds",
+      "rule": "Post-hoc API/model observation; never historical predictor feature.",
+      "temporal_status": "provider-dependent current metric"
+    },
+    {
+      "field": "data[].performance.median_time_to_first_token_seconds",
+      "rule": "Post-hoc API/model observation; never historical predictor feature.",
+      "temporal_status": "provider-dependent current metric"
+    },
+    {
+      "field": "data[].pricing",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].pricing.price_1m_cache_hit_tokens",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].pricing.price_1m_cache_write_tokens",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].pricing.price_1m_input_tokens",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].pricing.price_1m_output_tokens",
+      "rule": "Post-hoc business metadata; never historical predictor feature.",
+      "temporal_status": "pricing that may have changed"
+    },
+    {
+      "field": "data[].release_date",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "data[].slug",
+      "rule": "Identity only; source release metadata does not prove availability at each InferenceX run.",
+      "temporal_status": "static / conditionally safely retroactive"
+    },
+    {
+      "field": "Epoch Parameters",
+      "rule": "Potential future descriptor only after exact model and as-of proof.",
+      "temporal_status": "static / requires release and source-provenance review"
+    },
+    {
+      "field": "Epoch Parameters notes and Numerical format",
+      "rule": "Unstructured or absent for this cohort; not a current predictor feature.",
+      "temporal_status": "unknown as-of status"
+    }
+  ],
+  "finding": "The AA snapshot is post-hoc for the frozen InferenceX cohort.",
+  "inferencex_snapshot": "approximately 2026-07-20"
+}

@@ -1,0 +1,4858 @@
+{
+  "benchmark_observations": {
+    "common_columns_across_all_files": [],
+    "epoch_capabilities_index": {
+      "present": true,
+      "schema": [
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Model version",
+          "unique_non_null": 839
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 286,
+          "missing_percentage": 34.088200238379024,
+          "name": "ECI Score",
+          "unique_non_null": 211
+        },
+        {
+          "dtype": "str",
+          "missing_count": 25,
+          "missing_percentage": 2.9797377830750893,
+          "name": "Release date",
+          "unique_non_null": 308
+        },
+        {
+          "dtype": "str",
+          "missing_count": 101,
+          "missing_percentage": 12.038140643623361,
+          "name": "Organization",
+          "unique_non_null": 63
+        },
+        {
+          "dtype": "str",
+          "missing_count": 102,
+          "missing_percentage": 12.157330154946365,
+          "name": "Country",
+          "unique_non_null": 11
+        },
+        {
+          "dtype": "str",
+          "missing_count": 120,
+          "missing_percentage": 14.302741358760429,
+          "name": "Model accessibility",
+          "unique_non_null": 6
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 579,
+          "missing_percentage": 69.01072705601908,
+          "name": "Training compute (FLOP)",
+          "unique_non_null": 146
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Confidence",
+          "unique_non_null": 5
+        },
+        {
+          "dtype": "str",
+          "missing_count": 100,
+          "missing_percentage": 11.918951132300357,
+          "name": "Model name",
+          "unique_non_null": 345
+        },
+        {
+          "dtype": "str",
+          "missing_count": 574,
+          "missing_percentage": 68.41477949940405,
+          "name": "Description",
+          "unique_non_null": 239
+        },
+        {
+          "dtype": "str",
+          "missing_count": 421,
+          "missing_percentage": 50.17878426698451,
+          "name": "Display name",
+          "unique_non_null": 354
+        }
+      ]
+    },
+    "extracted_path": "data/external/epoch/extracted/benchmark_data",
+    "file_count": 76,
+    "files": [
+      {
+        "columns": [
+          "benchmark_name",
+          "is_anchor",
+          "benchmark_release_date",
+          "edi",
+          "estimated_slope_scaled"
+        ],
+        "date_columns": [
+          "benchmark_release_date"
+        ],
+        "model_identifier_columns": [],
+        "path": "additional_eci_data/eci_benchmark_difficulties_and_slopes.csv",
+        "rows": 57,
+        "sha256": "7d0a2f69ebc2c5bee6a30c4212a8d0367bfd50988798c4770d6bf15ba2428b79"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "R1",
+          "R2",
+          "R3",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "adversarial_nli_external.csv",
+        "rows": 19,
+        "sha256": "faddbb0bfcff278513fd8ffcb27f9b056b858f016d26a3ea717aae5581bb0417"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Percent correct",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Percent using correct edit format",
+          "Edit format",
+          "Cost",
+          "Source",
+          "Source link",
+          "Notes",
+          "Time per case (seconds)",
+          "Date of evaluation",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Date of evaluation"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "aider_polyglot_external.csv",
+        "rows": 77,
+        "sha256": "2b619b3a77a593d05a572636fedfb8121127a07ff167bed424f986ba952633cc"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Performance",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost",
+          "Notes",
+          "Total tokens (K)",
+          "Input tokens (K)",
+          "Output tokens (K)",
+          "Rank",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "ale_bench_external.csv",
+        "rows": 109,
+        "sha256": "b6f4be31a892e1caefbbcb2311bf5376acf2ead9c1e8c2d91956e73d2870dc32"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "algotune_external.csv",
+        "rows": 18,
+        "sha256": "192ad9eb6d9d7a6af4ac3f7afb8042ecd3f58209e094a3e303b570f33a4e805f"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pass@1 score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Pass@1 Standard Error",
+          "Mean score",
+          "Mean Standard Error",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "apex_agents_external.csv",
+        "rows": 62,
+        "sha256": "1c3f268a5e2461ceba4c946090d5b55dbebc742fdbdb29b17e843e9fff1e7df5"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost per task",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "arc_agi_2_external.csv",
+        "rows": 208,
+        "sha256": "3ba8c7a00667165f2737faacbe65da7ab5fedef5635d6c9f82d4638a82d673c3"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost per task",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "arc_agi_external.csv",
+        "rows": 228,
+        "sha256": "f8e8c59651776e6546f67f66edf83780a3ef044d9d28a180451b9aadd1652aca"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Challenge score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Easy score",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "arc_ai2_external.csv",
+        "rows": 145,
+        "sha256": "db02f8d5c192d87d05d49fb4b6ad4bb5e2fb443e3d3e38fcdf17eacf67efb8ba"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average progress",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Average Standard error",
+          "BabyAI progress",
+          "BabyAI Standard error",
+          "Crafter progress",
+          "Crafter Standard error",
+          "TextWorld progress",
+          "TextWorld Standard error",
+          "BabaIsAI progress",
+          "BabaIsAI Standard error",
+          "MiniHack progress",
+          "MiniHack Standard error",
+          "NetHack progress",
+          "NetHack Standard error",
+          "Date added",
+          "Trajectories",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Date added"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "balrog_external.csv",
+        "rows": 36,
+        "sha256": "77aa1694c562472978a8eca334d833807759a23588a93a7a162df00802de9eab"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "bbh_external.csv",
+        "rows": 92,
+        "sha256": "9adde6305ee5247290bc1861eb4d38898162c70813c9ef73256a0e035fba731d"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Raw score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Raw score standard error",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "blueprint_bench_2_external.csv",
+        "rows": 23,
+        "sha256": "ce111c29caa3cd8b2e5220f5be68c839cd2906b6dbea0747b6548efc02d3dff5"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "bool_q_external.csv",
+        "rows": 206,
+        "sha256": "a882c48b2e612ee4b25002511c73eca749b421cefcb1ec697f127a9019c415f9"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pooled score",
+          "Binary Brier",
+          "Numeric RPS",
+          "Harness",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Pooled 95% CI low",
+          "Pooled 95% CI high",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "btf3_external.csv",
+        "rows": 9,
+        "sha256": "4c0b7115ab1df4c562df6977b2a90b1417a07eb56795df85e7bca3faa45c1da1"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall pass (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Prompt",
+          "Total tasks",
+          "Total Passes",
+          "SCAD Gen (%)",
+          "SCAD Gen Success",
+          "Render (%)",
+          "Render Successes",
+          "Checks Run",
+          "Chamfer Pass (%)",
+          "Haus. Pass",
+          "Vol. Pass",
+          "Avg Chamfer (mm)",
+          "Avg Haus. 95p (mm)",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "cad_eval_external.csv",
+        "rows": 15,
+        "sha256": "bbdb9610edb3a9dddf3aac4a3fc5b182986519e24fdc04de0605f59938d27496"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "chess_puzzles.csv",
+        "rows": 162,
+        "sha256": "391aa3e0bc2da51d2e6fe43df4f9a2128d31e0c1be1b47b16c64f20b0072a4cf"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall std dev",
+          "Domain knowledge reasoning score",
+          "Domain knowledge reasoning std dev",
+          "Rule system application score",
+          "Rule system application std dev",
+          "Procedural task execution score",
+          "Procedural task execution std dev",
+          "Empirical discovery & simulation score",
+          "Empirical discovery & simulation std dev",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "cl_bench_external.csv",
+        "rows": 23,
+        "sha256": "d05a8ad3fad268c407c9c44aa648f74781f375a19f784eecc29724e93f04ba7e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall std dev",
+          "Communication & social interactions score",
+          "Communication & social interactions std dev",
+          "Fragmented information & revisions score",
+          "Fragmented information & revisions std dev",
+          "Behavioral records & activity trails score",
+          "Behavioral records & activity trails std dev",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "cl_bench_life_external.csv",
+        "rows": 17,
+        "sha256": "a89c7e55d87cb0861df86660deefaadfd06f9deef12634213de58f24ab676584"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "common_sense_qa_2_external.csv",
+        "rows": 10,
+        "sha256": "19373551d52c9b68eaa760521573247206c0da3aadacc4bb8e71656c1d680f0a"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "critpt_external.csv",
+        "rows": 139,
+        "sha256": "b68f7765000956d0f6d221675444dc696a3072880c7ede1cc243d73b860e3aa9"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Reasoning level",
+          "Cost per task",
+          "Tokens per task",
+          "Steps per task",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Rank",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "cursorbench_external.csv",
+        "rows": 67,
+        "sha256": "09cdbfb125ce62dd6ac8b38ec9d2e7d6f097b308786fd29112360549803bd0ec"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Unguided % Solved",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Subtask-Guided % Solved",
+          "Subtasks % Solved",
+          "Unguided most difficult task solved (minutes)",
+          "Subtask-Guided most difficult task solved (minutes)",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "cybench_external.csv",
+        "rows": 22,
+        "sha256": "58a64c603ee77d89228ce4aa605188c0bc4055aa3572d2325b37c74bb25a055c"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Agent",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "deepresearchbench_external.csv",
+        "rows": 37,
+        "sha256": "be8db2891ad4b29e1dc4b4a1eaf70da4c68ccdf70561b20bf570e0487cf17b31"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pass@1",
+          "Pass@4",
+          "Harness",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "95% CI half-width",
+          "Runs",
+          "Mean cost (USD)",
+          "Mean output tokens",
+          "Mean agent steps",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "deepswe_external.csv",
+        "rows": 59,
+        "sha256": "6a1ecbe64c68262ad086722f8e84a33d940ca517f76aae9090bd20088331020e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Accuracy Standard Error",
+          "Company",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "CI Lower Bound",
+          "CI Upper Bound",
+          "Name",
+          "Source",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "enigma_eval_external.csv",
+        "rows": 46,
+        "sha256": "97de9aa05feda05b31729e326522a9d05fd4e3576e839eac6f5febff3e899421"
+      },
+      {
+        "columns": [
+          "Model version",
+          "ECI Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Model accessibility",
+          "Training compute (FLOP)",
+          "Confidence",
+          "Model name",
+          "Description",
+          "Display name"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Model name"
+        ],
+        "path": "epoch_capabilities_index.csv",
+        "rows": 839,
+        "sha256": "e34fc9b8358f4814c00ccb6d8742c538d74b94bbf9d125a81b398cc60274158e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean capability",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Mean",
+          "Envs",
+          "Episodes",
+          "Spend",
+          "T1 reach",
+          "T2 reach",
+          "T3 reach",
+          "T4 reach",
+          "T5 reach",
+          "Autonudge",
+          "Name",
+          "Harness",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "exploitbench_external.csv",
+        "rows": 20,
+        "sha256": "f7f97045d1faa749afac73873c334f513282be2ecddd590ca5c5143e66f9c669"
+      },
+      {
+        "columns": [
+          "Model version",
+          "120k token score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "0 token score",
+          "400 token score",
+          "1k token score",
+          "2k token score",
+          "4k token score",
+          "8k token score",
+          "16k token score",
+          "32k token score",
+          "60k token score",
+          "192k token score",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "fictionlivebench_external.csv",
+        "rows": 62,
+        "sha256": "6089e850435fab33d727c54059322ab73ed6b921686058e8e44434179d977af5"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall number of predictions",
+          "Overall 95% CI low",
+          "Overall 95% CI high",
+          "Dataset score",
+          "Dataset number of predictions",
+          "Dataset 95% CI low",
+          "Dataset 95% CI high",
+          "Market score",
+          "Market number of predictions",
+          "Market 95% CI low",
+          "Market 95% CI high",
+          "Better than superforecaster median?",
+          "Better than public median?",
+          "Notes",
+          "Rank",
+          "Superforecaster p-value",
+          "Public p-value",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "forecastbench_external.csv",
+        "rows": 75,
+        "sha256": "d24cc6761990fede0ddd0d93458aad75540a8fae2a373f51f2076bf1bfc6750f"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Main score",
+          "Harness",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Aggregation",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "frontiercode_external.csv",
+        "rows": 33,
+        "sha256": "e83c6bc62b94d39b736a68fe7f7bddd3d901bcad4b3d153ee49e353069cecc50"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "frontiermath.csv",
+        "rows": 101,
+        "sha256": "2a5d711bace37b86e1f7af25e84ae3968cd1dfcf3f18cca6703487fb7884b37a"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "frontiermath_tier_4.csv",
+        "rows": 72,
+        "sha256": "6df50df27d0437f4e5518994887d7a291795a35fdc2d1f09e5b354bcbda9441f"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Harness",
+          "Dominance",
+          "Average rank",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Implementation rank",
+          "Performance rank",
+          "Research rank",
+          "Aggregation",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "frontierswe_external.csv",
+        "rows": 16,
+        "sha256": "1a6a5edf81fe31bcd2a56ce6bc91a9d15ea464def529e80b2b2614244f2bfb31"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Replay score",
+          "Procedural score",
+          "Audio score",
+          "Provider",
+          "GBAEval model id",
+          "Candidate id",
+          "Candidate SHA-256",
+          "Graded at",
+          "Tokens used",
+          "Wall-clock hours",
+          "Checkpoints",
+          "Has WASM",
+          "Build failed",
+          "Grading failed",
+          "Failure total",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date",
+          "Candidate id",
+          "Candidate SHA-256"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "gbaeval_external.csv",
+        "rows": 23,
+        "sha256": "e16f42f30fc73a300de677e75147d8d8bd2b30e7f5672e9fec09305065840950"
+      },
+      {
+        "columns": [
+          "Model version",
+          "GDP.pdf score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Provider",
+          "Last updated",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Last updated"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "gdp_pdf_external.csv",
+        "rows": 27,
+        "sha256": "449c51ed348daa92ab96fef3566c480c4d514d623651ccb16e86a18f33b9544e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Win Rate (%)",
+          "Win + tie rate (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "gdpval_external.csv",
+        "rows": 11,
+        "sha256": "0421e702386009e334aa5608c970400f1a795d36c19126f715ae8bfcac71de4c"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Tools",
+          "ACW Avg Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "ACW Country %",
+          "ACW Median Score",
+          "ACW Median Distance (km)",
+          "ACW Refusal",
+          "AVW Country %",
+          "AVW Avg Score",
+          "AVW Median Score",
+          "AVW Median Distance (km)",
+          "AVW Refusal",
+          "Rural Country %",
+          "Rural Avg Score",
+          "Rural Median Score",
+          "Rural Median Distance",
+          "Rural Refusal",
+          "Urban Country %",
+          "Urban Avg Score",
+          "Urban Median Score",
+          "Urban Median Distance (km)",
+          "Urban Refusal",
+          "Photos Country %",
+          "Photos Avg Score",
+          "Photos Median Score",
+          "Photos Median Distance (km)",
+          "Photos Refusal",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "geobench_external.csv",
+        "rows": 32,
+        "sha256": "d2b54d880631e9d29a125b91f5778b81912f713c74dd2a01611d69596fe1cfdb"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "gpqa_diamond.csv",
+        "rows": 264,
+        "sha256": "5aff79c05bd2043091deef301b58339515da68436eedc396013f6177a5d8f80e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "EM",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "gsm8k_external.csv",
+        "rows": 235,
+        "sha256": "c3d430b29f338e52a57f3fe08f690adea49056059f82c2ec562e4b6d0f30956b"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Scaffold",
+          "Score OPT@1",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Score OPT@10",
+          "Notes",
+          "Source",
+          "Source link",
+          "OPT@1 (hack-adjusted)",
+          "OPT@10 (hack-adjusted)",
+          "Evaluation date",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Evaluation date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "gso_external.csv",
+        "rows": 38,
+        "sha256": "a969ffdbd6e6fe6de953235f71793b73db16839cb44da86f1a9b0a1cf3de39b4"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "hella_swag_external.csv",
+        "rows": 135,
+        "sha256": "13b225e0a65e1e8fddcff6c207b6f642f6247daf9520b2a38a19973bba65f705"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Accuracy Standard Error",
+          "Calibration Error",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "hle_external.csv",
+        "rows": 51,
+        "sha256": "287318ba07cda96883940c63f24b13874c748ed9b328e72833a63e0bf94869da"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "lambada_external.csv",
+        "rows": 80,
+        "sha256": "798a8a38778678b8169da82f598ba535941d12c225516de0aeb09ffc43d11afc"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "ID",
+          "Notes",
+          "Source",
+          "Source link"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version"
+        ],
+        "path": "lech_mazur_writing_external.csv",
+        "rows": 49,
+        "sha256": "f483d62baba755af3bd4f79778d8e3291c6cbc9faf50d1d99a217efc5d123ef9"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Global average",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "UUID",
+          "Reasoning average",
+          "Coding average",
+          "Mathematics average",
+          "Data analysis average",
+          "Language average",
+          "IF Average",
+          "LiveBench Version",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "live_bench_external.csv",
+        "rows": 64,
+        "sha256": "6962569c06918588138b5d00e5707f13956edec4768f62421571643216a3a418"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "math_level_5.csv",
+        "rows": 108,
+        "sha256": "041b4bcb991a81d66152327113ef6d38e64cd8cce93d1e6ec821d1b9e47c1de3"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Time horizon",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "CI_high",
+          "CI_low",
+          "Source",
+          "Source link",
+          "average_score",
+          "Notes",
+          "Time Horizon (80%)",
+          "METR version",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "metr_time_horizons_external.csv",
+        "rows": 50,
+        "sha256": "bd3266ed30fc57923832e1c8a0a44a7d9097caaec3a33e428b8810f98f86d657"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Rotation score",
+          "Among score",
+          "Around score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Group",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "mindcube_external.csv",
+        "rows": 5,
+        "sha256": "c21d9a3d5ed20d584aa82d1b46402c5763eee9c34999126f5d499a2f22d55fc0"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "mirrorcode.csv",
+        "rows": 6,
+        "sha256": "2c23b8a45a7b5555f2d4d979d03f81d1a079739b3db66e77c36429d288dbd29c"
+      },
+      {
+        "columns": [
+          "Model version",
+          "EM",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "mmlu_external.csv",
+        "rows": 249,
+        "sha256": "8a6f00223532cd2471f85995b6f35c4b9ccc261cdfce78bea32459fc70d883ce"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "mystery_game_puzzles.csv",
+        "rows": 54,
+        "sha256": "c23b39fc71fa261fa2432e9475de9677b0e9d43af9c2142acb944b8a5c410511"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "open_book_qa_external.csv",
+        "rows": 71,
+        "sha256": "e0b7ead1baebb09ad5e858d72b834417fd95727da1bd0d044493dc6bb3a25f67"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Agent",
+          "Source",
+          "Source link",
+          "Notes (details)",
+          "Date added",
+          "Trajectories"
+        ],
+        "date_columns": [
+          "Release date",
+          "Date added"
+        ],
+        "model_identifier_columns": [
+          "Model version"
+        ],
+        "path": "os_world_external.csv",
+        "rows": 58,
+        "sha256": "ba86a536e49028f75def7fb65151767173057c5b8903f4c86c5d11bf35d09657"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Binary accuracy",
+          "Partial score",
+          "Reasoning",
+          "Tool setting",
+          "Step budget",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Model family",
+          "Estimated cost (USD)",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "osworld_2_external.csv",
+        "rows": 10,
+        "sha256": "99c286b3d3ffaf34682d6f95d4cefd8990c90951e42723b5d37a838d43ede048"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "otis_mock_aime_2024_2025.csv",
+        "rows": 239,
+        "sha256": "4a801e18700b85b89146a10aa57a5d9d6660dae64031b9b321d0fd48597a59f7"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "piqa_external.csv",
+        "rows": 140,
+        "sha256": "1a907a4d6c4e81cebb71bd11f7ae48d82682ab7549abd9df8b42b104fd9f0930"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Scaffold",
+          "Average (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Average SD (%)",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "posttrainbench_external.csv",
+        "rows": 35,
+        "sha256": "f13a04a21e023a76b10f782639ad9bb757ea6ad16c32917934e7451707f74c98"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Accuracy Standard Error",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Provider",
+          "Latency (seconds)",
+          "Cost per test (USD)",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "proofbench_external.csv",
+        "rows": 57,
+        "sha256": "d1fafbab398fa721d9c1aaab1685fb0b5f40a28cc48bcf1e811704d23d823b87"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "rli_external.csv",
+        "rows": 12,
+        "sha256": "1326074eb01386b42e05ab4711264c86cf7dd58429aa9b8685ef0d605094309d"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Provider",
+          "AA model slug",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "scicode_external.csv",
+        "rows": 129,
+        "sha256": "e6dc3b837909701a2866fabcb13c812b924ab4f1c83d0dc0761d2dafde3e9a48"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "science_qa_external.csv",
+        "rows": 104,
+        "sha256": "7829478ee0ebdfb42013ccb84bb91e4c86d3417abfb1a3b6f2975dedb1423862"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score (AVG@5)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Source",
+          "Source link (site from table)",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "simplebench_external.csv",
+        "rows": 93,
+        "sha256": "68cd2257afd4d5bf3bd3b03630931ce75b1462f3d8d2fa0c382761d8a36379e3"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "simpleqa_verified.csv",
+        "rows": 78,
+        "sha256": "3b798c9239088a97de0be16963a72ee1a90828eef16b429fcd0887a8b1bd955d"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Mental Rotation score",
+          "Mental Folding score",
+          "Visual Penetration score",
+          "Mental Animation score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Prompting",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "spatialviz_bench_external.csv",
+        "rows": 8,
+        "sha256": "709ff308ee856feaf8a7842b5f39f67d332d381d87ba5de13f7e9edc934533c3"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "superglue_external.csv",
+        "rows": 11,
+        "sha256": "cc8024909446cbbbcfaa727dea2753a2401616eb9eec560d47bc56519dd89143"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean score",
+          "Pass rate",
+          "Provider",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Total tokens",
+          "Total cost (USD)",
+          "Source",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "surface_evolver_bench_external.csv",
+        "rows": 24,
+        "sha256": "9ac60d9b004aa725b0d7183e5bccaa08cf3831b7287e65d50937ade5eede49a6"
+      },
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Started at"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "swe_bench_verified.csv",
+        "rows": 35,
+        "sha256": "6fa877c2c87228239503cf25671a8d8f599f0790fd29bac3b934b5b3f97a41f9"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Agent",
+          "Accuracy mean",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Accuracy SE",
+          "Agent Org",
+          "Model Org",
+          "Run date",
+          "Notes",
+          "Source",
+          "Source Link",
+          "Created",
+          "Name",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Run date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "terminalbench_external.csv",
+        "rows": 204,
+        "sha256": "039aeeff88697a69401e53c58a1c745389f7adc3dff82b2bfd7701194314c1f0"
+      },
+      {
+        "columns": [
+          "Model version",
+          "% Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "UUID",
+          "% Resolved",
+          "Average steps",
+          "Average costs",
+          "Benchmark Organization",
+          "Date",
+          "Environment model",
+          "Source",
+          "Source link (site from table)",
+          "Notes"
+        ],
+        "date_columns": [
+          "Release date",
+          "Date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name"
+        ],
+        "path": "the_agent_company_external.csv",
+        "rows": 16,
+        "sha256": "fdc459c051a06ba8a4b316f11d291532e18aaa9c9a49b0bd6ff716a0bc83ba20"
+      },
+      {
+        "columns": [
+          "Model version",
+          "EM",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "trivia_qa_external.csv",
+        "rows": 115,
+        "sha256": "92ca3bfdf491368f48cdeace35877c57d6f2bf87ad09bd5603e93ef878f75f3b"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "vending_bench_2_external.csv",
+        "rows": 58,
+        "sha256": "f7fa97bc12e768efd0919b0e3f42c6e0e43f9049725055f7d190541ca6a29e39"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall (no subtitles)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall (with subtitles)",
+          "Short videos (no subtitles)",
+          "Short videos (with subtitles)",
+          "Medium videos (no subtitles)",
+          "Medium videos (with subtitles)",
+          "Long videos (no subtitles)",
+          "Long videos (with subtitles)",
+          "Frames",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "video_mme_external.csv",
+        "rows": 50,
+        "sha256": "bf21972a03c353e96e08cd6952f087f7ce69542828402ddf70381493d21ce76e"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Correct",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "vpct_external.csv",
+        "rows": 38,
+        "sha256": "02d50564b13f06ff6e499acddcdb1dea2b18c4e699c8ab9385e2cbbaafdc4c43"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Arena Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Score 95% CI",
+          "Votes",
+          "Last updated",
+          "Source",
+          "Source link (site from table)",
+          "Notes",
+          "95% CI High",
+          "95% CI Low",
+          "id"
+        ],
+        "date_columns": [
+          "Release date",
+          "Last updated"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "webdev_arena_external.csv",
+        "rows": 118,
+        "sha256": "fbcec66bb6ff89ce0264dacd9695463d6e46293808a47e58be72176818606c3a"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Cost per run",
+          "Median code length (lines)",
+          "Notes",
+          "Source",
+          "Source link",
+          "Accuracy SE",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "id"
+        ],
+        "path": "weirdml_external.csv",
+        "rows": 166,
+        "sha256": "61a2f88467e241f3f8ba041a33ed6fcbd5de7c349e35d4d77591eee0a879ff39"
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "date_columns": [
+          "Release date"
+        ],
+        "model_identifier_columns": [
+          "Model version",
+          "Name",
+          "id"
+        ],
+        "path": "wino_grande_external.csv",
+        "rows": 145,
+        "sha256": "d789c8ccc2844957243ed55ab475330f94b83a5bbeff6386e6268bde1481980b"
+      }
+    ],
+    "schema_groups": [
+      {
+        "columns": [
+          "Model version",
+          "mean_score",
+          "Best score (across scorers)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "stderr",
+          "Log viewer",
+          "Logs",
+          "Started at",
+          "id"
+        ],
+        "file_count": 10
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 4
+      },
+      {
+        "columns": [
+          "Model version",
+          "EM",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 2
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Notes",
+          "id"
+        ],
+        "file_count": 2
+      },
+      {
+        "columns": [
+          "Model version",
+          "% Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "UUID",
+          "% Resolved",
+          "Average steps",
+          "Average costs",
+          "Benchmark Organization",
+          "Date",
+          "Environment model",
+          "Source",
+          "Source link (site from table)",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "120k token score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "0 token score",
+          "400 token score",
+          "1k token score",
+          "2k token score",
+          "4k token score",
+          "8k token score",
+          "16k token score",
+          "32k token score",
+          "60k token score",
+          "192k token score",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Accuracy Standard Error",
+          "Company",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "CI Lower Bound",
+          "CI Upper Bound",
+          "Name",
+          "Source",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Accuracy Standard Error",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Provider",
+          "Latency (seconds)",
+          "Cost per test (USD)",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Cost per run",
+          "Median code length (lines)",
+          "Notes",
+          "Source",
+          "Source link",
+          "Accuracy SE",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Accuracy Standard Error",
+          "Calibration Error",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Agent",
+          "Accuracy mean",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Accuracy SE",
+          "Agent Org",
+          "Model Org",
+          "Run date",
+          "Notes",
+          "Source",
+          "Source Link",
+          "Created",
+          "Name",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Arena Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Score 95% CI",
+          "Votes",
+          "Last updated",
+          "Source",
+          "Source link (site from table)",
+          "Notes",
+          "95% CI High",
+          "95% CI Low",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average progress",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Average Standard error",
+          "BabyAI progress",
+          "BabyAI Standard error",
+          "Crafter progress",
+          "Crafter Standard error",
+          "TextWorld progress",
+          "TextWorld Standard error",
+          "BabaIsAI progress",
+          "BabaIsAI Standard error",
+          "MiniHack progress",
+          "MiniHack Standard error",
+          "NetHack progress",
+          "NetHack Standard error",
+          "Date added",
+          "Trajectories",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Average score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Agent",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Binary accuracy",
+          "Partial score",
+          "Reasoning",
+          "Tool setting",
+          "Step budget",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Model family",
+          "Estimated cost (USD)",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Challenge score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Easy score",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Correct",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "ECI Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Model accessibility",
+          "Training compute (FLOP)",
+          "Confidence",
+          "Model name",
+          "Description",
+          "Display name"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "EM",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "GDP.pdf score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Provider",
+          "Last updated",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Global average",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "UUID",
+          "Reasoning average",
+          "Coding average",
+          "Mathematics average",
+          "Data analysis average",
+          "Language average",
+          "IF Average",
+          "LiveBench Version",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Harness",
+          "Dominance",
+          "Average rank",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Implementation rank",
+          "Performance rank",
+          "Research rank",
+          "Aggregation",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Main score",
+          "Harness",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Aggregation",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean capability",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Mean",
+          "Envs",
+          "Episodes",
+          "Spend",
+          "T1 reach",
+          "T2 reach",
+          "T3 reach",
+          "T4 reach",
+          "T5 reach",
+          "Autonudge",
+          "Name",
+          "Harness",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean score",
+          "Pass rate",
+          "Provider",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Total tokens",
+          "Total cost (USD)",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Mean score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "ID",
+          "Notes",
+          "Source",
+          "Source link"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall std dev",
+          "Communication & social interactions score",
+          "Communication & social interactions std dev",
+          "Fragmented information & revisions score",
+          "Fragmented information & revisions std dev",
+          "Behavioral records & activity trails score",
+          "Behavioral records & activity trails std dev",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall std dev",
+          "Domain knowledge reasoning score",
+          "Domain knowledge reasoning std dev",
+          "Rule system application score",
+          "Rule system application std dev",
+          "Procedural task execution score",
+          "Procedural task execution std dev",
+          "Empirical discovery & simulation score",
+          "Empirical discovery & simulation std dev",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall (no subtitles)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall (with subtitles)",
+          "Short videos (no subtitles)",
+          "Short videos (with subtitles)",
+          "Medium videos (no subtitles)",
+          "Medium videos (with subtitles)",
+          "Long videos (no subtitles)",
+          "Long videos (with subtitles)",
+          "Frames",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall accuracy",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall pass (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Prompt",
+          "Total tasks",
+          "Total Passes",
+          "SCAD Gen (%)",
+          "SCAD Gen Success",
+          "Render (%)",
+          "Render Successes",
+          "Checks Run",
+          "Chamfer Pass (%)",
+          "Haus. Pass",
+          "Vol. Pass",
+          "Avg Chamfer (mm)",
+          "Avg Haus. 95p (mm)",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Mental Rotation score",
+          "Mental Folding score",
+          "Visual Penetration score",
+          "Mental Animation score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Prompting",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Overall number of predictions",
+          "Overall 95% CI low",
+          "Overall 95% CI high",
+          "Dataset score",
+          "Dataset number of predictions",
+          "Dataset 95% CI low",
+          "Dataset 95% CI high",
+          "Market score",
+          "Market number of predictions",
+          "Market 95% CI low",
+          "Market 95% CI high",
+          "Better than superforecaster median?",
+          "Better than public median?",
+          "Notes",
+          "Rank",
+          "Superforecaster p-value",
+          "Public p-value",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Replay score",
+          "Procedural score",
+          "Audio score",
+          "Provider",
+          "GBAEval model id",
+          "Candidate id",
+          "Candidate SHA-256",
+          "Graded at",
+          "Tokens used",
+          "Wall-clock hours",
+          "Checkpoints",
+          "Has WASM",
+          "Build failed",
+          "Grading failed",
+          "Failure total",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Overall score",
+          "Rotation score",
+          "Among score",
+          "Around score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Group",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pass@1",
+          "Pass@4",
+          "Harness",
+          "Reasoning effort",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "95% CI half-width",
+          "Runs",
+          "Mean cost (USD)",
+          "Mean output tokens",
+          "Mean agent steps",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pass@1 score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Pass@1 Standard Error",
+          "Mean score",
+          "Mean Standard Error",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Percent correct",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Percent using correct edit format",
+          "Edit format",
+          "Cost",
+          "Source",
+          "Source link",
+          "Notes",
+          "Time per case (seconds)",
+          "Date of evaluation",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Performance",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost",
+          "Notes",
+          "Total tokens (K)",
+          "Input tokens (K)",
+          "Output tokens (K)",
+          "Rank",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Pooled score",
+          "Binary Brier",
+          "Numeric RPS",
+          "Harness",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Pooled 95% CI low",
+          "Pooled 95% CI high",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Scaffold",
+          "Average (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Average SD (%)",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Scaffold",
+          "Score OPT@1",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Score OPT@10",
+          "Notes",
+          "Source",
+          "Source link",
+          "OPT@1 (hack-adjusted)",
+          "OPT@10 (hack-adjusted)",
+          "Evaluation date",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Provider",
+          "AA model slug",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Raw score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Raw score standard error",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Reasoning level",
+          "Cost per task",
+          "Tokens per task",
+          "Steps per task",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Rank",
+          "Source",
+          "Notes"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Agent",
+          "Source",
+          "Source link",
+          "Notes (details)",
+          "Date added",
+          "Trajectories"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost per task",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Cost per task",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "R1",
+          "R2",
+          "R3",
+          "Shots",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Shots",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "Source",
+          "Source link",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Score (AVG@5)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Source",
+          "Source link (site from table)",
+          "Notes",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Time horizon",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "CI_high",
+          "CI_low",
+          "Source",
+          "Source link",
+          "average_score",
+          "Notes",
+          "Time Horizon (80%)",
+          "METR version",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Tools",
+          "ACW Avg Score",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "ACW Country %",
+          "ACW Median Score",
+          "ACW Median Distance (km)",
+          "ACW Refusal",
+          "AVW Country %",
+          "AVW Avg Score",
+          "AVW Median Score",
+          "AVW Median Distance (km)",
+          "AVW Refusal",
+          "Rural Country %",
+          "Rural Avg Score",
+          "Rural Median Score",
+          "Rural Median Distance",
+          "Rural Refusal",
+          "Urban Country %",
+          "Urban Avg Score",
+          "Urban Median Score",
+          "Urban Median Distance (km)",
+          "Urban Refusal",
+          "Photos Country %",
+          "Photos Avg Score",
+          "Photos Median Score",
+          "Photos Median Distance (km)",
+          "Photos Refusal",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Unguided % Solved",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Subtask-Guided % Solved",
+          "Subtasks % Solved",
+          "Unguided most difficult task solved (minutes)",
+          "Subtask-Guided most difficult task solved (minutes)",
+          "Notes",
+          "Source",
+          "Source link",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "Model version",
+          "Win Rate (%)",
+          "Win + tie rate (%)",
+          "Release date",
+          "Organization",
+          "Country",
+          "Training compute (FLOP)",
+          "Training compute notes",
+          "Name",
+          "id"
+        ],
+        "file_count": 1
+      },
+      {
+        "columns": [
+          "benchmark_name",
+          "is_anchor",
+          "benchmark_release_date",
+          "edi",
+          "estimated_slope_scaled"
+        ],
+        "file_count": 1
+      }
+    ],
+    "total_rows_across_files": 6599,
+    "unique_schemas": 62
+  },
+  "epoch_source_snapshot": "2026-08-20",
+  "generated_at_utc": "2026-08-20T20:54:41.727310+00:00",
+  "inferencex_source": {
+    "aggregate_configs": 1368,
+    "aggregate_rows": 8239,
+    "cohort_builder": "scripts.build_july_pca_artifact.load_aggregate -> apps.build_analysis_frame median aggregate",
+    "data_dir": ".data/inferencex-db-dump-2026-07-20",
+    "dataset_manifest": {
+      "active_mode": "Raw CSV",
+      "dataset_id": "inferencex-db-dump-2026-07-20",
+      "files": [
+        {
+          "name": "benchmark_results_raw.csv",
+          "sha256": "668dcbf10dfe07bda3949a5eada4c4a9f308024ce929fe71a504c952d4b08350",
+          "size_bytes": 78570522
+        },
+        {
+          "name": "configs.csv",
+          "sha256": "827fad4296c602ce010259b2ab7540420b8900ff869fb2578097293f328e29c4",
+          "size_bytes": 118252
+        }
+      ],
+      "fingerprint": "4d567350577c3a56654e88623d067198689ee4c0d9346933f7e22df3b0b0a4d1",
+      "manifest_fingerprint": "10a31c69839c05873cfbe8a7f6592d22bb1c1892f914955fef617b98ef61a268",
+      "schema_version": "inferencex-dataset-identity-v2",
+      "source_release": "db-dump/2026-07-20",
+      "verification": {
+        "dataset_id": "inferencex-db-dump-2026-07-20",
+        "manifest_fingerprint": "10a31c69839c05873cfbe8a7f6592d22bb1c1892f914955fef617b98ef61a268",
+        "reason": "full-file SHA-256 and schema contract verified",
+        "source_release": "db-dump/2026-07-20",
+        "status": "VERIFIED CHECKPOINT"
+      }
+    },
+    "feature_protocol": {
+      "categorical": [
+        "benchmark_type",
+        "config_hardware",
+        "config_framework",
+        "config_model",
+        "config_precision",
+        "config_spec_method",
+        "config_disagg",
+        "config_is_multinode"
+      ],
+      "numeric": [
+        "isl",
+        "osl",
+        "conc",
+        "config_prefill_tp",
+        "config_prefill_ep",
+        "config_prefill_num_workers",
+        "config_decode_tp",
+        "config_decode_ep",
+        "config_decode_num_workers",
+        "config_num_prefill_gpu",
+        "config_num_decode_gpu"
+      ]
+    },
+    "snapshot_date": "2026-07-20",
+    "snapshot_release": "db-dump/2026-07-20",
+    "throughput_non_null_rows": 8239,
+    "throughput_target": "metrics_tput_per_gpu"
+  },
+  "layering": {
+    "all_ai_models.csv": "CanonicalModel metadata source; not a current throughput predictor source.",
+    "benchmark_data": "Long-form BenchmarkObservation sources with heterogeneous schemas; no universal wide join.",
+    "data_centers.csv": "DataCenter infrastructure layer; not joined to InferenceX operating points.",
+    "gpu_clusters.csv": "GPUCluster infrastructure layer; not joined to InferenceX operating points.",
+    "ml_hardware.csv": "CanonicalHardware source; eligible for an explicit many-to-one hardware descriptor join."
+  },
+  "raw_sources": {
+    "all_ai_models.csv": {
+      "columns": [
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Model",
+          "unique_non_null": 3592
+        },
+        {
+          "dtype": "str",
+          "missing_count": 76,
+          "missing_percentage": 2.1158129175946545,
+          "name": "Domain",
+          "unique_non_null": 186
+        },
+        {
+          "dtype": "str",
+          "missing_count": 105,
+          "missing_percentage": 2.923162583518931,
+          "name": "Task",
+          "unique_non_null": 938
+        },
+        {
+          "dtype": "str",
+          "missing_count": 77,
+          "missing_percentage": 2.143652561247216,
+          "name": "Organization",
+          "unique_non_null": 1316
+        },
+        {
+          "dtype": "str",
+          "missing_count": 900,
+          "missing_percentage": 25.05567928730512,
+          "name": "Authors",
+          "unique_non_null": 2099
+        },
+        {
+          "dtype": "str",
+          "missing_count": 13,
+          "missing_percentage": 0.3619153674832962,
+          "name": "Publication date",
+          "unique_non_null": 1750
+        },
+        {
+          "dtype": "str",
+          "missing_count": 166,
+          "missing_percentage": 4.621380846325167,
+          "name": "Reference",
+          "unique_non_null": 2732
+        },
+        {
+          "dtype": "str",
+          "missing_count": 39,
+          "missing_percentage": 1.0857461024498887,
+          "name": "Link",
+          "unique_non_null": 2928
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 2108,
+          "missing_percentage": 58.68596881959911,
+          "name": "Citations",
+          "unique_non_null": 804
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2516,
+          "missing_percentage": 70.0445434298441,
+          "name": "Notability criteria",
+          "unique_non_null": 41
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2736,
+          "missing_percentage": 76.16926503340757,
+          "name": "Notability criteria notes",
+          "unique_non_null": 795
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 1261,
+          "missing_percentage": 35.10579064587973,
+          "name": "Parameters",
+          "unique_non_null": 961
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1689,
+          "missing_percentage": 47.021158129175944,
+          "name": "Parameters notes",
+          "unique_non_null": 1491
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 2188,
+          "missing_percentage": 60.91314031180401,
+          "name": "Training compute (FLOP)",
+          "unique_non_null": 1261
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1936,
+          "missing_percentage": 53.89755011135857,
+          "name": "Training compute notes",
+          "unique_non_null": 1594
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2160,
+          "missing_percentage": 60.13363028953229,
+          "name": "Training dataset size (total)",
+          "unique_non_null": 838
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1872,
+          "missing_percentage": 52.11581291759465,
+          "name": "Dataset size notes",
+          "unique_non_null": 1549
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3037,
+          "missing_percentage": 84.5489977728285,
+          "name": "Training time (hours)",
+          "unique_non_null": 235
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2983,
+          "missing_percentage": 83.04565701559021,
+          "name": "Training time notes",
+          "unique_non_null": 568
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2403,
+          "missing_percentage": 66.89866369710468,
+          "name": "Training hardware",
+          "unique_non_null": 146
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3278,
+          "missing_percentage": 91.25835189309576,
+          "name": "Approach",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "str",
+          "missing_count": 196,
+          "missing_percentage": 5.456570155902004,
+          "name": "Confidence",
+          "unique_non_null": 4
+        },
+        {
+          "dtype": "str",
+          "missing_count": 533,
+          "missing_percentage": 14.838530066815144,
+          "name": "Abstract",
+          "unique_non_null": 2537
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 2784,
+          "missing_percentage": 77.50556792873051,
+          "name": "Epochs",
+          "unique_non_null": 197
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3188,
+          "missing_percentage": 88.75278396436525,
+          "name": "WikiText and Penn Treebank data",
+          "unique_non_null": 402
+        },
+        {
+          "dtype": "str",
+          "missing_count": 845,
+          "missing_percentage": 23.524498886414253,
+          "name": "Model accessibility",
+          "unique_non_null": 6
+        },
+        {
+          "dtype": "str",
+          "missing_count": 85,
+          "missing_percentage": 2.366369710467706,
+          "name": "Country (of organization)",
+          "unique_non_null": 380
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2902,
+          "missing_percentage": 80.79064587973274,
+          "name": "Base model",
+          "unique_non_null": 349
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3332,
+          "missing_percentage": 92.76169265033407,
+          "name": "Finetune compute (FLOP)",
+          "unique_non_null": 248
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3287,
+          "missing_percentage": 91.50890868596882,
+          "name": "Finetune compute notes",
+          "unique_non_null": 294
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 2745,
+          "missing_percentage": 76.41982182628063,
+          "name": "Hardware quantity",
+          "unique_non_null": 77
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3531,
+          "missing_percentage": 98.30178173719376,
+          "name": "Hardware utilization (MFU)",
+          "unique_non_null": 54
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Last modified",
+          "unique_non_null": 410
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3538,
+          "missing_percentage": 98.4966592427617,
+          "name": "Training cloud compute vendor",
+          "unique_non_null": 13
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3524,
+          "missing_percentage": 98.10690423162583,
+          "name": "Training data center",
+          "unique_non_null": 36
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3568,
+          "missing_percentage": 99.33184855233853,
+          "name": "Archived links",
+          "unique_non_null": 23
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3341,
+          "missing_percentage": 93.01224944320712,
+          "name": "Batch size",
+          "unique_non_null": 95
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3395,
+          "missing_percentage": 94.51559020044543,
+          "name": "Batch size notes",
+          "unique_non_null": 153
+        },
+        {
+          "dtype": "str",
+          "missing_count": 97,
+          "missing_percentage": 2.700445434298441,
+          "name": "Organization categorization",
+          "unique_non_null": 127
+        },
+        {
+          "dtype": "object",
+          "missing_count": 3514,
+          "missing_percentage": 97.82850779510022,
+          "name": "Foundation model",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3566,
+          "missing_percentage": 99.2761692650334,
+          "name": "Training compute lower bound",
+          "unique_non_null": 25
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3550,
+          "missing_percentage": 98.83073496659243,
+          "name": "Training compute upper bound",
+          "unique_non_null": 35
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3377,
+          "missing_percentage": 94.01447661469933,
+          "name": "Training chip-hours",
+          "unique_non_null": 183
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1181,
+          "missing_percentage": 32.87861915367483,
+          "name": "Training code accessibility",
+          "unique_non_null": 4
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1810,
+          "missing_percentage": 50.38975501113586,
+          "name": "Accessibility notes",
+          "unique_non_null": 1562
+        },
+        {
+          "dtype": "object",
+          "missing_count": 3073,
+          "missing_percentage": 85.55122494432071,
+          "name": "Possibly over 1e23 FLOP",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3367,
+          "missing_percentage": 93.73608017817372,
+          "name": "Training compute cost (2023 USD)",
+          "unique_non_null": 222
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3504,
+          "missing_percentage": 97.55011135857461,
+          "name": "Utilization notes",
+          "unique_non_null": 84
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3227,
+          "missing_percentage": 89.83853006681515,
+          "name": "Numerical format",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "object",
+          "missing_count": 3455,
+          "missing_percentage": 96.18596881959911,
+          "name": "Frontier model",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 2818,
+          "missing_percentage": 78.4521158129176,
+          "name": "Training power draw (W)",
+          "unique_non_null": 672
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2149,
+          "missing_percentage": 59.827394209354125,
+          "name": "Training compute estimation method",
+          "unique_non_null": 38
+        },
+        {
+          "dtype": "str",
+          "missing_count": 2928,
+          "missing_percentage": 81.51447661469933,
+          "name": "Hugging Face developer id",
+          "unique_non_null": 197
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3589,
+          "missing_percentage": 99.91648106904232,
+          "name": "Post-training compute (FLOP)",
+          "unique_non_null": 3
+        },
+        {
+          "dtype": "str",
+          "missing_count": 3589,
+          "missing_percentage": 99.91648106904232,
+          "name": "Post-training compute notes",
+          "unique_non_null": 3
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 3567,
+          "missing_percentage": 99.30400890868597,
+          "name": "Hardware utilization (HFU)",
+          "unique_non_null": 22
+        },
+        {
+          "dtype": "str",
+          "missing_count": 845,
+          "missing_percentage": 23.524498886414253,
+          "name": "Open model weights?",
+          "unique_non_null": 2
+        }
+      ],
+      "duplicate_non_null_identity_count": 0,
+      "identity_column": "Model",
+      "path": "data/external/epoch/raw/all_ai_models.csv",
+      "rows": 3592,
+      "sha256": "46dadfb84aeedfabd84ff9c3de3cb20d392b939c9a6dd5901678800296f82e77",
+      "unique_identity_count": 3592
+    },
+    "data_centers.csv": {
+      "columns": [
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Name",
+          "unique_non_null": 83
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Current H100 equivalents",
+          "unique_non_null": 66
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Current power (MW)",
+          "unique_non_null": 59
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Current total capital cost (2025 USD billions)",
+          "unique_non_null": 59
+        },
+        {
+          "dtype": "str",
+          "missing_count": 9,
+          "missing_percentage": 10.843373493975903,
+          "name": "Owner",
+          "unique_non_null": 21
+        },
+        {
+          "dtype": "str",
+          "missing_count": 21,
+          "missing_percentage": 25.301204819277107,
+          "name": "Users",
+          "unique_non_null": 19
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Selected Sources",
+          "unique_non_null": 83
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Calculations sheet",
+          "unique_non_null": 83
+        },
+        {
+          "dtype": "str",
+          "missing_count": 66,
+          "missing_percentage": 79.51807228915662,
+          "name": "Project",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "str",
+          "missing_count": 23,
+          "missing_percentage": 27.710843373493976,
+          "name": "Current chip types",
+          "unique_non_null": 23
+        },
+        {
+          "dtype": "str",
+          "missing_count": 14,
+          "missing_percentage": 16.867469879518072,
+          "name": "All chip types",
+          "unique_non_null": 26
+        },
+        {
+          "dtype": "str",
+          "missing_count": 75,
+          "missing_percentage": 90.36144578313254,
+          "name": "Investors",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "str",
+          "missing_count": 77,
+          "missing_percentage": 92.7710843373494,
+          "name": "Construction companies",
+          "unique_non_null": 4
+        },
+        {
+          "dtype": "str",
+          "missing_count": 65,
+          "missing_percentage": 78.3132530120482,
+          "name": "Energy companies",
+          "unique_non_null": 15
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Country",
+          "unique_non_null": 9
+        },
+        {
+          "dtype": "str",
+          "missing_count": 11,
+          "missing_percentage": 13.253012048192772,
+          "name": "Address",
+          "unique_non_null": 71
+        }
+      ],
+      "duplicate_non_null_identity_count": 0,
+      "identity_column": "Name",
+      "path": "data/external/epoch/raw/data_centers.csv",
+      "rows": 83,
+      "sha256": "213509c65903914e947368c3513f2cd27bb5a09e69aa8e6600efba740d28002b",
+      "unique_identity_count": 83
+    },
+    "gpu_clusters.csv": {
+      "columns": [
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Name",
+          "unique_non_null": 293
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Status",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Certainty",
+          "unique_non_null": 2
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Single cluster?",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 22,
+          "missing_percentage": 4.564315352697095,
+          "name": "Max OP/s (log)",
+          "unique_non_null": 239
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 22,
+          "missing_percentage": 4.564315352697095,
+          "name": "H100 equivalents",
+          "unique_non_null": 240
+        },
+        {
+          "dtype": "str",
+          "missing_count": 199,
+          "missing_percentage": 41.286307053941904,
+          "name": "Chip type (primary)",
+          "unique_non_null": 35
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 54,
+          "missing_percentage": 11.20331950207469,
+          "name": "Chip quantity (primary)",
+          "unique_non_null": 171
+        },
+        {
+          "dtype": "str",
+          "missing_count": 16,
+          "missing_percentage": 3.319502074688797,
+          "name": "Country",
+          "unique_non_null": 36
+        },
+        {
+          "dtype": "str",
+          "missing_count": 198,
+          "missing_percentage": 41.078838174273855,
+          "name": "Owner",
+          "unique_non_null": 130
+        },
+        {
+          "dtype": "str",
+          "missing_count": 7,
+          "missing_percentage": 1.4522821576763485,
+          "name": "First Operational Date",
+          "unique_non_null": 219
+        },
+        {
+          "dtype": "str",
+          "missing_count": 394,
+          "missing_percentage": 81.74273858921161,
+          "name": "Note",
+          "unique_non_null": 82
+        },
+        {
+          "dtype": "str",
+          "missing_count": 9,
+          "missing_percentage": 1.8672199170124482,
+          "name": "Sector",
+          "unique_non_null": 3
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 60,
+          "missing_percentage": 12.448132780082988,
+          "name": "Power Capacity (MW)",
+          "unique_non_null": 258
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 98,
+          "missing_percentage": 20.33195020746888,
+          "name": "Hardware Cost",
+          "unique_non_null": 264
+        },
+        {
+          "dtype": "str",
+          "missing_count": 76,
+          "missing_percentage": 15.767634854771783,
+          "name": "Location",
+          "unique_non_null": 148
+        },
+        {
+          "dtype": "str",
+          "missing_count": 198,
+          "missing_percentage": 41.078838174273855,
+          "name": "Users",
+          "unique_non_null": 108
+        },
+        {
+          "dtype": "str",
+          "missing_count": 200,
+          "missing_percentage": 41.49377593360996,
+          "name": "Hardware note",
+          "unique_non_null": 39
+        },
+        {
+          "dtype": "str",
+          "missing_count": 199,
+          "missing_percentage": 41.286307053941904,
+          "name": "Quote",
+          "unique_non_null": 198
+        },
+        {
+          "dtype": "str",
+          "missing_count": 191,
+          "missing_percentage": 39.62655601659751,
+          "name": "First Operational Date Note",
+          "unique_non_null": 183
+        },
+        {
+          "dtype": "str",
+          "missing_count": 418,
+          "missing_percentage": 86.72199170124482,
+          "name": "Certainty Note",
+          "unique_non_null": 42
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 76,
+          "missing_percentage": 15.767634854771783,
+          "name": "Energy Efficiency (log)",
+          "unique_non_null": 138
+        },
+        {
+          "dtype": "str",
+          "missing_count": 453,
+          "missing_percentage": 93.98340248962656,
+          "name": "Builds Upon",
+          "unique_non_null": 29
+        },
+        {
+          "dtype": "str",
+          "missing_count": 452,
+          "missing_percentage": 93.7759336099585,
+          "name": "Superseded by",
+          "unique_non_null": 29
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 482,
+          "missing_percentage": 100.0,
+          "name": "Possible Duplicate",
+          "unique_non_null": 0
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 482,
+          "missing_percentage": 100.0,
+          "name": "Possible Duplicate Of",
+          "unique_non_null": 0
+        },
+        {
+          "dtype": "str",
+          "missing_count": 466,
+          "missing_percentage": 96.6804979253112,
+          "name": "Chip type (secondary)",
+          "unique_non_null": 10
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 464,
+          "missing_percentage": 96.2655601659751,
+          "name": "Chip quantity (secondary)",
+          "unique_non_null": 18
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 47,
+          "missing_percentage": 9.751037344398341,
+          "name": "Total number of AI chips",
+          "unique_non_null": 178
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "GPU Supplier (primary)",
+          "unique_non_null": 10
+        },
+        {
+          "dtype": "str",
+          "missing_count": 276,
+          "missing_percentage": 57.26141078838174,
+          "name": "GPU supplier (secondary)",
+          "unique_non_null": 3
+        },
+        {
+          "dtype": "bool",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Include in Standard Analysis",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 482,
+          "missing_percentage": 100.0,
+          "name": "Exclude",
+          "unique_non_null": 0
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 37,
+          "missing_percentage": 7.676348547717843,
+          "name": "Rank when first operational",
+          "unique_non_null": 128
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 40,
+          "missing_percentage": 8.29875518672199,
+          "name": "16-bit OP/s (log)",
+          "unique_non_null": 237
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Max OP/s",
+          "unique_non_null": 242
+        },
+        {
+          "dtype": "object",
+          "missing_count": 245,
+          "missing_percentage": 50.829875518672196,
+          "name": "8-bit OP/s",
+          "unique_non_null": 163
+        },
+        {
+          "dtype": "object",
+          "missing_count": 40,
+          "missing_percentage": 8.29875518672199,
+          "name": "16-bit OP/s",
+          "unique_non_null": 239
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "32-bit OP/s",
+          "unique_non_null": 228
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 65,
+          "missing_percentage": 13.485477178423237,
+          "name": "Calculated Power Capacity (MW)",
+          "unique_non_null": 248
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 402,
+          "missing_percentage": 83.40248962655602,
+          "name": "Reported Power Capacity (MW)",
+          "unique_non_null": 76
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 76,
+          "missing_percentage": 15.767634854771783,
+          "name": "Energy Efficiency",
+          "unique_non_null": 154
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 98,
+          "missing_percentage": 20.33195020746888,
+          "name": "Calculated Cost",
+          "unique_non_null": 264
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 454,
+          "missing_percentage": 94.1908713692946,
+          "name": "Reported Cost",
+          "unique_non_null": 26
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 454,
+          "missing_percentage": 94.1908713692946,
+          "name": "Reported Cost (Inflation adjusted)",
+          "unique_non_null": 28
+        },
+        {
+          "dtype": "str",
+          "missing_count": 455,
+          "missing_percentage": 94.39834024896265,
+          "name": "Cost Quote",
+          "unique_non_null": 27
+        },
+        {
+          "dtype": "object",
+          "missing_count": 473,
+          "missing_percentage": 98.13278008298755,
+          "name": "Noteworthy",
+          "unique_non_null": 1
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 482,
+          "missing_percentage": 100.0,
+          "name": "Decommissioned Date (if applicable)",
+          "unique_non_null": 0
+        },
+        {
+          "dtype": "str",
+          "missing_count": 37,
+          "missing_percentage": 7.676348547717843,
+          "name": "Largest existing cluster when first operational",
+          "unique_non_null": 16
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 37,
+          "missing_percentage": 7.676348547717843,
+          "name": "% of largest cluster when first operational",
+          "unique_non_null": 232
+        },
+        {
+          "dtype": "str",
+          "missing_count": 196,
+          "missing_percentage": 40.66390041493776,
+          "name": "Source 1",
+          "unique_non_null": 252
+        },
+        {
+          "dtype": "str",
+          "missing_count": 369,
+          "missing_percentage": 76.55601659751036,
+          "name": "Source 2",
+          "unique_non_null": 98
+        },
+        {
+          "dtype": "str",
+          "missing_count": 442,
+          "missing_percentage": 91.70124481327801,
+          "name": "Source 3",
+          "unique_non_null": 39
+        },
+        {
+          "dtype": "str",
+          "missing_count": 471,
+          "missing_percentage": 97.71784232365145,
+          "name": "Source 4",
+          "unique_non_null": 11
+        },
+        {
+          "dtype": "str",
+          "missing_count": 479,
+          "missing_percentage": 99.37759336099586,
+          "name": "Source 5",
+          "unique_non_null": 3
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 23,
+          "missing_percentage": 4.771784232365145,
+          "name": "latitude",
+          "unique_non_null": 144
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 23,
+          "missing_percentage": 4.771784232365145,
+          "name": "longitude",
+          "unique_non_null": 144
+        }
+      ],
+      "duplicate_non_null_identity_count": 189,
+      "identity_column": "Name",
+      "path": "data/external/epoch/raw/gpu_clusters.csv",
+      "rows": 482,
+      "sha256": "9f564b6939022951bfa27339b9d0596fbc02c91f49311b8dbd5de7abd33d0b42",
+      "unique_identity_count": 293
+    },
+    "ml_hardware.csv": {
+      "columns": [
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Hardware name",
+          "unique_non_null": 176
+        },
+        {
+          "dtype": "str",
+          "missing_count": 1,
+          "missing_percentage": 0.5681818181818182,
+          "name": "Manufacturer",
+          "unique_non_null": 20
+        },
+        {
+          "dtype": "str",
+          "missing_count": 15,
+          "missing_percentage": 8.522727272727272,
+          "name": "Type",
+          "unique_non_null": 11
+        },
+        {
+          "dtype": "str",
+          "missing_count": 128,
+          "missing_percentage": 72.72727272727273,
+          "name": "Notes",
+          "unique_non_null": 39
+        },
+        {
+          "dtype": "str",
+          "missing_count": 14,
+          "missing_percentage": 7.954545454545454,
+          "name": "Release date",
+          "unique_non_null": 113
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 117,
+          "missing_percentage": 66.47727272727273,
+          "name": "Release price (USD)",
+          "unique_non_null": 45
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 107,
+          "missing_percentage": 60.79545454545454,
+          "name": "Tensor-FP16/BF16 performance (FLOP/s)",
+          "unique_non_null": 50
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 153,
+          "missing_percentage": 86.93181818181817,
+          "name": "FP8 performance (FLOP/s)",
+          "unique_non_null": 19
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 163,
+          "missing_percentage": 92.61363636363636,
+          "name": "FP4 performance (FLOP/s)",
+          "unique_non_null": 12
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 35,
+          "missing_percentage": 19.886363636363637,
+          "name": "Memory (bytes)",
+          "unique_non_null": 35
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 17,
+          "missing_percentage": 9.659090909090908,
+          "name": "Memory bandwidth (byte/s)",
+          "unique_non_null": 103
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 152,
+          "missing_percentage": 86.36363636363636,
+          "name": "Intranode bandwidth (byte/s)",
+          "unique_non_null": 11
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 156,
+          "missing_percentage": 88.63636363636364,
+          "name": "Internode bandwidth (bit/s)",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 23,
+          "missing_percentage": 13.068181818181818,
+          "name": "TDP (W)",
+          "unique_non_null": 59
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 80,
+          "missing_percentage": 45.45454545454545,
+          "name": "FP64 (double precision) performance (FLOP/s)",
+          "unique_non_null": 75
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 49,
+          "missing_percentage": 27.84090909090909,
+          "name": "FP32 (single precision) performance (FLOP/s)",
+          "unique_non_null": 96
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 140,
+          "missing_percentage": 79.54545454545455,
+          "name": "TF32 (TensorFloat-32) performance (FLOP/s)",
+          "unique_non_null": 26
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 61,
+          "missing_percentage": 34.659090909090914,
+          "name": "FP16 (half precision) performance (FLOP/s)",
+          "unique_non_null": 80
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 159,
+          "missing_percentage": 90.3409090909091,
+          "name": "INT16 performance (OP/s)",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 100,
+          "missing_percentage": 56.81818181818182,
+          "name": "INT8 performance (OP/s)",
+          "unique_non_null": 51
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 168,
+          "missing_percentage": 95.45454545454545,
+          "name": "INT4 performance (OP/s)",
+          "unique_non_null": 7
+        },
+        {
+          "dtype": "str",
+          "missing_count": 65,
+          "missing_percentage": 36.93181818181818,
+          "name": "Foundry",
+          "unique_non_null": 5
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 77,
+          "missing_percentage": 43.75,
+          "name": "Die Size (mm^2)",
+          "unique_non_null": 40
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 91,
+          "missing_percentage": 51.70454545454546,
+          "name": "Base clock (MHz)",
+          "unique_non_null": 65
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 105,
+          "missing_percentage": 59.65909090909091,
+          "name": "Boost clock (MHz)",
+          "unique_non_null": 47
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 113,
+          "missing_percentage": 64.20454545454545,
+          "name": "Memory clock (MHz)",
+          "unique_non_null": 40
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 104,
+          "missing_percentage": 59.09090909090909,
+          "name": "Memory bus (bit)",
+          "unique_non_null": 13
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 125,
+          "missing_percentage": 71.02272727272727,
+          "name": "Tensor cores",
+          "unique_non_null": 31
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 43,
+          "missing_percentage": 24.431818181818183,
+          "name": "Process size (nm)",
+          "unique_non_null": 13
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 90,
+          "missing_percentage": 51.13636363636363,
+          "name": "Transistors (millions)",
+          "unique_non_null": 31
+        },
+        {
+          "dtype": "str",
+          "missing_count": 22,
+          "missing_percentage": 12.5,
+          "name": "Link to datasheet",
+          "unique_non_null": 144
+        },
+        {
+          "dtype": "str",
+          "missing_count": 130,
+          "missing_percentage": 73.86363636363636,
+          "name": "Source for the price",
+          "unique_non_null": 42
+        },
+        {
+          "dtype": "str",
+          "missing_count": 95,
+          "missing_percentage": 53.97727272727273,
+          "name": "ML models",
+          "unique_non_null": 81
+        },
+        {
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Last modified",
+          "unique_non_null": 92
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "Max performance",
+          "unique_non_null": 131
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 23,
+          "missing_percentage": 13.068181818181818,
+          "name": "Energy efficiency",
+          "unique_non_null": 122
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 14,
+          "missing_percentage": 7.954545454545454,
+          "name": "Total processing performance (bit-OP/s)",
+          "unique_non_null": 118
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 117,
+          "missing_percentage": 66.47727272727273,
+          "name": "Price-performance",
+          "unique_non_null": 58
+        },
+        {
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "name": "ML OP/s",
+          "unique_non_null": 127
+        }
+      ],
+      "duplicate_non_null_identity_count": 0,
+      "identity_column": "Hardware name",
+      "path": "data/external/epoch/raw/ml_hardware.csv",
+      "rows": 176,
+      "sha256": "227c239dd6ff60a707cedaa22a734fefe1f0b4afdbb9eeab864d9fe08cca1180",
+      "unique_identity_count": 176
+    }
+  }
+}

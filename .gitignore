@@ -87,6 +87,12 @@ exports/
 .data/
 .artifacts/
 
+# Immutable external downloads and extracted vendor archives: retain locally,
+# never publish. Compact derived mappings/reports under data/derived remain tracked.
+data/external/**/raw/
+data/external/**/extracted/
+data/external/**/*.zip
+
 # Python/Streamlit local files
 .venv*/
 __pycache__/

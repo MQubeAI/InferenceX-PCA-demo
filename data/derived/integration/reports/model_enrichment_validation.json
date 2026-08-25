@@ -1,0 +1,13 @@
+{
+  "aa_metrics_do_not_alias_throughput": true,
+  "aa_source_prefixed": true,
+  "config_count_preserved": true,
+  "configs_after": 1368,
+  "configs_before": 1368,
+  "duplicate_operating_identity_count": 0,
+  "row_count_preserved": true,
+  "rows_after": 8239,
+  "rows_before": 8239,
+  "throughput_target_preserved": true,
+  "unresolved_external_fields_null": true
+}

@@ -1,0 +1,12 @@
+{"fixture": true, "question_id": "inference_v0_1_001", "response": "316.001301 tokens/s/GPU"}
+{"fixture": true, "question_id": "inference_v0_1_002", "response": "1756.174041 tokens/s/GPU"}
+{"fixture": true, "question_id": "inference_v0_1_003", "response": "b300"}
+{"fixture": true, "question_id": "inference_v0_1_004", "response": "6.016%"}
+{"fixture": true, "question_id": "inference_v0_1_005", "response": "b300"}
+{"fixture": true, "question_id": "inference_v0_1_006", "response": "b300"}
+{"fixture": true, "question_id": "inference_v0_1_007", "response": "No; the difference was small and not material."}
+{"fixture": true, "question_id": "inference_v0_1_008", "response": "Physical capability descriptors preserve much of the predictive information; it does not prove reconstruction of GPU identity."}
+{"fixture": true, "question_id": "inference_v0_1_009", "response": "mi325x"}
+{"fixture": true, "question_id": "inference_v0_1_010", "response": "mi355x"}
+{"fixture": true, "question_id": "inference_v0_1_011", "response": "No; it is descriptive across only seven SKUs and does not define a threshold."}
+{"fixture": true, "question_id": "inference_v0_1_012", "response": "MI325X"}

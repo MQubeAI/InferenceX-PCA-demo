@@ -1,0 +1,828 @@
+{
+  "exact_causes": [
+    "The historical TabFM artifact used the older local CSV source inferencex-pca-data (its recorded manifest fingerprint differs from the July 20 raw dump).",
+    "The historical 4,096 is a deterministic max_rows=4096 computational sample, not a workload, hardware, model, precision, or target-availability cohort filter.",
+    "The new July 20 aggregate has more rows/configurations before any Epoch operation because it is a different cumulative source snapshot.",
+    "The 7,168 mapped rows additionally exclude 1,071 H100/H200 operating points because their exact Epoch variants are unresolved; this restriction did not exist historically.",
+    "The initial integration RF used a different structural feature list from the historical TabFM contract. The controlled validation restores the historical default structural feature contract before adding/removing hardware representations."
+  ],
+  "historical_protocol": {
+    "aggregation_level": "median by config_id, benchmark_type, isl, osl, conc",
+    "feature_columns_reconstructed": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_dp_attention",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_dp_attention",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "feature_columns_recorded": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_dp_attention",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_dp_attention",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "feature_contract_matches_artifact": true,
+    "feature_types_recorded": {
+      "categorical": [
+        "config_hardware",
+        "config_framework",
+        "config_model",
+        "config_precision",
+        "config_spec_method"
+      ],
+      "numeric": [
+        "isl",
+        "osl",
+        "conc",
+        "config_prefill_tp",
+        "config_prefill_ep",
+        "config_prefill_dp_attention",
+        "config_prefill_num_workers",
+        "config_decode_tp",
+        "config_decode_ep",
+        "config_decode_dp_attention",
+        "config_decode_num_workers",
+        "config_num_prefill_gpu",
+        "config_disagg",
+        "config_is_multinode"
+      ]
+    },
+    "filters": {
+      "configuration": "No inclusion/exclusion filter beyond available feature columns.",
+      "hardware": "No filter.",
+      "model": "No filter.",
+      "precision": "No filter.",
+      "single_turn": "No filter.",
+      "target_non_null": "Applied after max_rows sampling; removed 0 of 4,096 sampled rows."
+    },
+    "grouped_split": "GroupKFold(n_splits=3) on config_id; group ordering follows the deterministic sampled row order.",
+    "observed_values_before_sampling": {
+      "benchmark_type": [
+        {
+          "rows": 7462,
+          "value": "single_turn"
+        }
+      ],
+      "config_hardware": [
+        {
+          "rows": 1973,
+          "value": "mi355x"
+        },
+        {
+          "rows": 1797,
+          "value": "b200"
+        },
+        {
+          "rows": 1029,
+          "value": "b300"
+        },
+        {
+          "rows": 791,
+          "value": "h200"
+        },
+        {
+          "rows": 551,
+          "value": "gb200"
+        },
+        {
+          "rows": 446,
+          "value": "gb300"
+        },
+        {
+          "rows": 349,
+          "value": "mi325x"
+        },
+        {
+          "rows": 279,
+          "value": "h100"
+        },
+        {
+          "rows": 247,
+          "value": "mi300x"
+        }
+      ],
+      "config_model": [
+        {
+          "rows": 1860,
+          "value": "dsr1"
+        },
+        {
+          "rows": 1226,
+          "value": "minimaxm3"
+        },
+        {
+          "rows": 882,
+          "value": "minimaxm2.5"
+        },
+        {
+          "rows": 737,
+          "value": "dsv4"
+        },
+        {
+          "rows": 717,
+          "value": "qwen3.5"
+        },
+        {
+          "rows": 681,
+          "value": "llama70b"
+        },
+        {
+          "rows": 617,
+          "value": "gptoss120b"
+        },
+        {
+          "rows": 355,
+          "value": "kimik2.5"
+        },
+        {
+          "rows": 353,
+          "value": "glm5"
+        },
+        {
+          "rows": 34,
+          "value": "glm5.1"
+        }
+      ],
+      "config_precision": [
+        {
+          "rows": 3668,
+          "value": "fp4"
+        },
+        {
+          "rows": 3553,
+          "value": "fp8"
+        },
+        {
+          "rows": 138,
+          "value": "bf16"
+        },
+        {
+          "rows": 103,
+          "value": "int4"
+        }
+      ]
+    },
+    "preprocessing": "FoldPreprocessor fit on each training fold: numeric training median plus missingness indicators; categorical values receive __MISSING__. The TabFM full-context point model then receives every fold-training row as context.",
+    "recorded_artifact": {
+      "available": true,
+      "controls": {
+        "folds": 3,
+        "max_rows": 4096,
+        "models": [
+          "tabfm"
+        ],
+        "seed": 42,
+        "sizes": [
+          2730
+        ],
+        "strategies": [
+          "random"
+        ],
+        "targets": "metrics_tput_per_gpu,metrics_median_tpot"
+      },
+      "dataset": {
+        "active_dir": "/Users/vivaanbhargava/Documents/InferenceX-PCA-demo-clean/inferencex-pca-data",
+        "active_mode": "CSV",
+        "files": [
+          {
+            "content_sample_sha256": "62aef631674026d7bbb42653334a8bdd7981fc77dfa2b40adfa3e13d9dfb3673",
+            "modified_at_utc": "2026-07-03T03:45:05.439759+00:00",
+            "name": "benchmark_results.csv",
+            "size_bytes": 45074925
+          },
+          {
+            "content_sample_sha256": "38146e652ba71a23c0abe95e109a3408615471f26f231fa95e8bb71e0c9b391f",
+            "modified_at_utc": "2026-07-03T03:45:08.053514+00:00",
+            "name": "configs.csv",
+            "size_bytes": 125494
+          }
+        ],
+        "fingerprint": "1a19986135342bc31961497d2fbc6d423408217c7afb9e66e1d2ee85a02c8a09"
+      },
+      "feature_columns": [
+        "isl",
+        "osl",
+        "conc",
+        "config_prefill_tp",
+        "config_prefill_ep",
+        "config_prefill_dp_attention",
+        "config_prefill_num_workers",
+        "config_decode_tp",
+        "config_decode_ep",
+        "config_decode_dp_attention",
+        "config_decode_num_workers",
+        "config_num_prefill_gpu",
+        "config_hardware",
+        "config_framework",
+        "config_model",
+        "config_precision",
+        "config_spec_method",
+        "config_disagg",
+        "config_is_multinode"
+      ],
+      "feature_types": {
+        "categorical": [
+          "config_hardware",
+          "config_framework",
+          "config_model",
+          "config_precision",
+          "config_spec_method"
+        ],
+        "numeric": [
+          "isl",
+          "osl",
+          "conc",
+          "config_prefill_tp",
+          "config_prefill_ep",
+          "config_prefill_dp_attention",
+          "config_prefill_num_workers",
+          "config_decode_tp",
+          "config_decode_ep",
+          "config_decode_dp_attention",
+          "config_decode_num_workers",
+          "config_num_prefill_gpu",
+          "config_disagg",
+          "config_is_multinode"
+        ]
+      },
+      "fold_assignment": {
+        "fold_count": 3,
+        "groups": 993
+      },
+      "preparation": {
+        "missing_target_rows_excluded": 0,
+        "sampled_rows_before_target_exclusion": 4096,
+        "usable_rows": 4096
+      },
+      "recorded_metrics": {
+        "mae": {
+          "max": 375.8181249669302,
+          "mean": 339.4583785901247,
+          "min": 301.2251828813397,
+          "std": 30.481241352080627
+        },
+        "r2": {
+          "max": 0.9726508141664602,
+          "mean": 0.9618339546262114,
+          "min": 0.9510294718147018,
+          "std": 0.0088268803911894
+        }
+      },
+      "selected_full_context_result": {
+        "artifact_path": "/Users/vivaanbhargava/Documents/InferenceX-PCA-demo-clean/artifacts/throughput-residual-diagnostics.json",
+        "controls": {
+          "context": "full_fold_local",
+          "folds": 3,
+          "max_rows": 4096,
+          "model": "tabfm",
+          "seed": 42,
+          "target": "metrics_tput_per_gpu"
+        },
+        "folds": [
+          {
+            "available_context_rows": 2730,
+            "available_training_rows": 2730,
+            "categorical_coverage": {
+              "config_disagg": 2,
+              "config_framework": 11,
+              "config_hardware": 9,
+              "config_is_multinode": 2,
+              "config_model": 10,
+              "config_precision": 4,
+              "config_spec_method": 2
+            },
+            "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+            "context_rows_used": 2730,
+            "device": "cpu",
+            "fold": 1,
+            "group_overlap": 0,
+            "mae": 301.2251828813397,
+            "package_version": "1.0.1",
+            "r2": 0.9726508141664602,
+            "signature": "bd60f563715fcf49b1e0c8a0bbc02ced4058b0798397bc5f37add0a4a68dadc1",
+            "strategy": "random",
+            "train_rows": 2730,
+            "unique_groups": 662,
+            "used_context_rows": 2730,
+            "validation_rows": 1366,
+            "workload_bin_coverage": {
+              "conc_bin": 125,
+              "isl_bin": 2,
+              "osl_bin": 2
+            }
+          },
+          {
+            "available_context_rows": 2731,
+            "available_training_rows": 2731,
+            "categorical_coverage": {
+              "config_disagg": 2,
+              "config_framework": 11,
+              "config_hardware": 9,
+              "config_is_multinode": 2,
+              "config_model": 10,
+              "config_precision": 4,
+              "config_spec_method": 2
+            },
+            "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+            "context_rows_used": 2731,
+            "device": "cpu",
+            "fold": 2,
+            "group_overlap": 0,
+            "mae": 373.55549906983697,
+            "package_version": "1.0.1",
+            "r2": 0.9515788895228826,
+            "signature": "5770633bd5ec51105d882f999fdb4b8a1146cb3548e5f9edcb36abcbe738383c",
+            "strategy": "random",
+            "train_rows": 2731,
+            "unique_groups": 662,
+            "used_context_rows": 2731,
+            "validation_rows": 1365,
+            "workload_bin_coverage": {
+              "conc_bin": 115,
+              "isl_bin": 2,
+              "osl_bin": 2
+            }
+          },
+          {
+            "available_context_rows": 2731,
+            "available_training_rows": 2731,
+            "categorical_coverage": {
+              "config_disagg": 2,
+              "config_framework": 10,
+              "config_hardware": 9,
+              "config_is_multinode": 2,
+              "config_model": 10,
+              "config_precision": 4,
+              "config_spec_method": 2
+            },
+            "checkpoint": "tabfm_v1_0_0 regression (local Hugging Face cache)",
+            "context_rows_used": 2731,
+            "device": "cpu",
+            "fold": 3,
+            "group_overlap": 0,
+            "mae": 340.84047061758275,
+            "package_version": "1.0.1",
+            "r2": 0.9617065479172494,
+            "signature": "f607c2314eddfd9d8574661c4adcce4615ea3aba96fb016dc565f1dd6e06d8b8",
+            "strategy": "random",
+            "train_rows": 2731,
+            "unique_groups": 662,
+            "used_context_rows": 2731,
+            "validation_rows": 1365,
+            "workload_bin_coverage": {
+              "conc_bin": 113,
+              "isl_bin": 2,
+              "osl_bin": 2
+            }
+          }
+        ],
+        "metrics": {
+          "mae_mean": 338.5403841895865,
+          "r2_mean": 0.9619787505355307,
+          "r2_std": 0.008604730200891525
+        },
+        "preparation": {
+          "missing_target_rows_excluded": 0,
+          "sampled_rows_before_target_exclusion": 4096,
+          "usable_rows": 4096
+        }
+      }
+    },
+    "sample_preparation": {
+      "missing_target_rows_excluded": 0,
+      "sampled_rows_before_target_exclusion": 4096,
+      "usable_rows": 4096
+    },
+    "source": {
+      "aggregation": {
+        "analysis_row_count": 7462,
+        "analysis_unit": "Median aggregate per config/workload/concurrency",
+        "grouping_keys": [
+          "config_id",
+          "benchmark_type",
+          "isl",
+          "osl",
+          "conc"
+        ],
+        "raw_row_count": 79830,
+        "timestamp_column": "",
+        "warning": ""
+      },
+      "data_dir": "inferencex-pca-data",
+      "source_manifest": {
+        "active_mode": "CSV",
+        "files": [
+          {
+            "name": "benchmark_results.csv",
+            "sha256": "c75cd533970eb11603763973c7c6d273654f7b6fa67719e474db818b515a0b85",
+            "size_bytes": 45074925
+          },
+          {
+            "name": "configs.csv",
+            "sha256": "38146e652ba71a23c0abe95e109a3408615471f26f231fa95e8bb71e0c9b391f",
+            "size_bytes": 125494
+          }
+        ],
+        "fingerprint": "eaf93b815578c275aefa0b26c2dda821fae99af62d6b3564b603ebbee95eabf5",
+        "schema_version": "inferencex-dataset-identity-v2",
+        "verification": {
+          "reason": "CSV is a developer/backward-compatibility source, not the frozen raw checkpoint",
+          "status": "LEGACY DATASET"
+        }
+      },
+      "source_mode": "CSV"
+    },
+    "source_table": "benchmark_results.csv joined to configs.csv",
+    "target_distribution_aggregate": {
+      "count": 7462,
+      "max": 63535.86841096026,
+      "mean": 2518.095712816373,
+      "median": 1005.5448625278248,
+      "min": 0.1705713016895303,
+      "p01": 22.203972481801685,
+      "p05": 65.9400875420172,
+      "p95": 10326.572962327402,
+      "p99": 18946.381328032043,
+      "std": 4305.036872640113
+    },
+    "target_distribution_sample": {
+      "count": 4096,
+      "max": 53262.60142297677,
+      "mean": 2611.9075136767083,
+      "median": 1047.9106018046105,
+      "min": 2.6605209297560624,
+      "p01": 20.734075899625477,
+      "p05": 68.2864652352121,
+      "p95": 10644.705669392422,
+      "p99": 19487.587240723016,
+      "std": 4347.411888638371
+    }
+  },
+  "new_integration_protocol": {
+    "accepted_hardware_labels": [
+      "b200",
+      "b300",
+      "gb200",
+      "gb300",
+      "mi300x",
+      "mi325x",
+      "mi355x"
+    ],
+    "aggregation_level": "median by config_id, benchmark_type, isl, osl, conc",
+    "historical_default_feature_columns_on_july20": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_num_decode_gpu",
+      "benchmark_type",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "initial_rf_feature_columns": [
+      "isl",
+      "osl",
+      "conc",
+      "config_prefill_tp",
+      "config_prefill_ep",
+      "config_prefill_num_workers",
+      "config_decode_tp",
+      "config_decode_ep",
+      "config_decode_num_workers",
+      "config_num_prefill_gpu",
+      "config_num_decode_gpu",
+      "benchmark_type",
+      "config_hardware",
+      "config_framework",
+      "config_model",
+      "config_precision",
+      "config_spec_method",
+      "config_disagg",
+      "config_is_multinode"
+    ],
+    "observed_values_before_epoch_filter": {
+      "benchmark_type": [
+        {
+          "rows": 8063,
+          "value": "single_turn"
+        },
+        {
+          "rows": 176,
+          "value": "agentic_traces"
+        }
+      ],
+      "config_hardware": [
+        {
+          "rows": 2060,
+          "value": "mi355x"
+        },
+        {
+          "rows": 1994,
+          "value": "b200"
+        },
+        {
+          "rows": 1237,
+          "value": "b300"
+        },
+        {
+          "rows": 792,
+          "value": "h200"
+        },
+        {
+          "rows": 681,
+          "value": "gb200"
+        },
+        {
+          "rows": 531,
+          "value": "gb300"
+        },
+        {
+          "rows": 386,
+          "value": "mi325x"
+        },
+        {
+          "rows": 279,
+          "value": "h100"
+        },
+        {
+          "rows": 279,
+          "value": "mi300x"
+        }
+      ],
+      "config_model": [
+        {
+          "rows": 1885,
+          "value": "dsr1"
+        },
+        {
+          "rows": 1524,
+          "value": "minimaxm3"
+        },
+        {
+          "rows": 969,
+          "value": "dsv4"
+        },
+        {
+          "rows": 882,
+          "value": "minimaxm2.5"
+        },
+        {
+          "rows": 739,
+          "value": "qwen3.5"
+        },
+        {
+          "rows": 681,
+          "value": "llama70b"
+        },
+        {
+          "rows": 617,
+          "value": "gptoss120b"
+        },
+        {
+          "rows": 420,
+          "value": "glm5"
+        },
+        {
+          "rows": 378,
+          "value": "kimik2.5"
+        },
+        {
+          "rows": 122,
+          "value": "glm5.1"
+        },
+        {
+          "rows": 22,
+          "value": "glm5.2"
+        }
+      ],
+      "config_precision": [
+        {
+          "rows": 4251,
+          "value": "fp4"
+        },
+        {
+          "rows": 3747,
+          "value": "fp8"
+        },
+        {
+          "rows": 138,
+          "value": "bf16"
+        },
+        {
+          "rows": 103,
+          "value": "int4"
+        }
+      ]
+    },
+    "source": {
+      "aggregation": {
+        "analysis_row_count": 8239,
+        "analysis_unit": "Median aggregate per config/workload/concurrency",
+        "grouping_keys": [
+          "config_id",
+          "benchmark_type",
+          "isl",
+          "osl",
+          "conc"
+        ],
+        "raw_row_count": 81851,
+        "timestamp_column": "",
+        "warning": ""
+      },
+      "data_dir": ".data/inferencex-db-dump-2026-07-20",
+      "source_manifest": {
+        "active_mode": "Raw CSV",
+        "dataset_id": "inferencex-db-dump-2026-07-20",
+        "files": [
+          {
+            "name": "benchmark_results_raw.csv",
+            "sha256": "668dcbf10dfe07bda3949a5eada4c4a9f308024ce929fe71a504c952d4b08350",
+            "size_bytes": 78570522
+          },
+          {
+            "name": "configs.csv",
+            "sha256": "827fad4296c602ce010259b2ab7540420b8900ff869fb2578097293f328e29c4",
+            "size_bytes": 118252
+          }
+        ],
+        "fingerprint": "4d567350577c3a56654e88623d067198689ee4c0d9346933f7e22df3b0b0a4d1",
+        "manifest_fingerprint": "10a31c69839c05873cfbe8a7f6592d22bb1c1892f914955fef617b98ef61a268",
+        "schema_version": "inferencex-dataset-identity-v2",
+        "source_release": "db-dump/2026-07-20",
+        "verification": {
+          "dataset_id": "inferencex-db-dump-2026-07-20",
+          "manifest_fingerprint": "10a31c69839c05873cfbe8a7f6592d22bb1c1892f914955fef617b98ef61a268",
+          "reason": "full-file SHA-256 and schema contract verified",
+          "source_release": "db-dump/2026-07-20",
+          "status": "VERIFIED CHECKPOINT"
+        }
+      },
+      "source_mode": "Raw CSV"
+    },
+    "source_table": "benchmark_results_raw.csv (metrics JSON flattened) joined to configs.csv",
+    "target_distribution_aggregate": {
+      "count": 8239,
+      "max": 63535.86841096026,
+      "mean": 2833.787485034447,
+      "median": 1081.95724708913,
+      "min": 0.17057130168953033,
+      "p01": 23.47202159028978,
+      "p05": 66.91386527592267,
+      "p95": 11560.62007309252,
+      "p99": 22748.4735091664,
+      "std": 4922.087004068654
+    },
+    "target_distribution_mapped": {
+      "count": 7168,
+      "max": 63535.86841096026,
+      "mean": 3092.992949321535,
+      "median": 1220.471690832022,
+      "min": 0.1705713016895303,
+      "p01": 28.43224209202935,
+      "p05": 74.32159574706809,
+      "p95": 12321.61042147491,
+      "p99": 24965.82670739999,
+      "std": 5187.883126384436
+    },
+    "unresolved_hardware_labels": [
+      "h100",
+      "h200"
+    ],
+    "unresolved_rows": 1071
+  },
+  "row_flow": [
+    {
+      "historical_tabfm": {
+        "configs": 1197,
+        "note": "No row filter.",
+        "rows": 79830
+      },
+      "new_integration": {
+        "configs": 1368,
+        "note": "No row filter.",
+        "rows": 81851
+      },
+      "stage": "Raw joined benchmark rows"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 1197,
+        "note": "Same aggregation implementation.",
+        "rows": 7462
+      },
+      "new_integration": {
+        "configs": 1368,
+        "note": "Same aggregation implementation.",
+        "rows": 8239
+      },
+      "stage": "Median aggregate by config/workload/concurrency"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 1197,
+        "note": "Target filter after deterministic sampling in the historical helper; it removed zero sampled rows.",
+        "rows": 7462
+      },
+      "new_integration": {
+        "configs": 1368,
+        "note": "Target filter removed no aggregate rows.",
+        "rows": 8239
+      },
+      "stage": "Target metrics_tput_per_gpu non-null"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 1197,
+        "note": "None. No single_turn-only filter.",
+        "rows": 7462
+      },
+      "new_integration": {
+        "configs": 1368,
+        "note": "None. No single_turn-only filter.",
+        "rows": 8239
+      },
+      "stage": "Workload / benchmark-type filter"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 993,
+        "note": "pandas sample(n=4096, random_state=42), then non-null target filtering.",
+        "rows": 4096
+      },
+      "new_integration": {
+        "configs": 1368,
+        "note": "No sample cap in the original RF integration experiment.",
+        "rows": 8239
+      },
+      "stage": "Deterministic max_rows sample"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 993,
+        "note": "Not applied in historical TabFM.",
+        "rows": 4096
+      },
+      "new_integration": {
+        "configs": 1243,
+        "note": "Retains seven accepted hardware labels; H100/H200 remain unresolved.",
+        "rows": 7168
+      },
+      "stage": "Accepted Epoch hardware mapping"
+    },
+    {
+      "historical_tabfm": {
+        "configs": 993,
+        "note": "Full-context TabFM input.",
+        "rows": 4096
+      },
+      "new_integration": {
+        "configs": 1243,
+        "note": "Initial Epoch RF input.",
+        "rows": 7168
+      },
+      "stage": "Final model rows"
+    }
+  ],
+  "study": "cohort_reconciliation",
+  "target": "metrics_tput_per_gpu"
+}

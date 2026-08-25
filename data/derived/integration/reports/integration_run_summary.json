@@ -1,0 +1,22 @@
+{
+  "artificial_analysis_status": "not_loaded",
+  "experiment_ran": true,
+  "hardware_mapping_rows": 9,
+  "hardware_mappings_accepted": 7,
+  "hardware_mappings_unresolved": [
+    "h100",
+    "h200"
+  ],
+  "holdout_ran": true,
+  "model_mapping_rows": 11,
+  "model_mappings_accepted": 7,
+  "model_mappings_unresolved": [
+    "dsr1",
+    "dsv4",
+    "llama70b",
+    "qwen3.5"
+  ],
+  "raw_hashes_verified": true,
+  "view_configs": 1368,
+  "view_rows": 8239
+}

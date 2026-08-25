@@ -1,0 +1,473 @@
+{
+  "endpoint": "https://artificialanalysis.ai/api/v2/language/models/free",
+  "entity_level": "one current Artificial Analysis model record; performance fields are API/model observations with no provider identity or aggregation context declared in this Free payload, not an InferenceX deployment operating point",
+  "interpretation": "The Free response contains identity, release, AA benchmark indices, provider/API serving aggregates, and pricing. It contains no hardware, deployment configuration, total parameter, active-parameter, MoE, layer, hidden-size, or attention-configuration field.",
+  "record_fields": [
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 155,
+      "missing_percentage": 77.5,
+      "null_count_when_present": 155,
+      "path": "data[].artificial_analysis_intelligence_index_cost",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 155,
+      "missing_percentage": 77.5,
+      "null_count_when_present": 0,
+      "path": "data[].artificial_analysis_intelligence_index_cost.cost_per_task",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 45,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 155,
+      "missing_percentage": 77.5,
+      "null_count_when_present": 0,
+      "path": "data[].artificial_analysis_intelligence_index_cost.cost_per_task.total_cost",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 45,
+      "unit": "cost unit not declared in payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 155,
+      "missing_percentage": 77.5,
+      "null_count_when_present": 0,
+      "path": "data[].artificial_analysis_intelligence_index_cost.total_cost",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 45,
+      "unit": "cost unit not declared in payload"
+    },
+    {
+      "classification": "C. benchmark/capability outcome",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "AA model benchmark aggregate",
+      "likely_meaning": "Artificial Analysis capability index",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].evaluations",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "C. benchmark/capability outcome",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model benchmark aggregate",
+      "likely_meaning": "Artificial Analysis capability index",
+      "missing_count": 149,
+      "missing_percentage": 74.5,
+      "null_count_when_present": 149,
+      "path": "data[].evaluations.artificial_analysis_agentic_index",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "index points"
+    },
+    {
+      "classification": "C. benchmark/capability outcome",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model benchmark aggregate",
+      "likely_meaning": "Artificial Analysis capability index",
+      "missing_count": 130,
+      "missing_percentage": 65.0,
+      "null_count_when_present": 130,
+      "path": "data[].evaluations.artificial_analysis_coding_index",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "index points"
+    },
+    {
+      "classification": "C. benchmark/capability outcome",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model benchmark aggregate",
+      "likely_meaning": "Artificial Analysis capability index",
+      "missing_count": 3,
+      "missing_percentage": 1.5,
+      "null_count_when_present": 3,
+      "path": "data[].evaluations.artificial_analysis_intelligence_index",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "index points"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].id",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].model_creator",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].model_creator.id",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].model_creator.name",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].name",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "D. API/provider serving-performance observation",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "AA model API observation; provider aggregation not declared",
+      "likely_meaning": "current API-serving observation",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].performance",
+      "prediction_eligibility": "semantically incompatible; excluded",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "D. API/provider serving-performance observation",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model API observation; provider aggregation not declared",
+      "likely_meaning": "current API-serving observation",
+      "missing_count": 95,
+      "missing_percentage": 47.5,
+      "null_count_when_present": 95,
+      "path": "data[].performance.median_end_to_end_response_time_seconds",
+      "prediction_eligibility": "semantically incompatible; excluded",
+      "present_count": 200,
+      "unit": "seconds"
+    },
+    {
+      "classification": "D. API/provider serving-performance observation",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model API observation; provider aggregation not declared",
+      "likely_meaning": "current API-serving observation",
+      "missing_count": 95,
+      "missing_percentage": 47.5,
+      "null_count_when_present": 95,
+      "path": "data[].performance.median_output_tokens_per_second",
+      "prediction_eligibility": "semantically incompatible; excluded",
+      "present_count": 200,
+      "unit": "tokens/second (provider/API aggregate; not per GPU)"
+    },
+    {
+      "classification": "D. API/provider serving-performance observation",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model API observation; provider aggregation not declared",
+      "likely_meaning": "current API-serving observation",
+      "missing_count": 95,
+      "missing_percentage": 47.5,
+      "null_count_when_present": 95,
+      "path": "data[].performance.median_time_to_first_answer_token_seconds",
+      "prediction_eligibility": "semantically incompatible; excluded",
+      "present_count": 200,
+      "unit": "seconds"
+    },
+    {
+      "classification": "D. API/provider serving-performance observation",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model API observation; provider aggregation not declared",
+      "likely_meaning": "current API-serving observation",
+      "missing_count": 95,
+      "missing_percentage": 47.5,
+      "null_count_when_present": 95,
+      "path": "data[].performance.median_time_to_first_token_seconds",
+      "prediction_eligibility": "semantically incompatible; excluded",
+      "present_count": 200,
+      "unit": "seconds"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "dict"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].pricing",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 137,
+      "missing_percentage": 68.5,
+      "null_count_when_present": 137,
+      "path": "data[].pricing.price_1m_cache_hit_tokens",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "price per 1M tokens; currency not supplied in payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 182,
+      "missing_percentage": 91.0,
+      "null_count_when_present": 182,
+      "path": "data[].pricing.price_1m_cache_write_tokens",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "price per 1M tokens; currency not supplied in payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 64,
+      "missing_percentage": 32.0,
+      "null_count_when_present": 64,
+      "path": "data[].pricing.price_1m_input_tokens",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "price per 1M tokens; currency not supplied in payload"
+    },
+    {
+      "classification": "E. pricing/business metadata",
+      "data_type": [
+        "float",
+        "int"
+      ],
+      "entity_level": "AA model pricing aggregate",
+      "likely_meaning": "current pricing or cost metadata",
+      "missing_count": 64,
+      "missing_percentage": 32.0,
+      "null_count_when_present": 64,
+      "path": "data[].pricing.price_1m_output_tokens",
+      "prediction_eligibility": "leakage-prone; excluded",
+      "present_count": 200,
+      "unit": "price per 1M tokens; currency not supplied in payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "model release-date metadata",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].release_date",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    },
+    {
+      "classification": "A. identity/provenance",
+      "data_type": [
+        "str"
+      ],
+      "entity_level": "model record",
+      "likely_meaning": "source model identity or creator",
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "null_count_when_present": 0,
+      "path": "data[].slug",
+      "prediction_eligibility": "contextual/display only",
+      "present_count": 200,
+      "unit": "not stated by payload"
+    }
+  ],
+  "response_fields": [
+    {
+      "classification": "F. other",
+      "data_type": "str",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "tier",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "float",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "intelligence_index_version",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "dict",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "pagination",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "int",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "pagination.page",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "int",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "pagination.page_size",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "int",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "pagination.total_pages",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    },
+    {
+      "classification": "F. other",
+      "data_type": "bool",
+      "entity_level": "response metadata",
+      "likely_meaning": "response-tier, version, or pagination metadata",
+      "path": "pagination.has_more",
+      "prediction_eligibility": "contextual/display only",
+      "unit": "not applicable"
+    }
+  ],
+  "snapshot": {
+    "manifest_consistent": true,
+    "manifest_exact_entry_count": 1,
+    "record_count": 200,
+    "sha256": "6f588e1f8bd7dad6074544e5652e821bc5944170e647f6f92c914fc03cdc0f49",
+    "snapshot": "data/external/artificial_analysis/raw/artificial_analysis_language_models_free_20260825T030353569731Z.json"
+  },
+  "source": "Artificial Analysis Data API Free endpoint",
+  "top_level_structure": {
+    "data": "list",
+    "intelligence_index_version": "float",
+    "pagination": "dict",
+    "tier": "str"
+  }
+}
